@@ -1,0 +1,47 @@
+﻿TYPE "escOutput"
+TITLE = {"version":"v2.2","author":"cyanezf","family":"core/system/esc","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v2.2 | 2024-07-09 | cyanezf | OMC struct added |
+//| v2.1 | 2023-11-12 | cyanezf | EmrgStopOk added |
+//| v2.0 | 2023-10-19 | cyanezf | SEL types changed |
+//| v1.0 | 2020-09-06 | cyanezf | First version |
+//
+//## Description
+//ESC output
+//--*)
+
+   STRUCT
+      om { ExternalWritable := 'False'} : Struct   // OR: Operating modes
+         SEL { ExternalWritable := 'False'} : USInt;   // OR: 0=Control off; 1=Warmrestart; 2=Stop; 3=Maintenance; 4=Manual; 5=Semiautomatic; 6=Automatic; 7=Emergency Stop unack.; 8=Emergency Stop triggered
+         controlOn { ExternalWritable := 'False'} : Bool;   // OR: 1=Control on
+         warmRestart { ExternalWritable := 'False'} : Bool;   // OR: 1=Warmrestart (from any mode to automatic)
+         stopMode { ExternalWritable := 'False'} : Bool;   // OR: 1=Stop mode
+         maintMode { ExternalWritable := 'False'} : Bool;   // OR: 1=Maintenance mode
+         manualMode { ExternalWritable := 'False'} : Bool;   // OR: 1=Manual mode
+         semiMode { ExternalWritable := 'False'} : Bool;   // OR: 1=Semiautomatic mode
+         autoMode { ExternalWritable := 'False'} : Bool;   // OR: 1=Automatic mode
+         emrgStopUnackn { ExternalWritable := 'False'} : Bool;   // OR: 1=Emergency stop unacknowledged. (released but not ackn.)
+         emrgStopTriggered { ExternalWritable := 'False'} : Bool;   // OR: 1=Emergency stop triggered
+         emrgStopOk { ExternalWritable := 'False'} : Bool;   // OR: 1=Emergency stop ok
+      END_STRUCT;
+
+      oc { ExternalWritable := 'False'} : Struct   // OR: Operating cycles
+         SEL { ExternalWritable := 'False'} : USInt;   // OR: 0=No cycle; 3=Maintenance movement; 4=Manual movement; 5=Semiautomatic step; 6=Automatic cycle
+         maintMov { ExternalWritable := 'False'} : Bool;   // OR: 1=Maintenance movement ready
+         manualMov { ExternalWritable := 'False'} : Bool;   // OR: 1=Manual movement ready
+         semiStep { ExternalWritable := 'False'} : Bool;   // OR: 1=Semiautomatic step ready
+         autoCycle { ExternalWritable := 'False'} : Bool;   // OR: 1=Automatic cycle ready
+      END_STRUCT;
+
+      stopping { ExternalWritable := 'False'} : Bool;   // OR: 1=Stopping sequence before to Control OFF
+      errorAckn { ExternalWritable := 'False'} : Bool;   // OR: 1=Error ackn.
+      emrgAckn { ExternalWritable := 'False'} : Bool;   // OR: 1=Emergency ackn.
+      lampTest { ExternalWritable := 'False'} : Bool;   // OR: 1=Lamp test
+   END_STRUCT;
+
+END_TYPE

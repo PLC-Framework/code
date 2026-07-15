@@ -1,0 +1,25 @@
+﻿TYPE "abstractAlarmData"
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/alarm","status": "current", "deprecatedBy": null, "dependencies":["abstractAlarmLevel-v2.0"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v2.0 | 2025-04-24 | cyanezf | triggered changed to UINT |
+//| v1.0 | 2025-02-01 | cyanezf | First version |
+//
+//## Description
+//Abstract alarm data pattern
+//--*)
+
+   STRUCT
+      level : USInt;   // 0=No alarm, 1=a1i Info, 2=a2w warning, 3=a3e error, 4=a4f emergency
+      a1i { S7_SetPoint := 'False'} : "abstractAlarmLevel";   // Alarm level 1 - Info
+      a2w { S7_SetPoint := 'False'} : "abstractAlarmLevel";   // Alarm level 2 - Warning
+      a3e { S7_SetPoint := 'False'} : "abstractAlarmLevel";   // Alarm level 3 - Error
+      a4f { S7_SetPoint := 'False'} : "abstractAlarmLevel";   // Alarm level 4 - Emergency
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,58 @@
+﻿TYPE "bwu4893Input14bytes"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu4893","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-06-03 | cyanezf | First version |
+// 
+//## Description
+//This data type represents the input process data of the BWU4893 drive 
+//when configured with the profile 14 bytes. It contains digital inputs, 
+//error flags, and current measurements for the motors.
+//
+//The profile 14 bytes is characterized by the following specifications: 
+//* Profile ID: 0x820138
+//* Process data size of the inputs: 14 byte
+//* Process data size of the outputs: 14 byte
+//* Transport channels: 1
+//* ASi-5 cycles: 10
+//This profile is compatible with all drives.
+//--*)
+
+   STRUCT
+      DI1 : Bool;   // BW4893-14bytes: Digital input 1
+      DI2 : Bool;   // BW4893-14bytes: Digital input 2
+      DI3 : Bool;   // BW4893-14bytes: Digital input 3
+      DI4 : Bool;   // BW4893-14bytes: Digital input 4
+      DI5 : Bool;   // BW4893-14bytes: Digital input 5
+      DI6 : Bool;   // BW4893-14bytes: Digital input 6
+      DI7 : Bool;   // BW4893-14bytes: Digital input 7
+      DI8 : Bool;   // BW4893-14bytes: Digital input 8
+      motor1_error : Bool;   // BW4893-14bytes: 1=Motor 1 error
+      motor2_error : Bool;   // BW4893-14bytes: 1=Motor 2 error
+      motor3_error : Bool;   // BW4893-14bytes: 1=Motor 3 error
+      motor4_error : Bool;   // BW4893-14bytes: 1=Motor 4 error
+      reserved_I1_4 : Bool;   // BW4893-14bytes: Reserved
+      reserved_I1_5 : Bool;   // BW4893-14bytes: Reserved
+      reserved_I1_6 : Bool;   // BW4893-14bytes: Reserved
+      reserved_I1_7 : Bool;   // BW4893-14bytes: Reserved
+      motor1_fuseTriggered : Bool;   // BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      motor2_fuseTriggered : Bool;   // BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      motor3_fuseTriggered : Bool;   // BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      motor4_fuseTriggered : Bool;   // BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      reserved_I2_4 : Bool;   // BW4893-14bytes: Reserved
+      voltageError : Bool;   // BW4893-14bytes: 1=AUX voltager lower than 18v
+      temperatureError : Bool;   // BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      reserved_I2_7 : Bool;   // BW4893-14bytes: Reserved
+      reserved_IB3 : Byte;   // BW4893-14bytes: Reserved
+      auxVoltage : UInt;   // BW4893-14bytes: AUX voltage (mV)
+      motor1_current : UInt;   // BW4893-14bytes: Motor current M1 (mA)
+      motor2_current : UInt;   // BW4893-14bytes: Motor current M2 (mA)
+      motor3_current : UInt;   // BW4893-14bytes: Motor current M3 (mA)
+      motor4_current : UInt;   // BW4893-14bytes: Motor current M4 (mA)
+   END_STRUCT;
+
+END_TYPE

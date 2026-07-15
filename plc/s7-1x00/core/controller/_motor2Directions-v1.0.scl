@@ -1,0 +1,71 @@
+﻿FUNCTION_BLOCK "_motor2Directions"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller'
+NAME : _motor2Directions
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      setpoint { ExternalWritable := 'False'} : Bool;   // IR: 0=Setpoint 1; 1=Setpoint 2
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      DO_runForward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run forward
+      DO_runBackward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run backward
+      DO_setpoint { ExternalWritable := 'False'} : Bool;   // OR: 0=Setpoint 1; 1=Setpoint 2
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      noRun : Bool;
+      auxRunForward : Bool;
+      auxRunBackward : Bool;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-10 | cyanezf | First version |
+
+## Description
+
+This function runs a motor with 2 directions.
+
+--*)
+	
+	// Ok
+	#ok := #controlOn AND #emrgStopOk;
+	
+	// No run
+	#noRun := NOT #runForward AND NOT #runBackward;
+	
+	// Aux run
+	#DO_runBackward := #auxRunBackward := #ok AND NOT #runForward AND #runBackward;
+	#DO_runForward := #auxRunForward := #ok AND #runForward AND NOT #runBackward;
+	
+	// Setpoint
+	#DO_setpoint := #setpoint;
+	
+	// Is running
+	#isRunning := #auxRunBackward OR #auxRunForward;
+	
+	// Direction
+	#direction := #auxRunBackward;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

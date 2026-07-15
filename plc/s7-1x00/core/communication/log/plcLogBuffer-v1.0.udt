@@ -1,0 +1,21 @@
+﻿TYPE "plcLogBuffer"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/log","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-07-31 | cyanezf | First version |
+// 
+//## Description
+//PLC Log buffer
+//--*)
+
+  STRUCT
+    length : UDInt;   // Data length
+    data : Array[0..99] of Byte;   // Data bytes
+  END_STRUCT;
+
+END_TYPE
+

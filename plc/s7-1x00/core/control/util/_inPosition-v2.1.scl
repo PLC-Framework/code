@@ -1,0 +1,38 @@
+﻿FUNCTION "_inPosition" : Bool
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/util'
+NAME : _inPosition
+VERSION : 2.1
+   VAR_INPUT 
+      homed : Bool;   // 1=Homed and sync ok (if there are sync axis)
+      actualPosition : LReal;   // Actual position
+      position : LReal;   // Reference position
+      tolerance : LReal;   // Max tolerance
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.1 | 2026-06-17 | cyanezf | refactor: Change REAL to LREAL  |
+| v2.0 | 2025-07-15 | cyanezf | return as bool added |
+| v1.0 | 2025-01-10 | cyanezf | First version |
+
+## Description
+
+This function checks if the `actualPosition` is in `position` with `tolerance` and is `homed`.
+
+--*)
+	
+	// Save RLO
+	ENO := #_inPosition:= #homed AND ABS(#position - #actualPosition) < #tolerance;
+	
+END_FUNCTION
+

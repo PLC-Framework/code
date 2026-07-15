@@ -1,0 +1,66 @@
+﻿TYPE "jxcPdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxc","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-05-07 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Input (PDI) structure for the SMC JXC series actuators when used with the S7-1x00 PLCs.
+//It contains status information, current position, speed, pushing force, target position,
+//and alarm codes related to the actuator's operation. The structure is designed to be used in conjunction
+//with the corresponding Process Data Output (PDO) structure to control and monitor the actuator effectively.
+//--*)
+
+   STRUCT
+      status : Struct   // Status word
+         out : USInt;   // b0: 0..63=When the operation is started and “DRIVE” is turned OFF, the step No. executed by “DRIVE” will be refreshed/updated by the combination of OUT0 to OUT 5
+         busy : Bool;   // x1.0: BUSY 1=On during the movement of the actuator during the positioning operation
+         servoReady : Bool;   // x1.1: SVRE 1=Servomotor is ready
+         isHomed : Bool;   // x1.2: STON 1=Whe the actuator is in SETON status (the position information is established). Axis referenced, homed
+         inPosition : Bool;   // x1.3: INP 1=When return to origin; When current position is within Step data position +- positioning range; When pushing force exceeds the value set in step data Trigger LV
+         inArea : Bool;   // x1.4: AREA 1=When actuator is within the output range between Area1 and Area2 in the step data.
+         inWarningArea : Bool;   // x1.5: WAREA 1=When actuator is within the output range between W area 1 and W area 2 of basic parameter
+         estop : Bool;   // x1.6: ESTOP 1=During activation of the Teaching Box stop switch, this signal is ON. During the normal operation, it is OFF. This is synchronized to the input for the EMG signal on the controller PWR connector.
+         alarm : Bool;   // x1.7: ALARM 1=Alarm generated when abnormal conditions occur to the actuator or its controlling status. OFF when there are no alarms. ON in alarm condition.
+         res_2_0 : Bool;
+         res_2_1 : Bool;
+         res_2_2 : Bool;
+         res_2_3 : Bool;
+         ready : Bool;   // x2.4: READY 1=When servo is ON and no alarm is generated
+         res_2_5 : Bool;
+         res_2_6 : Bool;
+         res_2_7 : Bool;
+         res_3 : Byte;
+      END_STRUCT;
+      currentPosition : DInt;   // d4: N=Current position is shown in multiples of 0.01u
+      currentSpeed : Int;   // w8: N=Current speed is shown in multiples of 1 u/s
+      currentPushingForce : Int;   // w10: N=Current pushing force of the actuator is shwon in multiples of 1%
+      targetPosition : DInt;   // d12: N=Target position is shown in multiples of 0.01u
+      alarm1 : Byte;   // b16: Alarm code shown as a 3 digit decimal number
+      alarm2 : Byte;   // b17: Alarm code shown as a 3 digit decimal number
+      alarm3 : Byte;   // b18: Alarm code shown as a 3 digit decimal number
+      alarm4 : Byte;   // b19: Alarm code shown as a 3 digit decimal number
+      res_20 : Byte;
+      res_21 : Byte;
+      res_22 : Byte;
+      res_23 : Byte;
+      res_24 : Byte;
+      res_25 : Byte;
+      res_26 : Byte;
+      res_27 : Byte;
+      res_28 : Byte;
+      res_29 : Byte;
+      res_30 : Byte;
+      res_31 : Byte;
+      res_32 : Byte;
+      res_33 : Byte;
+      res_34 : Byte;
+      res_35 : Byte;
+   END_STRUCT;
+
+END_TYPE
+

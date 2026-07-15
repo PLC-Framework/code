@@ -1,0 +1,322 @@
+﻿FUNCTION_BLOCK "_tcpCommunication"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TCON_IP_v4", "TDiag_Status", "T_DIAG", "TDISCON", "TCON", "TSEND", "TRCV", "TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/tcp'
+NAME : _tcpCommunication
+VERSION : 2.2
+
+   VAR_INPUT 
+      Local_PNIO_IFCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_INTERFACE := 64;   // IX: 1..65535=Profinet interface. See Hardware configuration (64 Default)
+      SOCKET_ID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : CONN_OUC := 1;   // IX: 1..4095=Socket ID. See CPU Features
+   END_VAR
+   VAR_INPUT RETAIN
+      socketMode : Bool := TRUE;   // IW: 0=CPU as TCP Server; 1=CPU as TCP Client
+      plc_port : UInt := 0;   // IW: PLC port
+      partner_IP1 : USInt := 172;   // IW: Partner IP1
+      partner_IP2 : USInt := 0;   // IW: Partner IP2
+      partner_IP3 : USInt := 0;   // IW: Partner IP3
+      partner_IP4 : USInt := 1;   // IW: Partner IP4
+      partner_port : UInt := 2000;   // IW: Partner port
+      receiver_AdHocMode : Bool := TRUE;   // IW: 1=AdHoc mode enabled
+   END_VAR
+   VAR_INPUT 
+      connect : Bool := TRUE;   // IW: 0=Disable connection; 1=Enable connection
+      restart : Bool := FALSE;   // IW: FP=Restart connection or reload configuration
+      useExtTx { ExternalWritable := 'False'} : Bool := FALSE;   // IR: 0=This block send data; 1=FC _tcpCommunicationTX sends data
+   END_VAR
+
+   VAR_OUTPUT 
+      state { ExternalWritable := 'False'} : Int;   // OR: 0=Socket doesn't exist; 1=Disconnecting; 2=Disconnected; 3=Connecting; 4=Disconnecting
+      socketDoesnotExist { ExternalWritable := 'False'} : Bool;   // OR: 1=TCP Socket doesn't exist
+      disconnecting { ExternalWritable := 'False'} : Bool;   // OR: 1=TCP Socket disconnecting
+      disconnected { ExternalWritable := 'False'} : Bool;   // OR: 1=TCP Socket disconnected
+      connecting { ExternalWritable := 'False'} : Bool;   // OR: 1=TCP Socket connecting
+      connected { ExternalWritable := 'False'} : Bool;   // OR: 1=TCP Socket connected
+   END_VAR
+
+   VAR_IN_OUT 
+      RX_control : "tcpCommunicationControl";   // IOX: Receiver control
+      RX_buffer : Array[*] of Byte;   // IOX: Receiver buffer
+      TX_control : "tcpCommunicationControl";   // IOX: Sender control
+      TX_buffer : Array[*] of Byte;   // IOX: Sender buffer
+   END_VAR
+
+   VAR 
+      loadConfig : Int := 0;   // SW: 1=Start configuration loading; 2=Disconnect; 3=Set socket; 4=Connect
+      socket {InstructionName := 'TCON_IP_v4'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TCON_IP_v4;   // SR: TCP Socket
+      socketStatus {InstructionName := 'TDiag_Status'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TDiag_Status;   // SR: TCP Socket status
+      diagnoser {InstructionName := 'T_DIAG'; LibVersion := '1.2'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : T_DIAG;   // SR: TCP Diagnoser
+      disconnecter {InstructionName := 'TDISCON'; LibVersion := '2.1'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TDISCON;   // SR: TCP Disconnecter
+      connecter {InstructionName := 'TCON'; LibVersion := '4.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TCON;   // SR: TCP Connecter
+      sender {InstructionName := 'TSEND'; LibVersion := '4.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TSEND;   // SR: TCP Sender
+      receiver {InstructionName := 'TRCV'; LibVersion := '4.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TRCV;   // SR: TCP Receiver
+      receivedBytes { ExternalWritable := 'False'} : UDInt;   // SR: TCP Receiverd bytes
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         pulse { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         restart { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         socketDoesnotExist { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         disconnectTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         connectTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      q : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      TCP_DIAG_STATE_00_NOT_USED : Byte := 0;   // T_Diag/state 0x00: Not used
+      TCP_DIAG_STATE_01_DISCONNECTED : Byte := 1;   // T_Diag/state 0x01: Connection terminated. Temporary status, for example, after the "T_RESET" instruction is called. The system then automatically attempts to reestablish the connection.
+      TCP_DIAG_STATE_02_CPU_AS_CLIENT_CONNECTING : Byte := 2;   // T_Diag/state 0x02: The active connection end point is attempting to establish a connection to the remote communication partner.
+      TCP_DIAG_STATE_03_CPU_AS_SERVER_CONNECTING : Byte := 3;   // T_Diag/state 0x03: The passive connection end point is waiting for establishment of the connection to the remote communication partner.
+      TCP_DIAG_STATE_04_CONNECTED : Byte := 4;   // T_Diag/state 0x04: Connection established.
+      TCP_DIAG_STATE_05_DISCONNECTING : Byte := 5;   // T_Diag/state 0x05: The connection is being terminated. This may be because the "T_RESET" or "T_DISCON" instruction has been called. Other possible reasons are protocol errors and line breaks.
+      
+			TCP_LOAD_0_IDLE : USInt := 0;   // TCP-Config load 0: IDLE
+      TCP_LOAD_1_LOADING : USInt := 1;   // TCP-Config load 1: Loading
+      TCP_LOAD_2_DISCONNECTION : USInt := 2;   // TCP-Config load 2: Disconnection
+      TCP_LOAD_3_CONNECTION : USInt := 3;   // TCP-Config load 3: Connection
+      
+			TCP_STATE_0_SOCKET_DOES_NOT_EXIST : Int := 0;   // TCP Socket state 0: socket doesn't exist
+      TCP_STATE_1_DISCONNECTING : Int := 1;   // TCP Socket state 1: disconnecting
+      TCP_STATE_2_DISCONNECTED : Int := 2;   // TCP Socket state 2: disconnected
+      TCP_STATE_3_CONNECTING : Int := 3;   // TCP Socket state 3: connecting
+      TCP_STATE_4_CONNECTED : Int := 4;   // TCP Socket state 4: connected
+      
+			COM_CONTROL_0_NIL : Int := 0;   // Communication control: 0 - Null
+      COM_CONTROL_1_REQ : Int := 1;   // Communication control: 1 - Sending Request
+      COM_CONTROL_2_BUSY : Int := 2;   // Communication control: 2 - Busy (sending/receiving)
+      COM_CONTROL_3_DONE : Int := 3;   // Communication control: 3 - Done (data sent or new data received)
+      COM_CONTROL_8000_ERROR : Int := 16#8000;   // Communication control: 0x8000- Error (sending/receiving)
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.2 | 2025-05-12 | cyanezf | Bug fixed NOT useExtTx |
+| v2.1 | 2024-11-07 | cyanezf | SendControl/ReceiverControl structure were replaced by TcpCommunicationControl |
+| v2.0 | 2023-01-24 | cyanezf | Fix state comment |
+| v1.2 | 2023-01-18 | cyanezf | Fix constant name with space |
+| v1.1 | 2020-01-01 | cyanezf | Interface updated |
+| v1.0 | 2019-01-01 | cyanezf | First version |
+
+## Description
+
+This function connects and disconnects an TCP socket.
+Sends data to and receives data from a remote partnes as TCP server or client.
+
+## TCP Diag state (*`socketStatus.state`*)
+
+| byte | constant | Description |
+|:----:|:---------|:------------|
+! 0x00 | TCP_DIAG_STATE_00_NOT_USED | T_Diag/state 0x00: Not used |
+| 0x01 | TCP_DIAG_STATE_01_DISCONNECTED | T_Diag/state 0x01: Connection terminated. Temporary status, for example, after the "T_RESET" instruction is called. The system then automatically attempts to reestablish the connection. |
+| 0x02 | TCP_DIAG_STATE_02_CPU_AS_CLIENT_CONNECTING | T_Diag/state 0x02: The active connection end point is attempting to establish a connection to the remote communication partner. |
+| 0x03 | TCP_DIAG_STATE_03_CPU_AS_SERVER_CONNECTING | T_Diag/state 0x03: The passive connection end point is waiting for establishment of the connection to the remote communication partner. |
+| 0x04 | TCP_DIAG_STATE_04_CONNECTED | T_Diag/state 0x04: Connection established. |
+| 0x05 | TCP_DIAG_STATE_05_DISCONNECTING | T_Diag/state 0x05: The connection is being terminated. This may be because the "T_RESET" or "T_DISCON" instruction has been called. Other possible reasons are protocol errors and line breaks. |
+
+## TCP Load (*`loadConfig`*)
+
+| usint | constant | Description |
+|:-----:|:---------|:------------|
+| 0 | TCP_LOAD_0_IDLE | IDLE |
+| 1 | TCP_LOAD_1_LOADING | Loading |
+| 2 | TCP_LOAD_2_DISCONNECTION | Disconnection |
+| 3 | TCP_LOAD_3_CONNECTION | Connectino |
+
+## TCP state (*`state`*)
+
+| int | constant | Description |
+|:----:|:---------|:------------|
+| 0 | TCP_STATE_0_SOCKET_DOES_NOT_EXIST | Socket doesn't exist |
+| 1 | TCP_STATE_1_DISCONNECTING | Disconnecting |
+| 2 | TCP_STATE_2_DISCONNECTED | Disconnected |
+| 3 | TCP_STATE_3_CONNECTING | Connecting |
+| 4 | TCP_STATE_4_CONNECTED | Connected |
+
+## Communication control (*`RX_control.command`,  `TX_control.command`*)
+
+| int | constant | Description |
+|:----:|:---------|:------------|
+| 0 | COM_CONTROL_0_NIL | Null |
+| 1 | COM_CONTROL_1_REQ | Sending Request |
+| 2 | COM_CONTROL_2_BUSY | Busy (sending/receiving) |
+| 3 | COM_CONTROL_3_DONE | Done (data sent or new data received) |
+| 0x8000 | COM_CONTROL_8000_ERROR | Error (sending/receiving) |
+
+--*)
+	
+	// ############################################################################
+	// TCP Connection handling ####################################################
+	// ############################################################################
+	
+	// First scan #################################################################
+	IF #restart AND NOT #private.restart THEN
+	    #loadConfig := #TCP_LOAD_1_LOADING;
+	END_IF;
+	#private.restart := #restart;
+	
+	// TCP Configurate Socket #####################################################
+	IF #loadConfig = #TCP_LOAD_1_LOADING THEN
+	    
+	    // Set socket parameters
+	    #socket.InterfaceId := #Local_PNIO_IFCE;
+	    #socket.ID := #SOCKET_ID;
+	    #socket.ConnectionType := 11; // TCP/IP
+	    #socket.ActiveEstablished := #socketMode;
+	    #socket.RemoteAddress.ADDR[1] := #partner_IP1;
+	    #socket.RemoteAddress.ADDR[2] := #partner_IP2;
+	    #socket.RemoteAddress.ADDR[3] := #partner_IP3;
+	    #socket.RemoteAddress.ADDR[4] := #partner_IP4;
+	    #socket.RemotePort := #partner_port;
+	    #socket.LocalPort := #plc_port;
+	    
+	    // Set Socket ID
+	    #diagnoser.ID := #SOCKET_ID;
+	    #disconnecter.ID := #SOCKET_ID;
+	    #connecter.ID := #SOCKET_ID;
+	    #receiver.ID := #SOCKET_ID;
+	    #sender.ID := #SOCKET_ID;
+	    
+	    // Set receiver features
+	    #receiver.ADHOC := #receiver_AdHocMode;
+	    #receiver.LEN := 0;
+	    
+	    // Disconnect
+	    #loadConfig := #TCP_LOAD_2_DISCONNECTION;
+	    #disconnecter.REQ := true;
+	    
+	END_IF;
+	
+	// Enable connection ##########################################################
+	IF #connect THEN
+	    IF #loadConfig = #TCP_LOAD_0_IDLE THEN
+	        #loadConfig := #TCP_LOAD_1_LOADING;
+	    END_IF;
+	ELSE
+	    IF #loadConfig <> #TCP_LOAD_0_IDLE THEN
+	        #loadConfig := #TCP_LOAD_0_IDLE;
+	        #disconnecter.REQ := true;
+	    END_IF;
+	END_IF;
+	
+	// TCP Diagnoser ##############################################################
+	#private.pulse := NOT #private.pulse;
+	#diagnoser(ID := #SOCKET_ID,
+	           REQ := #private.pulse,
+	           RESULT := #socketStatus);
+	
+	// Clear socket status
+	IF #diagnoser.ERROR THEN
+	    #socketStatus.InterfaceId := 0;
+	    #socketStatus.ID := 0;
+	    #socketStatus.ConnectionType := 0;
+	    #socketStatus.ActiveEstablished := false;
+	    #socketStatus.State := 0;
+	    #socketStatus.Kind := 0;
+	    #socketStatus.SentBytes := 0;
+	    #socketStatus.ReceivedBytes := 0;
+	    #private.socketDoesnotExist := #diagnoser.STATUS = 16#80A3;
+	END_IF;
+	
+	IF #diagnoser.DONE THEN
+	    #private.socketDoesnotExist := false;
+	END_IF;
+	
+	// Set outputs
+	#socketDoesnotExist := #private.socketDoesnotExist;
+	#disconnected := #socketStatus.State = #TCP_DIAG_STATE_01_DISCONNECTED;
+	#connecting := #socketStatus.State = #TCP_DIAG_STATE_02_CPU_AS_CLIENT_CONNECTING OR #socketStatus.State = #TCP_DIAG_STATE_03_CPU_AS_SERVER_CONNECTING;
+	#connected := #socketStatus.State = #TCP_DIAG_STATE_04_CONNECTED;
+	#disconnecting := #socketStatus.State = #TCP_DIAG_STATE_05_DISCONNECTING;
+	
+	IF #disconnecting THEN
+	    #state := #TCP_STATE_1_DISCONNECTING;
+	ELSIF #disconnected THEN
+	    #state := #TCP_STATE_2_DISCONNECTED;
+	ELSIF #connecting THEN
+	    #state := #TCP_STATE_3_CONNECTING;
+	ELSIF #connected THEN
+	    #state := #TCP_STATE_4_CONNECTED;
+	ELSE
+	    #state := #TCP_STATE_0_SOCKET_DOES_NOT_EXIST;
+	END_IF;
+	
+	// TCP Disconnecter ###########################################################
+	#disconnecter();
+	#disconnecter.REQ := false;
+	
+	// Connect: This is in case of DB reloading
+	#private.disconnectTon(IN := #loadConfig = #TCP_LOAD_2_DISCONNECTION,
+	                      PT := t#200ms,
+	                      Q => #q);
+	IF #q THEN
+	    #loadConfig := #TCP_LOAD_3_CONNECTION;
+	    #connecter.REQ := true;
+	END_IF;
+	// Disconnect: This is in case of DB reloading
+	#private.connectTon(IN := #loadConfig = #TCP_LOAD_3_CONNECTION AND #socketDoesnotExist,
+	                   PT := t#200ms,
+	                   Q => #q);
+	IF #q THEN
+	    #loadConfig := #TCP_LOAD_2_DISCONNECTION;
+	END_IF;
+	
+	// TCP Connecter ##############################################################
+	#connecter(CONNECT := #socket);
+	#connecter.REQ := false;
+	
+	// ############################################################################
+	// TCP Receiver ###############################################################
+	// ############################################################################
+	#receiver(EN_R := TRUE,
+	          RCVD_LEN => #RX_control.length,
+	          DATA := #RX_buffer);
+	
+	IF #receiver.BUSY THEN
+	    #RX_control.command := #COM_CONTROL_2_BUSY;
+	ELSIF #receiver.NDR THEN
+	    #RX_control.command := #COM_CONTROL_3_DONE;
+	    #receivedBytes := #receiver.RCVD_LEN;
+	ELSIF #receiver.ERROR THEN
+	    #RX_control.command := #COM_CONTROL_8000_ERROR;
+	ELSE
+	    #RX_control.command := #COM_CONTROL_0_NIL;
+	END_IF;
+	
+	// ############################################################################
+	// TCP Sender #################################################################
+	// ############################################################################
+	IF NOT #useExtTx THEN
+	    
+	    #sender(REQ := #TX_control.command = #COM_CONTROL_1_REQ,
+	            LEN := #TX_control.length,
+	            DATA := #TX_buffer);
+	    #sender.REQ := false;
+	    
+	    IF #sender.BUSY THEN
+	        #TX_control.command := #COM_CONTROL_2_BUSY;
+	    ELSIF #sender.DONE THEN
+	        #TX_control.command := #COM_CONTROL_3_DONE;
+	    ELSIF #sender.ERROR THEN
+	        #TX_control.command := #COM_CONTROL_8000_ERROR;
+	    ELSE
+	        #TX_control.command := #COM_CONTROL_0_NIL;
+	    END_IF;
+	    
+	END_IF;
+	
+	// ############################################################################
+	// Return #####################################################################
+	// ############################################################################
+	ENO := #connected;
+	
+END_FUNCTION_BLOCK
+

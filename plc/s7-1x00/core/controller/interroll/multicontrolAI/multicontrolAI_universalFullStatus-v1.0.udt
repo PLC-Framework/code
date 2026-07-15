@@ -1,0 +1,87 @@
+﻿TYPE "multicontrolAI_universalFullStatus"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/interroll/multicontrolAI","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//Multicontrol AI - universal full status
+//--*)
+
+   STRUCT
+      sensor1 : Bool;   // SW: 0.0 - 1=Sensor
+      sensor2 : Bool;   // SW: 0.1 - 1=Sensor
+      sensor3 : Bool;   // SW: 0.2 - 1=Sensor
+      sensor4 : Bool;   // SW: 0.3 - 1=Sensor
+      sensor5 : Bool;   // SW: 0.4 - 1=Sensor
+      sensor6 : Bool;   // SW: 0.5 - 1=Sensor
+      sensor7 : Bool;   // SW: 0.6 - 1=Sensor
+      sensor8 : Bool;   // SW: 0.7 - 1=Sensor
+      input1 : Bool;   // SW: 1.0 - 1=I/O input
+      input2 : Bool;   // SW: 1.1 - 1=I/O input
+      input3 : Bool;   // SW: 1.2 - 1=I/O input
+      input4 : Bool;   // SW: 1.3 - 1=I/O input
+      spare_1_4 : Bool;   // SW: 1.4 - Spare
+      spare_1_5 : Bool;   // SW: 1.5 - Spare
+      spare_1_6 : Bool;   // SW: 1.6 - Spare
+      spare_1_7 : Bool;   // SW: 1.7 - Spare
+      motor1_error : Bool;   // SW: 2.0 - 1=Motor 1 error
+      motor2_error : Bool;   // SW: 2.1 - 1=Motor 2 error
+      motor3_error : Bool;   // SW: 2.2 - 1=Motor 3 error
+      motor4_error : Bool;   // SW: 2.3 - 1=Motor 4 error
+      spare_2_4 : Bool;   // SW: 2.4 - Spare
+      spare_2_5 : Bool;   // SW: 2.5 - Spare
+      spare_2_6 : Bool;   // SW: 2.6 - Spare
+      spare_2_7 : Bool;   // SW: 2.7 - Spare
+      motor1_speed : SInt;   // SW: 3.0 - Motor 1 speed [%]
+      motor2_speed : SInt;   // SW: 4.0 - Motor 2 speed [%]
+      motor3_speed : SInt;   // SW: 5.0 - Motor 3 speed [%]
+      motor4_speed : SInt;   // SW: 6.0 - Motor 4 speed [%]
+      lastError : SInt;   // SW: 7.0 - Motor last error
+      motor1_current : UInt;   // SW: 8.0 - Motor 1 curent [mA]
+      motor2_current : UInt;   // SW: 10.0 - Motor 2 curent [mA]
+      motor3_current : UInt;   // SW: 12.0 - Motor 3 curent [mA]
+      motor4_current : UInt;   // SW: 14.0 - Motor 4 curent [mA]
+      motorVoltage : Int;   // SW: 16.0 - Voltage 1, Power motor supply voltage [mV]
+      logicVoltage : Int;   // SW: 18.0 - Voltage 2, Power logic + sensors supply voltage [mV]
+      temperature : Int;   // SW: 20.0 - Multicontrol temperature [0.1 * ºc]
+      runtime : UDInt;   // SW: 22.0 - Time since last restart [s]
+      controlInput1 : Bool;   // SW: 26.0 - 1=Control input
+      controlInput2 : Bool;   // SW: 26.1 - 1=Control input
+      controlInput3 : Bool;   // SW: 26.2 - 1=Control input
+      controlInput4 : Bool;   // SW: 26.3 - 1=Control input
+      controlInput5 : Bool;   // SW: 26.4 - 1=Control input
+      controlInput6 : Bool;   // SW: 26.5 - 1=Control input
+      controlInput7 : Bool;   // SW: 26.6 - 1=Control input
+      controlInput8 : Bool;   // SW: 26.7 - 1=Control input
+      decisionByte : Byte;   // SW: 27
+      controlOutput1 : Bool;   // SW: 28.0 - 1=Control output
+      controlOutput2 : Bool;   // SW: 28.1 - 1=Control output
+      controlOutput3 : Bool;   // SW: 28.2 - 1=Control output
+      controlOutput4 : Bool;   // SW: 28.3 - 1=Control output
+      controlOutput5 : Bool;   // SW: 28.4 - 1=Control output
+      controlOutput6 : Bool;   // SW: 28.5 - 1=Control output
+      controlOutput7 : Bool;   // SW: 28.6 - 1=Control output
+      controlOutput8 : Bool;   // SW: 28.7 - 1=Control output
+      handshake_inUp : Bool;   // SW: 29.0
+      handshake_inDown : Bool;   // SW: 29.1
+      handshake_inLeft : Bool;   // SW: 29.2
+      handshake_inRight : Bool;   // SW: 29.3
+      handshake_outUp : Bool;   // SW: 29.4
+      handshake_outDown : Bool;   // SW: 29.5
+      handshake_outLeft : Bool;   // SW: 29.6
+      handshake_outRight : Bool;   // SW: 29.7
+      spare_30 : Byte;   // SW: 30.0 - Spare
+      zone1_error : USInt;   // SW: 31.0 - Zone 1 error code, 0=Ok; Other=Zone error
+      zone2_error : USInt;   // SW: 32.0 - Zone 2 error code, 0=Ok; Other=Zone error
+      zone3_error : USInt;   // SW: 33.0 - Zone 3 error code, 0=Ok; Other=Zone error
+      zone4_error : USInt;   // SW: 34.0 - Zone 4 error code, 0=Ok; Other=Zone error
+      spare_35 : Byte;   // SW: 35.0 - Spare
+   END_STRUCT;
+
+END_TYPE
+

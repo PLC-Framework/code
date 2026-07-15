@@ -1,0 +1,26 @@
+﻿TYPE "sick_cdf600_statusWord"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+// Sick type refactorized to adapt for core style.
+
+   STRUCT
+      extInput1 : Bool;   // D8: IN1 input level of the fieldbus module
+      extInput2 : Bool;   // D9: IN2 input level of the fieldbus module
+      sensor1 : Bool;   // D10: Sensor1 input level of the barcode scanner
+      sensor22 : Bool;   // D11: Sensor2 input level of the barcode scanner
+      res12 : Bool;   // D12
+      res13 : Bool;   // D13
+      res14 : Bool;   // D14
+      toggle : Bool;   // D15
+      deviceReady : Bool;   // D0: 1=State of te CLV6xx barcode scanner
+      systemReady : Bool;   // D1: Not implemented for the CLV6xx barcode scanner
+      goodRead : Bool;   // D2: State of te reading result
+      noRead : Bool;   // D3: State of te reading result
+      extOutput1 : Bool;   // D4: OUT1 output level of the fieldbus module
+      extOutput2 : Bool;   // D5: OUT2 output level of the fieldbus module
+      result1 : Bool;   // D6: Result1 output level of the barcode scanner
+      result2 : Bool;   // D7: Result2 output level of the barcode scanner
+   END_STRUCT;
+
+END_TYPE
+

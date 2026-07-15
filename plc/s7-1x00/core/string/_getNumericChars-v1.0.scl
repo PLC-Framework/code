@@ -1,0 +1,88 @@
+﻿FUNCTION "_getNumericChars" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/string'
+NAME : _getNumericChars
+VERSION : 1.0
+
+   VAR_INPUT 
+      value : String;   // Source value string to be checked
+      start : Int;   // Start index to check
+   END_VAR
+
+   VAR_OUTPUT 
+      result : String;   // Result string with numeric characters
+   END_VAR
+
+   VAR_TEMP 
+      length : Int;
+      isNumeric : Bool;
+      i : Int;
+      tmp : String;
+   END_VAR
+
+   VAR CONSTANT 
+      FIRST_CHAR : Int := 1;
+      STATUS_0000_DONE : Int := 0;
+      STATUS_8000_START_OUT_OF_RANGE : Int := 16#8000;
+      STATUS_8001_RESULT_LENGTH_TOO_SMALL : Int := 16#8001;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-07 | cyanezf | First version |
+
+## Description
+
+This function returns an substring with numeric chars in a given `value`string and `start` position.
+
+--*)
+
+	#length := LEN(#value);
+	
+	// Exit function when index is out of range
+	IF #start < #FIRST_CHAR OR #start > #length THEN
+	  #_getNumericChars := #STATUS_8000_START_OUT_OF_RANGE;
+	  #result := '';
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Start as empty string
+	#tmp := '';
+	
+	// Iterate string
+	FOR #i := #start TO #length DO
+	  
+	  // Break if char is not a numeric char
+	  IF #value[#i] < '0' OR #value[#i] > '9' THEN
+	    EXIT; // Break loop
+	  END_IF;
+	  
+	  // Concatenate
+	  #tmp := CONCAT(IN1 := #tmp, IN2 := #value[#i]);
+	  
+	END_FOR;
+	
+	// Check result length
+	IF LEN(#result) < LEN(#tmp) THEN
+	  #_getNumericChars := #STATUS_8001_RESULT_LENGTH_TOO_SMALL;
+	  #result := '';
+	  ENO := FALSE;
+	  RETURN;
+	END_IF;
+	
+	// Return done
+	#_getNumericChars := #STATUS_0000_DONE;
+	#result := #tmp;
+	ENO := true;
+	
+END_FUNCTION
+

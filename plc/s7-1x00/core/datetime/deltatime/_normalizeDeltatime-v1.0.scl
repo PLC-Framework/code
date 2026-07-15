@@ -1,0 +1,81 @@
+﻿FUNCTION "_normalizeDeltatime" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["unnormalizedDeltatime-v1.0", "deltatime-v1.0", "MOVE_BLK_VARIANT"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/deltatime'
+NAME : _normalizeDeltatime
+VERSION : 1.0
+   VAR_INPUT 
+      in : "unnormalizedDeltatime";   // Input unnormalized timedelta
+   END_VAR
+
+   VAR_OUTPUT 
+      out : "deltatime";   // Output timedelta
+   END_VAR
+
+   VAR_TEMP 
+      tmp : "deltatime";
+   END_VAR
+
+   VAR CONSTANT 
+      WEEK_DAYS : UDInt := 7;
+      DAY_SECONDS : UDInt := 86400;
+      HOUR_SECONDS : UDInt := 3600;
+      MINUTE_SECONDS : UDInt := 60;
+      SECOND_NANOSECONDS : UDInt := 1_000_000_000;
+      MAX_DAYS : UDInt := 999999999;
+      STATUS_0000_DONE : Int := 0;
+      STATUS_8011_DELTATIME_OVERFLOW : Int := 16#8011;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function normalize an unnormalized deltatime.
+
+## Return
+
+| RLO | int | constant | description |
+|:---:|:---:|:---------|:------------|
+| TRUE | 0x0000 | STATUS_0000_OK | Deltatime is ok |
+| FALSE | 0x8011 | STATUS_8011_DATETIME_OVERFLOW |  `days`> 999_999_999 |
+
+--*)
+	
+	#tmp.seconds := #in.nanoseconds / #SECOND_NANOSECONDS;
+	#tmp.nanoseconds := #in.nanoseconds - (#tmp.seconds * #SECOND_NANOSECONDS);
+	
+	#tmp.seconds += #in.seconds;
+	#tmp.seconds += #in.minutes * #MINUTE_SECONDS;
+	#tmp.seconds += #in.hours * #HOUR_SECONDS;
+	
+	#tmp.days := #tmp.seconds / #DAY_SECONDS;
+	#tmp.seconds -= #tmp.days * #DAY_SECONDS;
+	
+	#tmp.days += #in.weeks * #WEEK_DAYS;
+	#tmp.days += #in.days;
+	
+	// Return
+	#out := #tmp;
+	
+	IF #tmp.days > #MAX_DAYS THEN
+	  #_normalizeDeltatime := #STATUS_8011_DELTATIME_OVERFLOW;
+	  ENO := false;
+	  
+	ELSE
+	  #_normalizeDeltatime := #STATUS_0000_DONE;
+	  ENO := true;
+	END_IF;
+	
+END_FUNCTION
+

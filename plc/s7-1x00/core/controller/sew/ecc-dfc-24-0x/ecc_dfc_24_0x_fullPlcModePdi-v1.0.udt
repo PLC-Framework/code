@@ -1,0 +1,155 @@
+﻿TYPE "ecc_dfc_24_0x_fullPlcModePdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/sew/ecc-dfc-24-0x","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-01 | cyanezf | First version |
+//
+//## Description
+//This data type is used to get data from ECC-DFC-24-0X.
+//
+//--*)
+
+   STRUCT
+      conveyStopStatus : Struct   // 0.0: Convey Stop Status
+         x0 : Bool;   // 0.0
+         x1 : Bool;   // 0.1
+         stopActiveCommandPlc : Bool;   // 0.2: 0=Run; 1=Fieldbus controller was given the status stop by the PLC
+         x3 : Bool;   // 0.3
+         x4 : Bool;   // 0.4
+         x5 : Bool;   // 0.5
+         x6 : Bool;   // 0.6
+         x7 : Bool;   // 0.7
+         x8 : Bool;   // 1.0
+         x9 : Bool;   // 1.1
+         xA : Bool;   // 1.2
+         xB : Bool;   // 1.3
+         xC : Bool;   // 1.4
+         stopActiveOtherModule : Bool;   // 1.5: A fieldbus controller in the stop group currently has the status stop
+         stopActiveLostConnection : Bool;   // 1.6: Communication connection lost. Fieldbus controller was given the status Stop
+         stopActiveLostPlc : Bool;   // 1.7: Missing connection to the PLC. Fieldbus controller was given the status Stop
+      END_STRUCT;
+      allSensors : Struct   // 2.0: All Sensors
+         x0 : Bool;   // 2.0
+         x1 : Bool;   // 2.1
+         x2 : Bool;   // 2.2
+         x3 : Bool;   // 2.3
+         x4 : Bool;   // 2.4
+         x5 : Bool;   // 2.5
+         x6 : Bool;   // 2.6
+         hearbeat : Bool;   // 2.7: Heartbeat toggle every 2 seconds
+         leftPin2 : Bool;   // 3.0: Status of the left sensor port (pin 2)
+         x9 : Bool;   // 3.1
+         rightPin2 : Bool;   // 3.2: Status of the right sensor port (pin 2)
+         xB : Bool;   // 3.3
+         leftPin4 : Bool;   // 3.4: Status of the left sensor port (pin 4)
+         xD : Bool;   // 3.5
+         rightPin4 : Bool;   // 3.6: Status of the right sensor port (pin 4)
+         xF : Bool;   // 3.7
+      END_STRUCT;
+      sensor : Struct   // 4.0: Sensor
+         b0 : Byte;   // 4.0
+         rightSensorDetect : Bool;   // 5.0: If this bit is TRUE, a sensor was detected on the right sensor port (pin 4)
+         leftSensorDetect : Bool;   // 5.1: If this bit is TRUE, a sensor was detected on the left sensor port (pin 4)
+         xA : Bool;   // 5.2
+         xB : Bool;   // 5.3
+         xC : Bool;   // 5.4
+         xD : Bool;   // 5.5
+         xE : Bool;   // 5.6
+         xF : Bool;   // 5.7
+      END_STRUCT;
+      voltage : Int;   // 6.0: Supply voltage of the fieldbus controller in mv: 24000mv for 24v
+      left_current : Int;   // 8.0: Left motor roller current in mA: 5000 for 5A
+      left_frequency : Int;   // 10.0: Frequency at the hall effect sensor on the left motor roller in Hz: 500 for 500Hz
+      left_temperature : SInt;   // 12.0: Calculated temperature of the left motor roller in ºC
+      left_moduleTemperature : SInt;   // 13.0: Temperature of the power section of the left drive axis measured in ºC
+      left_mdrDiagnostics : Struct   // 14.0:Lefy MDR diagnostics
+         overheat : Bool;   // 14.0: Overheat: Overtemperature fault. The temperature of the motor roller exceeded 105ºc
+         maxTorque : Bool;   // 14.1: Max torque: Motor at current limit
+         shortcircuit : Bool;   // 14.2: Motor short circuit
+         mdrNotconnected : Bool;   // 14.3: No motor is connected to the motor port
+         overload : Bool;   // 14.4: Overload detected. Speed lowered to <10% of the setpoint speed due tot he overload
+         stalled : Bool;   // 14.5: Motor blockade detected
+         mdrBadHall : Bool;   // 14.6: Hall sensor fault
+         mdrNotUsed : Bool;   // 14.7: Zone was not configured in ZPA
+         mdrStatusBit1 : Bool;   // 15.0: Description of the 2-bit coded
+         mdrStatusBit2 : Bool;   // 15.1: Description of the 2-bit coded
+         mdrInDoMode : Bool;   // 15.2: Motor port is connected to the digital I/O mode
+         xB : Bool;   // 15.3
+         xC : Bool;   // 15.4
+         xD : Bool;   // 15.5
+         overVoltage : Bool;   // 15.6: Overvoltage fault
+         lowVoltage : Bool;   // 15.7: Undervoltage fault
+      END_STRUCT;
+      right_current : Int;   // 16.0: Left motor roller current in mA: 5000 for 5A
+      right_frequency : Int;   // 18.0: Frequency at the hall effect sensor on the left motor roller in Hz: 500 for 500Hz
+      right_temperature : SInt;   // 20.0: Calculated temperature of the left motor roller in ºC
+      right_moduleTemperature : SInt;   // 21.0: Temperature of the power section of the left drive axis measured in ºC
+      right_mdrDiagnostics : Struct   // 22.0: Right MDR diagnostics
+         overheat : Bool;   // 22.0: Overheat: Overtemperature fault. The temperature of the motor roller exceeded 105ºc
+         maxTorque : Bool;   // 22.1: Max torque: Motor at current limit
+         shortcircuit : Bool;   // 22.2: Motor short circuit
+         mdrNotconnected : Bool;   // 22.3: No motor is connected to the motor port
+         overload : Bool;   // 22.4: Overload detected. Speed lowered to <10% of the setpoint speed due tot he overload
+         stalled : Bool;   // 22.5: Motor blockade detected
+         mdrBadHall : Bool;   // 22.6: Hall sensor fault
+         mdrNotUsed : Bool;   // 22.7: Zone was not configured in ZPA
+         mdrStatusBit1 : Bool;   // 23.0: Description of the 2-bit coded
+         mdrStatusBit2 : Bool;   // 23.1: Description of the 2-bit coded
+         mdrInDoMode : Bool;   // 23.2: Motor port is connected to the digital I/O mode
+         xB : Bool;   // 23.3
+         xC : Bool;   // 23.4
+         xD : Bool;   // 23.5
+         overVoltage : Bool;   // 23.6: Overvoltage fault
+         lowVoltage : Bool;   // 23.7: Undervoltage fault
+      END_STRUCT;
+      left_mdrDIOstatus : Struct   // 24.0: Left MDR DIO status
+         x0 : Bool;   // 24.0
+         x1 : Bool;   // 24.1
+         x2 : Bool;   // 24.2
+         shortcircuit : Bool;   // 24.3: Shortcircuit between +24v and pin2/3/4
+         x4 : Bool;   // 24.4
+         x5 : Bool;   // 24.5
+         x6 : Bool;   // 24.6
+         x7 : Bool;   // 24.7
+         b1 : Byte;   // 25.0
+      END_STRUCT;
+      right_mdrDIOstatus : Struct   // 26.0: Right MDR DIO status
+         x0 : Bool;   // 26.0
+         x1 : Bool;   // 26.1
+         x2 : Bool;   // 26.2
+         shortcircuit : Bool;   // 26.3: Shortcircuit between +24v and pin2/3/4
+         x4 : Bool;   // 26.4
+         x5 : Bool;   // 26.5
+         x6 : Bool;   // 26.6
+         x7 : Bool;   // 26.7
+         b1 : Byte;   // 27.0
+      END_STRUCT;
+      upStreamModuleStatus : Struct   // 28.0: Up stream Module Status
+         lowByte : Byte;   // 28.0: ZPA status: 0x01=Empty; 0x02=Accepting; 0x04=Full and running; 0x05=Full and stopped
+         highByte : Byte;   // 29.0: As the lowbyte values in the reverse direction of flow
+      END_STRUCT;
+      downStreamModuleStatus : Struct   // 30.0: Down stream Module Status
+         lowByte : Byte;   // 30.0: ZPA status: 0x01=Empty; 0x02=Accepting; 0x04=Full and running; 0x05=Full and stopped
+         highByte : Byte;   // 31.0: As the lowbyte values in the reverse direction of flow
+      END_STRUCT;
+      trackingFromUpStream : DWord;   // 32.0: ZPA tracking data of the upstream fielbus controller ECC-DFC-24-00
+      w36 : Word;   // 36.0
+      left_position : DInt;   // 38.0: Current motor position (incremental value) of the left motor
+      right_position : DInt;   // 42.0: Current motor position (incremental value) of the right motor
+      left_servoStatus : Word;   // 46.0: Status word for servo commands for left motor: 0x02=Referencing completed, DistanceLeft=0; 0x05=Target position was reached. DistanceLeft= setpoint position
+      right_servoStatus : Word;   // 48.0: Status word for servo commands for right motor: 0x02=Referencing completed, DistanceRight=0; 0x05=Target position was reached. DistanceRight= setpoint position
+      left_mdrRealSpeed : Int;   // 50.0: Left - measured speed/rotaional speed of the drive - ECR= v(ECR)[m/s]x1000; ECG=v(ECG)[rpm]x10; Addtional limit value report, speed setpoint: Bit14=TRUE setpoint speed > max. possible speed; Bit15=TRUE setpoint speed < miin. possibled speed; BIt14/15=FALSE setpoint speed/rotational speed ok
+      right_mdrRealSpeed : Int;   // 52.0: Right - measured speed/rotaional speed of the drive - ECR= v(ECR)[m/s]x1000; ECG=v(ECG)[rpm]x10; Addtional limit value report, speed setpoint: Bit14=TRUE setpoint speed > max. possible speed; Bit15=TRUE setpoint speed < miin. possibled speed; BIt14/15=FALSE setpoint speed/rotational speed ok
+      w54 : Word;   // 54.0
+      w56 : Word;   // 56.0
+      w58 : Word;   // 58.0
+      w60 : Word;   // 60.0
+      w62 : Word;   // 62.0
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,94 @@
+﻿FUNCTION_BLOCK "_sensorPulseOnConveyor"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TONR_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/conveyor-technology'
+NAME : _sensorPulseOnConveyor
+VERSION : 1.0
+   VAR_INPUT 
+      sensor { ExternalWritable := 'False'} : Bool;   // IR: Sensor input
+      logic { ExternalWritable := 'False'} : Bool;   // IR: 0=Use negative edge; 1=Use positive edge
+      conveyorIsRunning { ExternalWritable := 'False'} : Bool;   // IR: 1=Conveyor is running
+      PULSE_LENGTH { ExternalWritable := 'False'} : Real := 600.0;   // IR: Pulse length in mm
+      CONVEYOR_SPEED { ExternalWritable := 'False'} : Real := 500.0;   // IR: Conveyor speed in mm/s
+   END_VAR
+
+   VAR_OUTPUT 
+      Q { ExternalWritable := 'False'} : Bool;   // OR: 1=Output pulse
+      ED { ExternalWritable := 'False'} : Real;   // OR: Elapsed distance in mm
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // XR: Private static variables
+         sensor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         start { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         pulseTon {InstructionName := 'TONR_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TONR_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      pulseOn : Bool;
+      pulseOff : Bool;
+      pulseTime : Time;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-14 | cyanezf | First version |
+
+## Description
+
+This function evaluates the `sensor` edge and activates output `Q` for the distance `PULSE_LENGTH` in mm at the speed `CONVEYOR_SPEED` mm/s.
+
+## Select edge
+
+| logic | value | action |
+|:-----:|:-----:|:-------|
+| Negative edge | FALSE | The function evaluates the change of the sensor from `TRUE` to `FALSE` |
+| Positive edge | TRUE | The function evaluates the change of the sensor from `FALSE` to `TRUE` |
+
+--*)
+	
+	
+	// Edge generator
+	#pulseOn := #sensor AND NOT #private.sensor;
+	#pulseOff := NOT #sensor AND #private.sensor;
+	#private.sensor := #sensor;
+	
+	// Time
+	#pulseTime := REAL_TO_DINT((#PULSE_LENGTH / #CONVEYOR_SPEED) * 1000.0);
+	
+	// Start
+	IF #logic AND #pulseOn THEN
+	  #private.start := 1;
+	  RESET_TIMER(#private.pulseTon);
+	ELSIF NOT #logic AND #pulseOff THEN
+	  #private.start := 1;
+	  RESET_TIMER(#private.pulseTon);
+	END_IF;
+	
+	// Pulse
+	#private.pulseTon(IN:=#private.start AND #conveyorIsRunning,
+	                  R:=NOT #private.start,
+	                  PT:=#pulseTime);
+	
+	IF #private.pulseTon.Q THEN
+	  #private.start := 0;
+	END_IF;
+	
+	// Outputs
+	#Q := #private.start;
+	#ED := #CONVEYOR_SPEED * DINT_TO_REAL(#private.pulseTon.ET) / 1000.0;
+	
+	// Salve RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

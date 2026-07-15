@@ -1,0 +1,122 @@
+﻿FUNCTION_BLOCK "_bwu4893_singleRoller"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/bihl-wiedermann/bwu4893'
+NAME : _bwu4893_singleRoller
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Clock wise - 1=Counter clock wise
+      SP_speed { ExternalWritable := 'False'} : Real;   // IR: Setpoint speed +-%
+      SP_ramp { ExternalWritable := 'False'} : Time := T#1s;   // IR: Setpoint ramp 0 to 25.5s
+      AI_current { ExternalWritable := 'False'} : UInt;   // IR: Input current
+      MIN_CURRENT { ExternalWritable := 'False'} : UInt;   // IR: Min. current to know if motor is running
+      MAX_SPEED { ExternalWritable := 'False'} : Real;   // IR: Max real speed
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      speed { ExternalWritable := 'False'} : Real;   // OR: Speed
+      AO_speed { ExternalWritable := 'False'} : SInt;   // OR: Output speed to roller
+      AO_ramp { ExternalWritable := 'False'} : USInt;   // OR: Output ramp 0..25.5s
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      tmpSpeed : SInt;
+   END_VAR
+
+   VAR CONSTANT 
+      MAX_SPEED_PER : SInt := 100;
+      NO_SPEED_PER : SInt := 0;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-08 | cyanezf | First version |
+
+## Description
+
+This function controls Bihl-Biedemann BWU4893 for single roller.
+
+--*)
+	
+	// Speed to %
+	// MAX_SPEED -> 100%
+	// #SP_speed  -> ?
+	// ? = #SP_speed * 100% / MAX_SPEED
+	#tmpSpeed := REAL_TO_SINT(#SP_speed * #MAX_SPEED_PER / #MAX_SPEED);
+	
+	// Ok
+	#ok := #controlOn AND #emrgStopOk AND #tmpSpeed <> #NO_SPEED_PER;
+	
+	// Output speed
+	IF #runForward AND NOT #runBackward AND #ok THEN
+	  
+	  IF #tmpSpeed > #MAX_SPEED_PER THEN
+	    #tmpSpeed := #MAX_SPEED_PER;
+	  END_IF;
+	  
+	ELSIF #runBackward AND NOT #runForward AND #ok THEN
+	  
+	  IF #tmpSpeed > #MAX_SPEED_PER THEN
+	    #tmpSpeed := - #MAX_SPEED_PER;
+	  ELSE
+	    #tmpSpeed := - #tmpSpeed;
+	  END_IF;
+	  
+	ELSE
+	  
+	  #tmpSpeed := #NO_SPEED_PER;
+	  
+	END_IF;
+	
+	// Invert if needed
+	IF #ccw THEN
+	  #AO_speed := - #tmpSpeed;
+	ELSE
+	  #AO_speed := #tmpSpeed;
+	END_IF;
+	
+	
+	// Is running and direction
+	#isRunning := #tmpSpeed <> 0;
+	#direction := #isRunning AND #runBackward;
+	
+	// Ramp
+	IF #SP_ramp < t#0s THEN
+	  #AO_ramp := 0;
+	  
+	ELSIF #SP_ramp > t#25s500ms THEN
+	  #AO_ramp := 255;
+	  
+	ELSE
+	  #AO_ramp := DINT_TO_USINT(#SP_ramp / 100);
+	  
+	END_IF;
+	
+	// Speed
+	IF #isRunning THEN
+	  #speed := #SP_speed;
+	ELSE
+	  #speed := 0;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

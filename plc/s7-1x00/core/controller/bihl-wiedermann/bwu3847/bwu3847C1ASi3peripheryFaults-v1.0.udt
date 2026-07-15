@@ -1,0 +1,90 @@
+TYPE "bwu3847C1ASi3peripheryFaults"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+// 
+//## Description
+//B+W - bwu3847 C1 ASi3 periphery faults
+//--*)
+
+   STRUCT
+      node001 : Bool;   // 1=Node error
+      node002 : Bool;   // 1=Node error
+      node003 : Bool;   // 1=Node error
+      node004 : Bool;   // 1=Node error
+      node005 : Bool;   // 1=Node error
+      node006 : Bool;   // 1=Node error
+      node007 : Bool;   // 1=Node error
+      node008 : Bool;   // 1=Node error
+
+      node009 : Bool;   // 1=Node error
+      node010 : Bool;   // 1=Node error
+      node011 : Bool;   // 1=Node error
+      node012 : Bool;   // 1=Node error
+      node013 : Bool;   // 1=Node error
+      node014 : Bool;   // 1=Node error
+      node015 : Bool;   // 1=Node error
+      node016 : Bool;   // 1=Node error
+
+      node017 : Bool;   // 1=Node error
+      node018 : Bool;   // 1=Node error
+      node019 : Bool;   // 1=Node error
+      node020 : Bool;   // 1=Node error
+      node021 : Bool;   // 1=Node error
+      node022 : Bool;   // 1=Node error
+      node023 : Bool;   // 1=Node error
+      node024 : Bool;   // 1=Node error
+
+      node025 : Bool;   // 1=Node error
+      node026 : Bool;   // 1=Node error
+      node027 : Bool;   // 1=Node error
+      node028 : Bool;   // 1=Node error
+      node029 : Bool;   // 1=Node error
+      node030 : Bool;   // 1=Node error
+      node031 : Bool;   // 1=Node error
+      node032 : Bool;   // 1=Node error
+
+      node033 : Bool;   // 1=Node error
+      node034 : Bool;   // 1=Node error
+      node035 : Bool;   // 1=Node error
+      node036 : Bool;   // 1=Node error
+      node037 : Bool;   // 1=Node error
+      node038 : Bool;   // 1=Node error
+      node039 : Bool;   // 1=Node error
+      node040 : Bool;   // 1=Node error
+
+      node041 : Bool;   // 1=Node error
+      node042 : Bool;   // 1=Node error
+      node043 : Bool;   // 1=Node error
+      node044 : Bool;   // 1=Node error
+      node045 : Bool;   // 1=Node error
+      node046 : Bool;   // 1=Node error
+      node047 : Bool;   // 1=Node error
+      node048 : Bool;   // 1=Node error
+
+      node049 : Bool;   // 1=Node error
+      node050 : Bool;   // 1=Node error
+      node051 : Bool;   // 1=Node error
+      node052 : Bool;   // 1=Node error
+      node053 : Bool;   // 1=Node error
+      node054 : Bool;   // 1=Node error
+      node055 : Bool;   // 1=Node error
+      node056 : Bool;   // 1=Node error
+
+      node057 : Bool;   // 1=Node error
+      node058 : Bool;   // 1=Node error
+      node059 : Bool;   // 1=Node error
+      node060 : Bool;   // 1=Node error
+      node061 : Bool;   // 1=Node error
+      node062 : Bool;   // 1=Node error
+      node063 : Bool;   // 1=Node error
+      node064 : Bool;   // 1=Node error
+      
+   END_STRUCT;
+
+END_TYPE

@@ -1,0 +1,21 @@
+﻿TYPE "nodeLink"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":["nodeLinkSourceToDest-v1.1", "nodeLinkDestToSource-v1.1"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2023-10-19 | cyanezf | First version |
+//
+//## Description
+//Node link
+//--*)
+
+   STRUCT
+      sourceToDest { S7_SetPoint := 'False'} : "nodeLinkSourceToDest";   // Previous node link
+      destToSource { S7_SetPoint := 'False'} : "nodeLinkDestToSource";   // Next node link
+   END_STRUCT;
+
+END_TYPE
+

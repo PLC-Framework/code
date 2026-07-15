@@ -1,0 +1,76 @@
+﻿FUNCTION "_16BitsToReal" : Real
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/converter'
+NAME : _16BitsToReal
+VERSION : 1.0
+
+   VAR_INPUT 
+      b0 : Bool; // Bit 0
+      b1 : Bool; // Bit 1
+      b2 : Bool; // Bit 2
+      b3 : Bool; // Bit 3
+      b4 : Bool; // Bit 4
+      b5 : Bool; // Bit 5
+      b6 : Bool; // Bit 6
+      b7 : Bool; // Bit 7
+      b8 : Bool; // Bit 8
+      b9 : Bool; // Bit 9
+      b10 : Bool; // Bit 10
+      b11 : Bool; // Bit 11
+      b12 : Bool; // Bit 12
+      b13 : Bool; // Bit 13
+      b14 : Bool; // Bit 14
+      b15 : Bool; // Bit 15
+      factor : Real; // factor to be multiplied
+      offset : Real; // offset to be added
+   END_VAR
+
+   VAR_TEMP 
+      tInt : Int;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2023-06-06 | cyanezf | First version |
+
+## Description
+
+This function converts 16 single bits to integer and then to real number with factor and plus offset.
+Returns integer * factor + offset
+
+--*)
+
+	// Assign bits
+	#tInt.%X0 := #b0;
+	#tInt.%X1 := #b1;
+	#tInt.%X2 := #b2;
+	#tInt.%X3 := #b3;
+	#tInt.%X4 := #b4;
+	#tInt.%X5 := #b5;
+	#tInt.%X6 := #b6;
+	#tInt.%X7 := #b7;
+	#tInt.%X8 := #b8;
+	#tInt.%X9 := #b9;
+	#tInt.%X10 := #b10;
+	#tInt.%X11 := #b11;
+	#tInt.%X12 := #b12;
+	#tInt.%X13 := #b13;
+	#tInt.%X14 := #b14;
+	#tInt.%X15 := #b15;
+	
+	// Convert to real
+	#_16BitsToReal := INT_TO_REAL(#tInt) * #factor + #offset;
+
+   // Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

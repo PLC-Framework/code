@@ -1,0 +1,68 @@
+﻿TYPE "jxcPdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxc","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-05-07 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Output (PDO) structure for the SMC JXC series actuators when used with the S7-1x00 PLCs.
+//It contains control information, target position, speed, acceleration, deceleration, and other parameters related to the actuator's operation. The structure is designed to be used in conjunction
+//with the corresponding Process Data Input (PDI) structure to control and monitor the actuator effectively.
+//--*)
+
+   STRUCT
+      control : Struct   // Control word
+         in : USInt;   // b0: INx 0..63=The step data number instruction the drive will be specified by the combination of IN0 to IN5
+         hold : Bool;   // x1.0: HOLD 1=Speed decreases at max. deceleration set in the basic parameters until the actuator stops, 0=Drive restarts and travels for the remaining stroke
+         servoOn : Bool;   // x1.1: SVON 1=Servo motor turns ON
+         drive : Bool;   // x1.2: DRIVE 1=System scans "in" and starts the operation
+         reset : Bool;   // x1.3: RESET 1=Reset alarm
+         setup : Bool;   // x1.4: SETUP 1=When SVRE is ON the SETUP operation (return to origin operation) will be performed. During SETUP operation, BUSY will turn ON.  After completion of SETUP, SETOP and INP will turn ON
+         jogMinus : Bool;   // x1.5: JOG- 1=Actuator moves, when FLGTH is ON movement towards the - side is made according to JOG-, INP and OUTx are OFF during jogging/inching. When joggin/inching is completed, INP will turn ON and OUTx will remain OFF
+         jogPlus : Bool;   // x1.6: JOG+ 1=Jogging + direction, operation is the same as JOG-
+         flgth : Bool;   // x1.7: FLGTH Switches the function jogging and inching 1=Inching starts when this signal is ON and when the jogging signal turns ON. The inching amount is set the operation parameters.
+         res_2_0 : Bool;
+         speedRestriction : Bool;   // x2.1: 1=Speed is restricted for all operations. Value for speed limit varies depending on actuator type
+         res_2_2 : Bool;
+         res_2_3 : Bool;
+         movementMode : Bool;   // x2.4: 1=Enable to change movementMode on fly
+         speed : Bool;   // x2.5: 1=Enable to change speed on fly
+         position : Bool;   // x2.6: 1=Enable to change position on fly
+         acceleration : Bool;   // x2.7: 1=Enable to change acceleration on fly
+         deceleration : Bool;   // x3.0: 1=Enable to change deceleration on fly
+         pushingForce : Bool;   // x3.1: 1=Enable to change pushingForce on fly
+         triggerLV : Bool;   // x3.2: 1=Enable to change triggerLV on fly
+         pushingSpeed : Bool;   // x3.3: 1=Enable to change pushingSpeed on fly
+         movingForce : Bool;   // x3.4: 1=Enable to change movingForce on fly
+         areaOutput1 : Bool;   // x3.5: 1=Enable to change areaOutput1 on fly
+         areaOutput2 : Bool;   // x3.6: 1=Enable to change areaOutput2 on fly
+         inPosition : Bool;   // x3.7: 1=Enable to change inPosition on fly
+      END_STRUCT;
+      start : Bool;   // x4.0: 0=During waiting for tramsmitting; 1=When transmitting numerical data to the controller
+      res_4_1 : Bool;
+      res_4_2 : Bool;
+      res_4_3 : Bool;
+      res_4_4 : Bool;
+      res_4_5 : Bool;
+      res_4_6 : Bool;
+      res_4_7 : Bool;
+      movementMode : USInt;   // b5: 0=Nop; 1=ABS-Absolute; 2=INC-Relative
+      speed : Int;   // w6: 0..N=Max. speed 1u/s
+      position : DInt;   // d8: Target position 0.01u
+      acceleration : Int;   // w12: Acceleration 1 u/s^2
+      deceleration : Int;   // w14: Deceleration 1 u/s^2
+      pushingForce : Int;   // w16: Pushing force 1%
+      triggerLV : Int;   // w18: Tigger LV 1%
+      pushingSpeed : Int;   // w20: Pushing speed 1u/s
+      movingForce : Int;   // w22: Moving force 1%
+      area1 : DInt;   // d24: Area 1 0.01u
+      area2 : DInt;   // d28: Area 2 0.01u
+      inPosition : DInt;   // d32: In position 0.01u
+   END_STRUCT;
+
+END_TYPE
+

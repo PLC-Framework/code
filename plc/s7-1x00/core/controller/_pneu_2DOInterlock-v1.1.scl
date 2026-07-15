@@ -1,0 +1,85 @@
+﻿FUNCTION_BLOCK "_pneu_2DOInterlock"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller'
+NAME : _pneu_2DOInterlock
+VERSION : 1.1
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      interlockForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Forward sensor
+      interlockBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Backward sensor
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      interlocked { ExternalWritable := 'False'} : Bool;   // OR: 0=Position free; 1=Position interlocked
+      DO_runForward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run Pos 1
+      DO_runBackward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run Pos 0
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      noRun : Bool;
+      auxRunForward : Bool;
+      auxRunBackward : Bool;
+      auxInterlockForward : Bool;
+      auxInterlockBackward : Bool;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2024-05-09 | cyanezf | Refactor to scl |
+| v1.0 | 2023-06-06 | cyanezf | First version |
+
+## Description
+
+This function controls two pneumatic outputs for two positions device with position interlock.
+
+--*)
+
+	// Ok
+	#ok := #controlOn AND #emrgStopOk;
+	
+	// No run
+	#noRun := NOT #runForward AND NOT #runBackward;
+	
+	// Aux run
+	#auxRunBackward := #ok AND NOT #runForward AND #runBackward;
+	#auxRunForward := #ok AND #runForward AND NOT #runBackward;
+	
+	// Aux interlock
+	#auxInterlockBackward := #ok AND #noRun AND #interlockBackward;
+	#auxInterlockForward := #ok AND #noRun AND #interlockForward;
+	
+	// Run pos 0
+	#DO_runBackward := #auxRunBackward OR #auxInterlockBackward;
+	
+	// Run pos 1
+	#DO_runForward := #auxRunForward OR #auxInterlockForward;
+	
+	// Is running
+	#isRunning := #auxRunBackward OR #auxRunForward;
+	
+	// Interlocked
+	#interlocked := #auxInterlockBackward OR #auxInterlockForward;
+	
+	// Direction
+	#direction := #auxRunBackward OR #auxInterlockBackward;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

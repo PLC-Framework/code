@@ -1,0 +1,291 @@
+TYPE "bwu3847C1ASi3input32BytesDIO_0_31B"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+// 
+//## Description
+//B+W - bwu3847 C1 ASi3 input 32 bytes DIO 0-31B
+//--*)
+
+   STRUCT
+      node01A_DI0 : Bool;   // Node 1A - DI0
+      node01A_DI1 : Bool;   // Node 1A - DI1
+      node01A_DI2 : Bool;   // Node 1A - DI2
+      node01A_DI3 : Bool;   // Node 1A - DI3
+      configError : Bool;   // 1=Configuration error
+      ASi_powerFail : Bool;   // 1=ASi Power fail
+      pheriperyFault : Bool;   // 1=Periphery fault
+      configurationActive : Bool;   // 1=Configuration mode
+
+      node03A_DI0 : Bool;   // Node 3A - DI0
+      node03A_DI1 : Bool;   // Node 3A - DI1
+      node03A_DI2 : Bool;   // Node 3A - DI2
+      node03A_DI3 : Bool;   // Node 3A - DI3
+      node02A_DI0 : Bool;   // Node 2A - DI0
+      node02A_DI1 : Bool;   // Node 2A - DI1
+      node02A_DI2 : Bool;   // Node 2A - DI2
+      node02A_DI3 : Bool;   // Node 2A - DI3
+
+      node05A_DI0 : Bool;   // Node 5A - DI0
+      node05A_DI1 : Bool;   // Node 5A - DI1
+      node05A_DI2 : Bool;   // Node 5A - DI2
+      node05A_DI3 : Bool;   // Node 5A - DI3
+      node04A_DI0 : Bool;   // Node 4A - DI0
+      node04A_DI1 : Bool;   // Node 4A - DI1
+      node04A_DI2 : Bool;   // Node 4A - DI2
+      node04A_DI3 : Bool;   // Node 4A - DI3
+
+      node07A_DI0 : Bool;   // Node 7A - DI0
+      node07A_DI1 : Bool;   // Node 7A - DI1
+      node07A_DI2 : Bool;   // Node 7A - DI2
+      node07A_DI3 : Bool;   // Node 7A - DI3
+      node06A_DI0 : Bool;   // Node 6A - DI0
+      node06A_DI1 : Bool;   // Node 6A - DI1
+      node06A_DI2 : Bool;   // Node 6A - DI2
+      node06A_DI3 : Bool;   // Node 6A - DI3
+
+      node09A_DI0 : Bool;   // Node 9A - DI0
+      node09A_DI1 : Bool;   // Node 9A - DI1
+      node09A_DI2 : Bool;   // Node 9A - DI2
+      node09A_DI3 : Bool;   // Node 9A - DI3
+      node08A_DI0 : Bool;   // Node 8A - DI0
+      node08A_DI1 : Bool;   // Node 8A - DI1
+      node08A_DI2 : Bool;   // Node 8A - DI2
+      node08A_DI3 : Bool;   // Node 8A - DI3
+
+      node11A_DI0 : Bool;   // Node 11A - DI0
+      node11A_DI1 : Bool;   // Node 11A - DI1
+      node11A_DI2 : Bool;   // Node 11A - DI2
+      node11A_DI3 : Bool;   // Node 11A - DI3
+      node10A_DI0 : Bool;   // Node 10A - DI0
+      node10A_DI1 : Bool;   // Node 10A - DI1
+      node10A_DI2 : Bool;   // Node 10A - DI2
+      node10A_DI3 : Bool;   // Node 10A - DI3
+
+      node13A_DI0 : Bool;   // Node 13A - DI0
+      node13A_DI1 : Bool;   // Node 13A - DI1
+      node13A_DI2 : Bool;   // Node 13A - DI2
+      node13A_DI3 : Bool;   // Node 13A - DI3
+      node12A_DI0 : Bool;   // Node 12A - DI0
+      node12A_DI1 : Bool;   // Node 12A - DI1
+      node12A_DI2 : Bool;   // Node 12A - DI2
+      node12A_DI3 : Bool;   // Node 12A - DI3
+
+      node15A_DI0 : Bool;   // Node 15A - DI0
+      node15A_DI1 : Bool;   // Node 15A - DI1
+      node15A_DI2 : Bool;   // Node 15A - DI2
+      node15A_DI3 : Bool;   // Node 15A - DI3
+      node14A_DI0 : Bool;   // Node 14A - DI0
+      node14A_DI1 : Bool;   // Node 14A - DI1
+      node14A_DI2 : Bool;   // Node 14A - DI2
+      node14A_DI3 : Bool;   // Node 14A - DI3
+
+      node17A_DI0 : Bool;   // Node 17A - DI0
+      node17A_DI1 : Bool;   // Node 17A - DI1
+      node17A_DI2 : Bool;   // Node 17A - DI2
+      node17A_DI3 : Bool;   // Node 17A - DI3
+      node16A_DI0 : Bool;   // Node 16A - DI0
+      node16A_DI1 : Bool;   // Node 16A - DI1
+      node16A_DI2 : Bool;   // Node 16A - DI2
+      node16A_DI3 : Bool;   // Node 16A - DI3
+
+      node19A_DI0 : Bool;   // Node 19A - DI0
+      node19A_DI1 : Bool;   // Node 19A - DI1
+      node19A_DI2 : Bool;   // Node 19A - DI2
+      node19A_DI3 : Bool;   // Node 19A - DI3
+      node18A_DI0 : Bool;   // Node 18A - DI0
+      node18A_DI1 : Bool;   // Node 18A - DI1
+      node18A_DI2 : Bool;   // Node 18A - DI2
+      node18A_DI3 : Bool;   // Node 18A - DI3
+
+      node21A_DI0 : Bool;   // Node 21A - DI0
+      node21A_DI1 : Bool;   // Node 21A - DI1
+      node21A_DI2 : Bool;   // Node 21A - DI2
+      node21A_DI3 : Bool;   // Node 21A - DI3
+      node20A_DI0 : Bool;   // Node 20A - DI0
+      node20A_DI1 : Bool;   // Node 20A - DI1
+      node20A_DI2 : Bool;   // Node 20A - DI2
+      node20A_DI3 : Bool;   // Node 20A - DI3
+
+      node23A_DI0 : Bool;   // Node 23A - DI0
+      node23A_DI1 : Bool;   // Node 23A - DI1
+      node23A_DI2 : Bool;   // Node 23A - DI2
+      node23A_DI3 : Bool;   // Node 23A - DI3
+      node22A_DI0 : Bool;   // Node 22A - DI0
+      node22A_DI1 : Bool;   // Node 22A - DI1
+      node22A_DI2 : Bool;   // Node 22A - DI2
+      node22A_DI3 : Bool;   // Node 22A - DI3
+
+      node25A_DI0 : Bool;   // Node 25A - DI0
+      node25A_DI1 : Bool;   // Node 25A - DI1
+      node25A_DI2 : Bool;   // Node 25A - DI2
+      node25A_DI3 : Bool;   // Node 25A - DI3
+      node24A_DI0 : Bool;   // Node 24A - DI0
+      node24A_DI1 : Bool;   // Node 24A - DI1
+      node24A_DI2 : Bool;   // Node 24A - DI2
+      node24A_DI3 : Bool;   // Node 24A - DI3
+
+      node27A_DI0 : Bool;   // Node 27A - DI0
+      node27A_DI1 : Bool;   // Node 27A - DI1
+      node27A_DI2 : Bool;   // Node 27A - DI2
+      node27A_DI3 : Bool;   // Node 27A - DI3
+      node26A_DI0 : Bool;   // Node 26A - DI0
+      node26A_DI1 : Bool;   // Node 26A - DI1
+      node26A_DI2 : Bool;   // Node 26A - DI2
+      node26A_DI3 : Bool;   // Node 26A - DI3
+
+      node29A_DI0 : Bool;   // Node 29A - DI0
+      node29A_DI1 : Bool;   // Node 29A - DI1
+      node29A_DI2 : Bool;   // Node 29A - DI2
+      node29A_DI3 : Bool;   // Node 29A - DI3
+      node28A_DI0 : Bool;   // Node 28A - DI0
+      node28A_DI1 : Bool;   // Node 28A - DI1
+      node28A_DI2 : Bool;   // Node 28A - DI2
+      node28A_DI3 : Bool;   // Node 28A - DI3
+
+      node31A_DI0 : Bool;   // Node 31A - DI0
+      node31A_DI1 : Bool;   // Node 31A - DI1
+      node31A_DI2 : Bool;   // Node 31A - DI2
+      node31A_DI3 : Bool;   // Node 31A - DI3
+      node30A_DI0 : Bool;   // Node 30A - DI0
+      node30A_DI1 : Bool;   // Node 30A - DI1
+      node30A_DI2 : Bool;   // Node 30A - DI2
+      node30A_DI3 : Bool;   // Node 30A - DI3
+
+      node01B_DI0 : Bool;   // Node 1B - DI0
+      node01B_DI1 : Bool;   // Node 1B - DI1
+      node01B_DI2 : Bool;   // Node 1B - DI2
+      node01B_DI3 : Bool;   // Node 1B - DI3
+      reserved_I16_4 : Bool;   // Reserved
+      reserved_I16_5 : Bool;   // Reserved
+      reserved_I16_6 : Bool;   // Reserved
+      reserved_I16_7 : Bool;   // Reserved
+      
+      node03B_DI0 : Bool;   // Node 3B - DI0
+      node03B_DI1 : Bool;   // Node 3B - DI1
+      node03B_DI2 : Bool;   // Node 3B - DI2
+      node03B_DI3 : Bool;   // Node 3B - DI3
+      node02B_DI0 : Bool;   // Node 2B - DI0
+      node02B_DI1 : Bool;   // Node 2B - DI1
+      node02B_DI2 : Bool;   // Node 2B - DI2
+      node02B_DI3 : Bool;   // Node 2B - DI3
+      node05B_DI0 : Bool;   // Node 5B - DI0
+      node05B_DI1 : Bool;   // Node 5B - DI1
+      node05B_DI2 : Bool;   // Node 5B - DI2
+      node05B_DI3 : Bool;   // Node 5B - DI3
+      node04B_DI0 : Bool;   // Node 4B - DI0
+      node04B_DI1 : Bool;   // Node 4B - DI1
+      node04B_DI2 : Bool;   // Node 4B - DI2
+      node04B_DI3 : Bool;   // Node 4B - DI3
+      node07B_DI0 : Bool;   // Node 7B - DI0
+      node07B_DI1 : Bool;   // Node 7B - DI1
+      node07B_DI2 : Bool;   // Node 7B - DI2
+      node07B_DI3 : Bool;   // Node 7B - DI3
+      node06B_DI0 : Bool;   // Node 6B - DI0
+      node06B_DI1 : Bool;   // Node 6B - DI1
+      node06B_DI2 : Bool;   // Node 6B - DI2
+      node06B_DI3 : Bool;   // Node 6B - DI3
+      node09B_DI0 : Bool;   // Node 9B - DI0
+      node09B_DI1 : Bool;   // Node 9B - DI1
+      node09B_DI2 : Bool;   // Node 9B - DI2
+      node09B_DI3 : Bool;   // Node 9B - DI3
+      node08B_DI0 : Bool;   // Node 8B - DI0
+      node08B_DI1 : Bool;   // Node 8B - DI1
+      node08B_DI2 : Bool;   // Node 8B - DI2
+      node08B_DI3 : Bool;   // Node 8B - DI3
+      node11B_DI0 : Bool;   // Node 11B - DI0
+      node11B_DI1 : Bool;   // Node 11B - DI1
+      node11B_DI2 : Bool;   // Node 11B - DI2
+      node11B_DI3 : Bool;   // Node 11B - DI3
+      node10B_DI0 : Bool;   // Node 10B - DI0
+      node10B_DI1 : Bool;   // Node 10B - DI1
+      node10B_DI2 : Bool;   // Node 10B - DI2
+      node10B_DI3 : Bool;   // Node 10B - DI3
+      node13B_DI0 : Bool;   // Node 13B - DI0
+      node13B_DI1 : Bool;   // Node 13B - DI1
+      node13B_DI2 : Bool;   // Node 13B - DI2
+      node13B_DI3 : Bool;   // Node 13B - DI3
+      node12B_DI0 : Bool;   // Node 12B - DI0
+      node12B_DI1 : Bool;   // Node 12B - DI1
+      node12B_DI2 : Bool;   // Node 12B - DI2
+      node12B_DI3 : Bool;   // Node 12B - DI3
+      node15B_DI0 : Bool;   // Node 15B - DI0
+      node15B_DI1 : Bool;   // Node 15B - DI1
+      node15B_DI2 : Bool;   // Node 15B - DI2
+      node15B_DI3 : Bool;   // Node 15B - DI3
+      node14B_DI0 : Bool;   // Node 14B - DI0
+      node14B_DI1 : Bool;   // Node 14B - DI1
+      node14B_DI2 : Bool;   // Node 14B - DI2
+      node14B_DI3 : Bool;   // Node 14B - DI3
+      node17B_DI0 : Bool;   // Node 17B - DI0
+      node17B_DI1 : Bool;   // Node 17B - DI1
+      node17B_DI2 : Bool;   // Node 17B - DI2
+      node17B_DI3 : Bool;   // Node 17B - DI3
+      node16B_DI0 : Bool;   // Node 16B - DI0
+      node16B_DI1 : Bool;   // Node 16B - DI1
+      node16B_DI2 : Bool;   // Node 16B - DI2
+      node16B_DI3 : Bool;   // Node 16B - DI3
+      node19B_DI0 : Bool;   // Node 19B - DI0
+      node19B_DI1 : Bool;   // Node 19B - DI1
+      node19B_DI2 : Bool;   // Node 19B - DI2
+      node19B_DI3 : Bool;   // Node 19B - DI3
+      node18B_DI0 : Bool;   // Node 18B - DI0
+      node18B_DI1 : Bool;   // Node 18B - DI1
+      node18B_DI2 : Bool;   // Node 18B - DI2
+      node18B_DI3 : Bool;   // Node 18B - DI3
+      node21B_DI0 : Bool;   // Node 21B - DI0
+      node21B_DI1 : Bool;   // Node 21B - DI1
+      node21B_DI2 : Bool;   // Node 21B - DI2
+      node21B_DI3 : Bool;   // Node 21B - DI3
+      node20B_DI0 : Bool;   // Node 20B - DI0
+      node20B_DI1 : Bool;   // Node 20B - DI1
+      node20B_DI2 : Bool;   // Node 20B - DI2
+      node20B_DI3 : Bool;   // Node 20B - DI3
+      node23B_DI0 : Bool;   // Node 23B - DI0
+      node23B_DI1 : Bool;   // Node 23B - DI1
+      node23B_DI2 : Bool;   // Node 23B - DI2
+      node23B_DI3 : Bool;   // Node 23B - DI3
+      node22B_DI0 : Bool;   // Node 22B - DI0
+      node22B_DI1 : Bool;   // Node 22B - DI1
+      node22B_DI2 : Bool;   // Node 22B - DI2
+      node22B_DI3 : Bool;   // Node 22B - DI3
+      node25B_DI0 : Bool;   // Node 25B - DI0
+      node25B_DI1 : Bool;   // Node 25B - DI1
+      node25B_DI2 : Bool;   // Node 25B - DI2
+      node25B_DI3 : Bool;   // Node 25B - DI3
+      node24B_DI0 : Bool;   // Node 24B - DI0
+      node24B_DI1 : Bool;   // Node 24B - DI1
+      node24B_DI2 : Bool;   // Node 24B - DI2
+      node24B_DI3 : Bool;   // Node 24B - DI3
+      node27B_DI0 : Bool;   // Node 27B - DI0
+      node27B_DI1 : Bool;   // Node 27B - DI1
+      node27B_DI2 : Bool;   // Node 27B - DI2
+      node27B_DI3 : Bool;   // Node 27B - DI3
+      node26B_DI0 : Bool;   // Node 26B - DI0
+      node26B_DI1 : Bool;   // Node 26B - DI1
+      node26B_DI2 : Bool;   // Node 26B - DI2
+      node26B_DI3 : Bool;   // Node 26B - DI3
+      node29B_DI0 : Bool;   // Node 29B - DI0
+      node29B_DI1 : Bool;   // Node 29B - DI1
+      node29B_DI2 : Bool;   // Node 29B - DI2
+      node29B_DI3 : Bool;   // Node 29B - DI3
+      node28B_DI0 : Bool;   // Node 28B - DI0
+      node28B_DI1 : Bool;   // Node 28B - DI1
+      node28B_DI2 : Bool;   // Node 28B - DI2
+      node28B_DI3 : Bool;   // Node 28B - DI3
+      node31B_DI0 : Bool;   // Node 31B - DI0
+      node31B_DI1 : Bool;   // Node 31B - DI1
+      node31B_DI2 : Bool;   // Node 31B - DI2
+      node31B_DI3 : Bool;   // Node 31B - DI3
+      node30B_DI0 : Bool;   // Node 30B - DI0
+      node30B_DI1 : Bool;   // Node 30B - DI1
+      node30B_DI2 : Bool;   // Node 30B - DI2
+      node30B_DI3 : Bool;   // Node 30B - DI3
+   END_STRUCT;
+
+END_TYPE

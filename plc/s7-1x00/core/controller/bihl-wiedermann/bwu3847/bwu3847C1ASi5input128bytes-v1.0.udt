@@ -1,0 +1,226 @@
+TYPE "bwu3847C1ASi5input128bytes"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+//
+//## Description
+//B+W - bwu3847 C1 ASi5 input 128 bytes
+//--*)
+
+   STRUCT
+      ASi5_cfg_nok : Bool;   // Master - BWU3847-1byte: 1=ASi-5 configuration is not ok
+      ASi5_cfg_mode : Bool;   // Master - BWU3847-1byte: 0=Protected mode; 1=Configuration mode
+      ASi5_nop_inactive : Bool;   // Master - BWU3847-1byte: 0=ASi-5 master is in normal mode; 1=ASi-5 is not in normal mode
+      ASi5_apf : Bool;   // Master - BWU3847-1byte: 1=Power supply is not ok
+      ASi5_pf : Bool;   // Master - BWU3847-1byte: 1=At least one ASi-5 node has a peripheral fault
+      ASi5_ps_inconsistent : Bool;   // Master - BWU3847-1byte: 1=Parameter image of at least one ASi-5 module is different from the corresponding backup in ASi-5 master
+      ASi5_ps_inactive : Bool;   // Master - BWU3847-1byte: 1=ASi-5 parameter image server inactive
+      ASi5_reserved_I1_7 : Bool;   // Master - BWU3847-1byte: Reserved
+      node001_DI1 : Bool;   // Node 1 - BW4893-14bytes: Digital input 1
+      node001_DI2 : Bool;   // Node 1 - BW4893-14bytes: Digital input 2
+      node001_DI3 : Bool;   // Node 1 - BW4893-14bytes: Digital input 3
+      node001_DI4 : Bool;   // Node 1 - BW4893-14bytes: Digital input 4
+      node001_DI5 : Bool;   // Node 1 - BW4893-14bytes: Digital input 5
+      node001_DI6 : Bool;   // Node 1 - BW4893-14bytes: Digital input 6
+      node001_DI7 : Bool;   // Node 1 - BW4893-14bytes: Digital input 7
+      node001_DI8 : Bool;   // Node 1 - BW4893-14bytes: Digital input 8
+      node001_motor1_error : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 1 error
+      node001_motor2_error : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 2 error
+      node001_motor3_error : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 3 error
+      node001_motor4_error : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 4 error
+      node001_reserved_I1_4 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_reserved_I1_5 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_reserved_I1_6 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_reserved_I1_7 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_motor1_fuseTriggered : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node001_motor2_fuseTriggered : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node001_motor3_fuseTriggered : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node001_motor4_fuseTriggered : Bool;   // Node 1 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node001_reserved_I2_4 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_voltageError : Bool;   // Node 1 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node001_temperatureError : Bool;   // Node 1 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node001_reserved_I2_7 : Bool;   // Node 1 - BW4893-14bytes: Reserved
+      node001_auxVoltage : UInt;   // Node 1 - BW4893-14bytes: AUX voltage (mV)
+      node001_motor1_current : UInt;   // Node 1 - BW4893-14bytes: Motor current M1 (mA)
+      node001_motor2_current : UInt;   // Node 1 - BW4893-14bytes: Motor current M2 (mA)
+      node001_motor3_current : UInt;   // Node 1 - BW4893-14bytes: Motor current M3 (mA)
+      node001_motor4_current : UInt;   // Node 1 - BW4893-14bytes: Motor current M4 (mA)
+      node002_DI1 : Bool;   // Node 2 - BW4893-14bytes: Digital input 1
+      node002_DI2 : Bool;   // Node 2 - BW4893-14bytes: Digital input 2
+      node002_DI3 : Bool;   // Node 2 - BW4893-14bytes: Digital input 3
+      node002_DI4 : Bool;   // Node 2 - BW4893-14bytes: Digital input 4
+      node002_DI5 : Bool;   // Node 2 - BW4893-14bytes: Digital input 5
+      node002_DI6 : Bool;   // Node 2 - BW4893-14bytes: Digital input 6
+      node002_DI7 : Bool;   // Node 2 - BW4893-14bytes: Digital input 7
+      node002_DI8 : Bool;   // Node 2 - BW4893-14bytes: Digital input 8
+      node002_motor1_error : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 1 error
+      node002_motor2_error : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 2 error
+      node002_motor3_error : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 3 error
+      node002_motor4_error : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 4 error
+      node002_reserved_I1_4 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_reserved_I1_5 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_reserved_I1_6 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_reserved_I1_7 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_motor1_fuseTriggered : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node002_motor2_fuseTriggered : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node002_motor3_fuseTriggered : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node002_motor4_fuseTriggered : Bool;   // Node 2 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node002_reserved_I2_4 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_voltageError : Bool;   // Node 2 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node002_temperatureError : Bool;   // Node 2 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node002_reserved_I2_7 : Bool;   // Node 2 - BW4893-14bytes: Reserved
+      node002_reserved_IB3 : Byte;   // Node 2 - BW4893-14bytes: Reserved
+      node002_auxVoltage : UInt;   // Node 2 - BW4893-14bytes: AUX voltage (mV)
+      node002_motor1_current : UInt;   // Node 2 - BW4893-14bytes: Motor current M1 (mA)
+      node002_motor2_current : UInt;   // Node 2 - BW4893-14bytes: Motor current M2 (mA)
+      node002_motor3_current : UInt;   // Node 2 - BW4893-14bytes: Motor current M3 (mA)
+      node002_motor4_current : UInt;   // Node 2 - BW4893-14bytes: Motor current M4 (mA)
+      node003_DI1 : Bool;   // Node 3 - BW4893-14bytes: Digital input 1
+      node003_DI2 : Bool;   // Node 3 - BW4893-14bytes: Digital input 2
+      node003_DI3 : Bool;   // Node 3 - BW4893-14bytes: Digital input 3
+      node003_DI4 : Bool;   // Node 3 - BW4893-14bytes: Digital input 4
+      node003_DI5 : Bool;   // Node 3 - BW4893-14bytes: Digital input 5
+      node003_DI6 : Bool;   // Node 3 - BW4893-14bytes: Digital input 6
+      node003_DI7 : Bool;   // Node 3 - BW4893-14bytes: Digital input 7
+      node003_DI8 : Bool;   // Node 3 - BW4893-14bytes: Digital input 8
+      node003_motor1_error : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 1 error
+      node003_motor2_error : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 2 error
+      node003_motor3_error : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 3 error
+      node003_motor4_error : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 4 error
+      node003_reserved_I1_4 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_reserved_I1_5 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_reserved_I1_6 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_reserved_I1_7 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_motor1_fuseTriggered : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node003_motor2_fuseTriggered : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node003_motor3_fuseTriggered : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node003_motor4_fuseTriggered : Bool;   // Node 3 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node003_reserved_I2_4 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_voltageError : Bool;   // Node 3 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node003_temperatureError : Bool;   // Node 3 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node003_reserved_I2_7 : Bool;   // Node 3 - BW4893-14bytes: Reserved
+      node003_reserved_IB3 : Byte;   // Node 3 - BW4893-14bytes: Reserved
+      node003_auxVoltage : UInt;   // Node 3 - BW4893-14bytes: AUX voltage (mV)
+      node003_motor1_current : UInt;   // Node 3 - BW4893-14bytes: Motor current M1 (mA)
+      node003_motor2_current : UInt;   // Node 3 - BW4893-14bytes: Motor current M2 (mA)
+      node003_motor3_current : UInt;   // Node 3 - BW4893-14bytes: Motor current M3 (mA)
+      node003_motor4_current : UInt;   // Node 3 - BW4893-14bytes: Motor current M4 (mA)
+      node004_DI1 : Bool;   // Node 4 - BW4893-14bytes: Digital input 1
+      node004_DI2 : Bool;   // Node 4 - BW4893-14bytes: Digital input 2
+      node004_DI3 : Bool;   // Node 4 - BW4893-14bytes: Digital input 3
+      node004_DI4 : Bool;   // Node 4 - BW4893-14bytes: Digital input 4
+      node004_DI5 : Bool;   // Node 4 - BW4893-14bytes: Digital input 5
+      node004_DI6 : Bool;   // Node 4 - BW4893-14bytes: Digital input 6
+      node004_DI7 : Bool;   // Node 4 - BW4893-14bytes: Digital input 7
+      node004_DI8 : Bool;   // Node 4 - BW4893-14bytes: Digital input 8
+      node004_motor1_error : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 1 error
+      node004_motor2_error : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 2 error
+      node004_motor3_error : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 3 error
+      node004_motor4_error : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 4 error
+      node004_reserved_I1_4 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_reserved_I1_5 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_reserved_I1_6 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_reserved_I1_7 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_motor1_fuseTriggered : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node004_motor2_fuseTriggered : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node004_motor3_fuseTriggered : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node004_motor4_fuseTriggered : Bool;   // Node 4 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node004_reserved_I2_4 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_voltageError : Bool;   // Node 4 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node004_temperatureError : Bool;   // Node 4 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node004_reserved_I2_7 : Bool;   // Node 4 - BW4893-14bytes: Reserved
+      node004_reserved_IB3 : Byte;   // Node 4 - BW4893-14bytes: Reserved
+      node004_auxVoltage : UInt;   // Node 4 - BW4893-14bytes: AUX voltage (mV)
+      node004_motor1_current : UInt;   // Node 4 - BW4893-14bytes: Motor current M1 (mA)
+      node004_motor2_current : UInt;   // Node 4 - BW4893-14bytes: Motor current M2 (mA)
+      node004_motor3_current : UInt;   // Node 4 - BW4893-14bytes: Motor current M3 (mA)
+      node004_motor4_current : UInt;   // Node 4 - BW4893-14bytes: Motor current M4 (mA)
+      node005_p1_inDword : DWord;   // Node 5 - BW4067-16bytes:
+      node005_p2_inDword0 : DInt;   // Node 5 - BW4067-16bytes:
+      node005_p2_inDword1 : UDInt;   // Node 5 - BW4067-16bytes:
+      node005_p3_inWord : UInt;   // Node 5 - BW4067-16bytes:
+      node005_p4_inWord : UInt;   // Node 5 - BW4067-16bytes:
+      node006_DI1 : Bool;   // Node 6 - BW4893-14bytes: Digital input 1
+      node006_DI2 : Bool;   // Node 6 - BW4893-14bytes: Digital input 2
+      node006_DI3 : Bool;   // Node 6 - BW4893-14bytes: Digital input 3
+      node006_DI4 : Bool;   // Node 6 - BW4893-14bytes: Digital input 4
+      node006_DI5 : Bool;   // Node 6 - BW4893-14bytes: Digital input 5
+      node006_DI6 : Bool;   // Node 6 - BW4893-14bytes: Digital input 6
+      node006_DI7 : Bool;   // Node 6 - BW4893-14bytes: Digital input 7
+      node006_DI8 : Bool;   // Node 6 - BW4893-14bytes: Digital input 8
+      node006_motor1_error : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 1 error
+      node006_motor2_error : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 2 error
+      node006_motor3_error : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 3 error
+      node006_motor4_error : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 4 error
+      node006_reserved_I1_4 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_reserved_I1_5 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_reserved_I1_6 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_reserved_I1_7 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_motor1_fuseTriggered : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node006_motor2_fuseTriggered : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node006_motor3_fuseTriggered : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node006_motor4_fuseTriggered : Bool;   // Node 6 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node006_reserved_I2_4 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_voltageError : Bool;   // Node 6 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node006_temperatureError : Bool;   // Node 6 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node006_reserved_I2_7 : Bool;   // Node 6 - BW4893-14bytes: Reserved
+      node006_reserved_IB3 : Byte;   // Node 6 - BW4893-14bytes: Reserved
+      node006_auxVoltage : UInt;   // Node 6 - BW4893-14bytes: AUX voltage (mV)
+      node006_motor1_current : UInt;   // Node 6 - BW4893-14bytes: Motor current M1 (mA)
+      node006_motor2_current : UInt;   // Node 6 - BW4893-14bytes: Motor current M2 (mA)
+      node006_motor3_current : UInt;   // Node 6 - BW4893-14bytes: Motor current M3 (mA)
+      node006_motor4_current : UInt;   // Node 6 - BW4893-14bytes: Motor current M4 (mA)
+      node007_DI1 : Bool;   // Node 7 - BW4893-14bytes: Digital input 1
+      node007_DI2 : Bool;   // Node 7 - BW4893-14bytes: Digital input 2
+      node007_DI3 : Bool;   // Node 7 - BW4893-14bytes: Digital input 3
+      node007_DI4 : Bool;   // Node 7 - BW4893-14bytes: Digital input 4
+      node007_DI5 : Bool;   // Node 7 - BW4893-14bytes: Digital input 5
+      node007_DI6 : Bool;   // Node 7 - BW4893-14bytes: Digital input 6
+      node007_DI7 : Bool;   // Node 7 - BW4893-14bytes: Digital input 7
+      node007_DI8 : Bool;   // Node 7 - BW4893-14bytes: Digital input 8
+      node007_motor1_error : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 1 error
+      node007_motor2_error : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 2 error
+      node007_motor3_error : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 3 error
+      node007_motor4_error : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 4 error
+      node007_reserved_I1_4 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_reserved_I1_5 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_reserved_I1_6 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_reserved_I1_7 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_motor1_fuseTriggered : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 1 fuse for motorized rolled Mn not OK (triggered)
+      node007_motor2_fuseTriggered : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 2 fuse for motorized rolled Mn not OK (triggered)
+      node007_motor3_fuseTriggered : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 3 fuse for motorized rolled Mn not OK (triggered)
+      node007_motor4_fuseTriggered : Bool;   // Node 7 - BW4893-14bytes: 1=Motor 4 fuse for motorized rolled Mn not OK (triggered)
+      node007_reserved_I2_4 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_voltageError : Bool;   // Node 7 - BW4893-14bytes: 1=AUX voltager lower than 18v
+      node007_temperatureError : Bool;   // Node 7 - BW4893-14bytes: 1=Maximum operating temperature exceeded, risk of overheating
+      node007_reserved_I2_7 : Bool;   // Node 7 - BW4893-14bytes: Reserved
+      node007_reserved_IB3 : Byte;   // Node 7 - BW4893-14bytes: Reserved
+      node007_auxVoltage : UInt;   // Node 7 - BW4893-14bytes: AUX voltage (mV)
+      node007_motor1_current : UInt;   // Node 7 - BW4893-14bytes: Motor current M1 (mA)
+      node007_motor2_current : UInt;   // Node 7 - BW4893-14bytes: Motor current M2 (mA)
+      node007_motor3_current : UInt;   // Node 7 - BW4893-14bytes: Motor current M3 (mA)
+      node007_motor4_current : UInt;   // Node 7 - BW4893-14bytes: Motor current M4 (mA)
+      node008_p1_inDword : DWord;   // Node 8 - BW4067-16bytes:
+      node008_p2_inDword0 : DInt;   // Node 8 - BW4067-16bytes:
+      node008_p2_inDword1 : UDInt;   // Node 8 - BW4067-16bytes:
+      node008_p3_inWord : UInt;   // Node 8 - BW4067-16bytes:
+      node008_p4_inWord : UInt;   // Node 8 - BW4067-16bytes:
+      reserved_117 : Byte;   // Node reserved
+      reserved_118 : Byte;   // Node reserved
+      reserved_119 : Byte;   // Node reserved
+      reserved_120 : Byte;   // Node reserved
+      reserved_121 : Byte;   // Node reserved
+      reserved_122 : Byte;   // Node reserved
+      reserved_123 : Byte;   // Node reserved
+      reserved_124 : Byte;   // Node reserved
+      reserved_125 : Byte;   // Node reserved
+      reserved_126 : Byte;   // Node reserved
+      reserved_127 : Byte;   // Node reserved
+   END_STRUCT;
+
+END_TYPE

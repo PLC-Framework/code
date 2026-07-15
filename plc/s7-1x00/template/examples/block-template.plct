@@ -1,0 +1,13 @@
+function: {{ name }}
+
+VAR
+{%- for sensor in sensors %}
+  { "visible" := "Access := External"; } {{ sensor }} := bool;
+{%- endfor %}
+END_VAR
+
+NETWORK Controller ################################
+{% if controller_template %}
+  {%- include controller_template %}
+{%- endif %}
+end_block

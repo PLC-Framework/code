@@ -1,0 +1,77 @@
+﻿FUNCTION "_getYearDays" : UInt
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/util'
+NAME : _getYearDays
+VERSION : 1.0
+
+   VAR_INPUT 
+      in {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Datetime in
+   END_VAR
+
+   VAR_TEMP 
+      days : UInt;
+      isLeapYear : Bool;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function returns the number of days elapsed in a given datetime.
+
+## Return
+
+| RLO | uint | description |
+|:---:|:---:|:---------|
+| TRUE | 1..365 or 366 | year days |
+
+--*)
+	
+	CASE #in.MONTH OF
+	  1:
+	    #days := 0;
+	  2:
+	    #days := 31;
+	  3:
+	    #days := 59;
+	  4:
+	    #days := 90;
+	  5:
+	    #days := 120;
+	  6:
+	    #days := 151;
+	  7:
+	    #days := 181;
+	  8:
+	    #days := 212;
+	  9:
+	    #days := 243;
+	  10:
+	    #days := 273;
+	  11:
+	    #days := 304;
+	  12:
+	    #days := 334;
+	END_CASE;
+	
+	// Leap year
+	#isLeapYear := #in.YEAR MOD 400 = 0 OR (#in.YEAR MOD 4 = 0 AND #in.YEAR MOD 100 <> 0);
+	IF #isLeapYear AND #in.MONTH > 2 THEN
+	  #days += 1;
+	END_IF;
+	
+	#_getYearDays := #days + #in.DAY;
+	ENO := true;
+	
+END_FUNCTION
+

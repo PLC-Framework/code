@@ -1,0 +1,113 @@
+﻿FUNCTION "_checkDatetime" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["_compareDatetime-v1.0", "_getMonthDays-v1.0", "_getWeekday-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/util'
+NAME : _checkDatetime
+VERSION : 1.0
+
+   VAR_INPUT 
+      in {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Datetime in
+      checkWeekday : Bool;   // 0=No check weekday; 1=Check weekday
+   END_VAR
+
+   VAR CONSTANT 
+      MIN_DTL {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL := DTL#1970-01-01-00:00:00.0;
+      MAX_DTL {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL := DTL#2262-04-11-23:47:16.854775807;
+      A_LESS_THAN_B : Int := -1;
+      A_EQUAL_TO_B : Int := 0;
+      A_GREATER_THAN_B : Int := 1;
+      STATUS_0000_DONE : Int := 0;
+      STATUS_8000_DATETIME_UNDERFLOW : Int := 16#8000;
+      STATUS_8001_DATETIME_OVERFLOW : Int := 16#8001;
+      STATUS_8002_MONTH_OUT_OF_RANGE : Int := 16#8002;
+      STATUS_8003_DAY_OUT_OF_RANGE : Int := 16#8003;
+      STATUS_8004_WEEKDAY_MISMATCH : Int := 16#8004;
+      STATUS_8005_HOUR_OUT_OF_RANGE : Int := 16#8005;
+      STATUS_8006_MINUTE_OUT_OF_RANGE : Int := 16#8006;
+      STATUS_8007_SECOND_OUT_OF_RANGE : Int := 16#8007;
+      STATUS_8008_NANOSECOND_OUT_OF_RANGE : Int := 16#8008;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function checks the consistency of datetime `in`, optionally it can check the weekday setting true the input `checkWeekday`.
+
+## Return
+
+| RLO | int | constant | description |
+|:---:|:---:|:---------|:------------|
+| TRUE | 0x0000 | STATUS_0000_OK | Datetime is ok |
+| FALSE | 0x8000 | STATUS_8000_DATETIME_UNDERFLOW | `in` < DTL#1970-01-01-00:00:00.0 |
+| FALSE | 0x8001 | STATUS_8001_DATETIME_OVERFLOW |  `in` > DTL#2262-04-11-23:47:16.854775807 |
+| FALSE | 0x8002 | STATUS_8002_MONTH_OUT_OF_RANGE | `in.month` < 1 or > 12 |
+| FALSE | 0x8003 | STATUS_8003_DAY_OUT_OF_RANGE | `in.day` < 1 or > (28, 29, 30, 31) |
+| FALSE | 0x8004 | STATUS_8004_WEEKDAY_MISMATCH | `in.weekday` != expected weekday |
+| FALSE | 0x8005 | STATUS_8005_HOUR_OUT_OF_RANGE | `in.hour`> 23 |
+| FALSE | 0x8006 | STATUS_8006_MINUTE_OUT_OF_RANGE | `in.minute`> 59 |
+| FALSE | 0x8007 | STATUS_8007_SECOND_OUT_OF_RANGE | `in.second` > 59 |
+| FALSE | 0x8008 | STATUS_8008_NANOSECOND_OUT_OF_RANGE | `in.nanosecond` > 999_999_999 |
+
+--*)
+	
+	IF "_compareDatetime"(a:=#in, b:= #MIN_DTL,depthUpTo:= 0) = #A_LESS_THAN_B THEN
+	  #_checkDatetime := #STATUS_8000_DATETIME_UNDERFLOW;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF "_compareDatetime"(a:=#in, b:= #MAX_DTL,depthUpTo:= 0) = #A_GREATER_THAN_B THEN
+	  #_checkDatetime := #STATUS_8001_DATETIME_OVERFLOW;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.MONTH < 1 OR #in.MONTH > 12 THEN
+	  #_checkDatetime := #STATUS_8002_MONTH_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.DAY < 1 OR #in.DAY > "_getMonthDays"(year:=#in.YEAR, month:=#in.MONTH) THEN
+	  #_checkDatetime := #STATUS_8003_DAY_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #checkWeekday AND #in.WEEKDAY <> "_getWeekday"(#in) THEN
+	  #_checkDatetime := #STATUS_8004_WEEKDAY_MISMATCH;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.HOUR > 23 THEN
+	  #_checkDatetime := #STATUS_8005_HOUR_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.MINUTE < 0 OR #in.MINUTE > 59 THEN
+	  #_checkDatetime := #STATUS_8006_MINUTE_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.HOUR > 59 THEN
+	  #_checkDatetime := #STATUS_8007_SECOND_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	  
+	ELSIF #in.NANOSECOND > 999999999 THEN
+	  #_checkDatetime := #STATUS_8008_NANOSECOND_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Return ok
+	#_checkDatetime := #STATUS_0000_DONE;
+	ENO := true;
+	  
+END_FUNCTION

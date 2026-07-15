@@ -1,0 +1,107 @@
+﻿FUNCTION "_jobmailbox_screenSelection" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _jobmailbox_screenSelection
+VERSION : 1.0
+
+VAR_IN_OUT 
+      newScreenNumber : UInt;   // 1..23767: Expected screen number
+      jobMailbox : Array[0..3] of Word;   // Job mail box
+      screenNumber : Array[0..4] of Word;   // Screen number
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0000_DONE : Int := 0;
+      STATUS_0001_BUSY : Int := 1;
+      STATUS_7000_NO_SCREEN : Int := 16#7000;
+      STATUS_8000_SCREEN_OUT_OF_RANGE : Int := 16#8000;
+      JOBMAILBOX_51_SCREEN_SELECTION : Byte := 51;   // Screen selection: param. 1= screen number; param. 2= 0; para. 3= field number
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2023-10-27 | cyanezf | First version |
+
+## Description
+
+This function is used to change screens in Siemens Panel by jobmailbox
+
+## Jobmailbox array
+
+| Index | Variable | Description |
+|:-----:|:--------:|:------------|
+| 0 | .%B0 | 51 - Screen selection
+| 1 | screen | number |
+| 2 | 0 | |
+| 3 | field | number
+
+## Screen number array
+
+| Index | Description |
+|:-----:|:------------|
+| 0 | current screen type: 1=Root screen; 4=Permanent area
+| 1 | current screen number
+| 2 | reserved
+| 3 | current field number
+| 4 | reserved
+
+## RLO | Returns
+
+| RLO   | Return | Description |
+|:-----:|:------:|:------------|
+| TRUE  | 0x0000 | Done | 
+| FALSE | 0x0001 | Busy | 
+| FALSE | 0x8000 | newScreenNumber is out of range | 
+
+--*)
+	
+	// No screen
+	IF #newScreenNumber = 0 THEN
+	  #_jobmailbox_screenSelection := #STATUS_7000_NO_SCREEN;
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Check if new screen is out of range
+	IF #newScreenNumber >  32767 THEN
+	  #_jobmailbox_screenSelection := #STATUS_8000_SCREEN_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Check if new scree is active
+	IF #newScreenNumber = #screenNumber[1] THEN
+	  #_jobmailbox_screenSelection := #STATUS_0000_DONE;
+	  #newScreenNumber := 0;
+	  ENO := true;
+	  RETURN;
+	END_IF;
+	
+	// Check if jobmailbox is busy
+	IF #jobMailbox[0].%B0 <> 0 THEN
+	  #_jobmailbox_screenSelection := #STATUS_0001_BUSY;
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Execute load
+	#jobMailbox[0].%B0 := #JOBMAILBOX_51_SCREEN_SELECTION;
+	#jobMailbox[0].%B1 := 0;
+	#jobMailbox[1] := UINT_TO_WORD(#newScreenNumber);
+	#jobMailbox[2] := 0;
+	#jobMailbox[3] := 1;
+	
+	// Return
+	#_jobmailbox_screenSelection := #STATUS_0001_BUSY;
+	ENO := false;
+	
+END_FUNCTION
+

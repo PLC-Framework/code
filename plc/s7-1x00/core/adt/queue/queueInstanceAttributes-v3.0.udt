@@ -1,0 +1,28 @@
+﻿TYPE "queueInstanceAttributes"
+TITLE = {"version":"v3.0", "author":"cyanezf", "family":"core/adt/queue", "status": "current", "deprecatedBy": null, "dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v3.0 | 2025-12-26 | cyanezf | Refactor, not complatible with prev. versions |
+//| v2.0 | 2023-01-18 | cyanezf | Name changed |
+//| v1.0 | 2022-01-01 | cyanezf | First version |
+//
+//## Description
+//Queue instance attributes
+//--*)
+
+   STRUCT
+      front : DInt := 0;   // First position of the queue
+      length : DInt := 0;   // Current length of the queue
+      total : DInt := 0;   // Total/maximum length of the queue
+      isEmpty : Bool := 1;   // 1= The queue is empty
+      isFull : Bool := 0;   // 1= The queue is full
+      isInitialized : Bool := 0;   // 1= The queue is initialized and ready to work
+      mutex : Bool := 0;   // Used to block or enable access to queue (User defines the rules)
+   END_STRUCT;
+
+END_TYPE
+

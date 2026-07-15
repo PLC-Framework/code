@@ -1,0 +1,35 @@
+﻿TYPE "i550Motec_netWordIN1Control"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/lenze/i550-motec","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//i550 Motec - netWord IN1 control
+//--*)
+
+   STRUCT
+      opt8 : Bool;   // x1.0 - 0x400E:009
+      activateDCbraking : Bool;   // x1.1 - 0x400E:010: 1=DC braking function activated
+      opt10 : Bool;   // x1.2 - 0x400E:011
+      opt11 : Bool;   // x1.3 - 0x400E:012
+      reverseRotationalDirection : Bool;   // x1.4 - 0x400E:013: 1=The setpoint specified is inverted
+      opt13 : Bool;   // x1.5 - 0x400E:014
+      opt14 : Bool;   // x1.6 - 0x400E:015
+      opt15_posCountReset : Bool;   // x1.7 - 0x400E:016: 1=Trigger bit = 1: Reset position counter manually. [54]
+      opt1_disableInverter : Bool;   // x0.0 - 0x400E:001: 1=Disable inverter (Select 1)
+      opt2_stop : Bool;   // x0.1 - 0x400E:002: 1=Stop motor. Stop method can be selected in 0x2838:003 (Select 2)
+      quickStop : Bool;   // x0.2 - 0x400E:003: 1=Active quick stop. With ramp in 0x291C
+      opt3 : Bool;   // x0.3 - 0x400E:004
+      runForward : Bool;   // x0.4 - 0x400E:005: 1=Motor is started in forward rotating direction (CW)
+      activatePresetBit0 : Bool;   // x0.5 - 0x400E:006: Activate preset bit 0
+      activatePresetBit1 : Bool;   // x0.6 - 0x400E:007: Activate preset bit 1
+      resetError : Bool;   // x0.7 - 0x400E:008: 1=Reset error
+   END_STRUCT;
+
+END_TYPE
+

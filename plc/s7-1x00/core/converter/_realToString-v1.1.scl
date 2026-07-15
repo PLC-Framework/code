@@ -1,0 +1,96 @@
+﻿FUNCTION "_realToString" : String
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["VAL_STRG"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/converter'
+NAME : _realToString
+VERSION : 1.1
+
+   VAR_INPUT 
+      in : Real;   // Real number
+      integerChars : USInt;   // Max number of integer parts
+      decimalChars : USInt;   // Max number of decimal parts
+   END_VAR
+
+   VAR_TEMP 
+      tmp : String;
+      i : Int;
+      first : Int;
+      last : Int;
+      max : Int;
+      found : Bool;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2025-06-13 | cyanezf | NaN added |
+| v1.0 | 2025-06-06 | cyanezf | First version |
+
+## Description
+
+This function converts a `real` number to string and optimize the used chars
+If real number overflows the buffer or is out of `integerChars` + `decimalChars` + 1 then
+return `NaN`.
+
+--*)
+	
+	// Convert to raw string
+	// integerChars + 1 + decimalchars
+	VAL_STRG(IN:=#in,
+	         SIZE:=#integerChars + #decimalChars + 1,
+	         PREC:=#decimalChars,
+	         FORMAT:=0,
+	         P:=1,
+	         OUT=>#tmp);
+	
+	// Save RLO and return false if conversion faults
+	IF #tmp = '' THEN
+	  #_realToString := 'NaN';
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Init variables
+	#first := 0;
+	#max := LEN(#tmp);
+	#last := #max;
+	#found := FALSE;
+	
+	// Iterate through string
+	FOR #i := #max TO 1 BY -1 DO
+	  
+	  IF #tmp[#i] = ' ' THEN
+	    #first := #i;
+	    EXIT; // break loop
+	    
+	  ELSIF #tmp[#i] <> '0' AND NOT #found THEN
+	    
+	    IF #tmp[#i] = '.' THEN
+	      #last := #i + 1;
+	    ELSE
+	      #last := #i;
+	    END_IF;
+	    
+	    #found := true;
+	  END_IF;
+	  
+	END_FOR;
+	
+	// Get clean part of string
+	#tmp := MID(IN := #tmp, L := #last - #first, P := #first + 1);
+	
+	// Return value
+	#_realToString := #tmp;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

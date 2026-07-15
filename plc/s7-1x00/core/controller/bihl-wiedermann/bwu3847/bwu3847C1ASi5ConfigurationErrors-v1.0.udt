@@ -1,0 +1,127 @@
+TYPE "bwu3847C1ASi5ConfigurationErrors"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+//
+//## Description
+//B+W - bwu3847 C1 ASi5 configuration errors
+//--*)
+
+   STRUCT
+
+      node0001 : bool; // Node 1 - 1=Configuration error
+      node0002 : bool; // Node 2 - 1=Configuration error
+      node0003 : bool; // Node 3 - 1=Configuration error
+      node0004 : bool; // Node 4 - 1=Configuration error
+      node0005 : bool; // Node 5 - 1=Configuration error
+      node0006 : bool; // Node 6 - 1=Configuration error
+      node0007 : bool; // Node 7 - 1=Configuration error
+      node0008 : bool; // Node 8 - 1=Configuration error
+
+      node0009 : bool; // Node 9 - 1=Configuration error
+      node0010 : bool; // Node 10 - 1=Configuration error
+      node0011 : bool; // Node 11 - 1=Configuration error
+      node0012 : bool; // Node 12 - 1=Configuration error
+      node0013 : bool; // Node 13 - 1=Configuration error
+      node0014 : bool; // Node 14 - 1=Configuration error
+      node0015 : bool; // Node 15 - 1=Configuration error
+      node0016 : bool; // Node 16 - 1=Configuration error
+
+      node0017 : bool; // Node 17 - 1=Configuration error
+      node0018 : bool; // Node 18 - 1=Configuration error
+      node0019 : bool; // Node 19 - 1=Configuration error
+      node0020 : bool; // Node 20 - 1=Configuration error
+      node0021 : bool; // Node 21 - 1=Configuration error
+      node0022 : bool; // Node 22 - 1=Configuration error
+      node0023 : bool; // Node 23 - 1=Configuration error
+      node0024 : bool; // Node 24 - 1=Configuration error
+
+      node0025 : bool; // Node 25 - 1=Configuration error
+      node0026 : bool; // Node 26 - 1=Configuration error
+      node0027 : bool; // Node 27 - 1=Configuration error
+      node0028 : bool; // Node 28 - 1=Configuration error
+      node0029 : bool; // Node 29 - 1=Configuration error
+      node0030 : bool; // Node 30 - 1=Configuration error
+      node0031 : bool; // Node 31 - 1=Configuration error
+      node0032 : bool; // Node 32 - 1=Configuration error
+
+      node0033 : bool; // Node 33 - 1=Configuration error
+      node0034 : bool; // Node 34 - 1=Configuration error
+      node0035 : bool; // Node 35 - 1=Configuration error
+      node0036 : bool; // Node 36 - 1=Configuration error
+      node0037 : bool; // Node 37 - 1=Configuration error
+      node0038 : bool; // Node 38 - 1=Configuration error
+      node0039 : bool; // Node 39 - 1=Configuration error
+      node0040 : bool; // Node 40 - 1=Configuration error
+
+      node0041 : bool; // Node 41 - 1=Configuration error
+      node0042 : bool; // Node 42 - 1=Configuration error
+      node0043 : bool; // Node 43 - 1=Configuration error
+      node0044 : bool; // Node 44 - 1=Configuration error
+      node0045 : bool; // Node 45 - 1=Configuration error
+      node0046 : bool; // Node 46 - 1=Configuration error
+      node0047 : bool; // Node 47 - 1=Configuration error
+      node0048 : bool; // Node 48 - 1=Configuration error
+
+      node0049 : bool; // Node 49 - 1=Configuration error
+      node0050 : bool; // Node 50 - 1=Configuration error
+      node0051 : bool; // Node 51 - 1=Configuration error
+      node0052 : bool; // Node 52 - 1=Configuration error
+      node0053 : bool; // Node 53 - 1=Configuration error
+      node0054 : bool; // Node 54 - 1=Configuration error
+      node0055 : bool; // Node 55 - 1=Configuration error
+      node0056 : bool; // Node 56 - 1=Configuration error
+
+      node0057 : bool; // Node 57 - 1=Configuration error
+      node0058 : bool; // Node 58 - 1=Configuration error
+      node0059 : bool; // Node 59 - 1=Configuration error
+      node0060 : bool; // Node 60 - 1=Configuration error
+      node0061 : bool; // Node 61 - 1=Configuration error
+      node0062 : bool; // Node 62 - 1=Configuration error
+      node0063 : bool; // Node 63 - 1=Configuration error
+      node0064 : bool; // Node 64 - 1=Configuration error
+
+      node0065 : bool; // Node 65 - 1=Configuration error
+      node0066 : bool; // Node 66 - 1=Configuration error
+      node0067 : bool; // Node 67 - 1=Configuration error
+      node0068 : bool; // Node 68 - 1=Configuration error
+      node0069 : bool; // Node 69 - 1=Configuration error
+      node0070 : bool; // Node 70 - 1=Configuration error
+      node0071 : bool; // Node 71 - 1=Configuration error
+      node0072 : bool; // Node 72 - 1=Configuration error
+
+      node0073 : bool; // Node 73 - 1=Configuration error
+      node0074 : bool; // Node 74 - 1=Configuration error
+      node0075 : bool; // Node 75 - 1=Configuration error
+      node0076 : bool; // Node 76 - 1=Configuration error
+      node0077 : bool; // Node 77 - 1=Configuration error
+      node0078 : bool; // Node 78 - 1=Configuration error
+      node0079 : bool; // Node 79 - 1=Configuration error
+      node0080 : bool; // Node 80 - 1=Configuration error
+      
+      node0081 : bool; // Node 81 - 1=Configuration error
+      node0082 : bool; // Node 82 - 1=Configuration error
+      node0083 : bool; // Node 83 - 1=Configuration error
+      node0084 : bool; // Node 84 - 1=Configuration error
+      node0085 : bool; // Node 85 - 1=Configuration error
+      node0086 : bool; // Node 86 - 1=Configuration error
+      node0087 : bool; // Node 87 - 1=Configuration error
+      node0088 : bool; // Node 88 - 1=Configuration error
+      
+      node0089 : bool; // Node 89 - 1=Configuration error
+      node0090 : bool; // Node 90 - 1=Configuration error
+      node0091 : bool; // Node 91 - 1=Configuration error
+      node0092 : bool; // Node 92 - 1=Configuration error
+      node0093 : bool; // Node 93 - 1=Configuration error
+      node0094 : bool; // Node 94 - 1=Configuration error
+      node0095 : bool; // Node 95 - 1=Configuration error
+      node0096 : bool; // Node 96 - 1=Configuration error
+      
+   END_STRUCT;
+
+END_TYPE

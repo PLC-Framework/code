@@ -1,0 +1,75 @@
+﻿FUNCTION_BLOCK "_monitorPhysicalPulseButton"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME", "TP_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _monitorPhysicalPulseButton
+VERSION : 1.3
+
+   VAR_INPUT 
+      button : Bool;   // IW: 1=Button is pressed
+   END_VAR
+   VAR_INPUT RETAIN
+      WATCHDOG_TIME { ExternalWritable := 'False'} : Time := T#10S;   // IR: 0=Disable watch dog; >0=Enable and monitor watchdog
+      PULSE_TIME { ExternalWritable := 'False'} : Time := T#500ms;   // IR: Pulse time
+   END_VAR
+
+   VAR_OUTPUT 
+      Q { ExternalWritable := 'False'} : Bool;   // OR: 1=TP pulse
+      PE { ExternalWritable := 'False'} : Bool;   // OR: 1=Positive edge
+      a2w_1_watchdog { ExternalWritable := 'False'} : Bool;   // OR: 1=Alarm warning - Watchdog
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         button { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         acknTimer {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      pulseOn : Bool;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.3 | 2025-07-23 | cyanezf | Added PE output |
+| v1.2 | 2025-07-15 | cyanezf | Added PULSE_TIME and removed virtual button |
+| v1.1 | 2024-01-13 | cyanezf | Bugs fixed |
+| v1.0 | 2023-09-27 | cyanezf | First version |
+
+## Description
+
+This function monitors any pulse `button` and
+return a processed pulse when positive edge of
+button was evaluted.
+
+--*)
+	
+	// Positive edge from button
+	#PE:= #pulseOn := (#button AND NOT #private.button);
+	#private.button := #button;
+	
+	// Ackn pulse when negative edge is detected and not alarm present
+	#private.acknTimer(IN := #pulseOn,
+	                   PT := #PULSE_TIME,
+	                   Q => #Q);
+	
+	// Watchdog monitoring
+	#private.watchdogTimer(IN := #button AND #WATCHDOG_TIME > t#0s,
+	                       PT := #WATCHDOG_TIME,
+	                       Q => #a2w_1_watchdog);
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

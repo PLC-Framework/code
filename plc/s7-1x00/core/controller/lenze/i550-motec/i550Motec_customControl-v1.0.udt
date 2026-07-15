@@ -1,0 +1,23 @@
+﻿TYPE "i550Motec_customControl"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/lenze/i550-motec","status":"current","deprecatedBy": null,"dependencies":["i550Motec_netWordIN1Control-v1.0"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//i550 Motec - custom control
+//--*)
+
+   STRUCT
+      control { S7_SetPoint := 'False'} : "i550Motec_netWordIN1Control";   // Index: 0x4008, subindex: 1: Process input words - NetwordIN1, 0x0000, general, U16, 1, Hk, r
+      frequency : UInt;   // Index: 0x400B, subindex: 5: Process input data: Network setpoint frequency, (0.01), 0.00 Hz, general, U16, 100, O, r
+      acceleration : UInt;   // Index: 0x291D, subindex: 3: Ramp times: Acceleration time 2, U16, factor 100, P, rt
+      deceleration : UInt;   // Index: 0x291D, subindex: 4: Ramp times: Deceleration time 2, U16, factor 100, P, rt
+   END_STRUCT;
+
+END_TYPE
+

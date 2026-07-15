@@ -1,0 +1,28 @@
+﻿TYPE "rxRecordWriteSto"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/fieldbus/lldx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//RX record write storage
+//--*)
+
+   STRUCT
+      providerStatus : Bool;   // Bit 0: 1=The communication with the other side of the bus has been established and the module "RD READ STO" has been configured on the other side of the bus
+      fifoNotFull : Bool;   // Bit 1: 1=Query of "level_counter": The maximum value of 8 data sets has not been reached
+      res_0_2 : Bool;   // Bit 2: Reserved
+      res_0_3 : Bool;   // Bit 3: Reserved
+      res_0_4 : Bool;   // Bit 4: Reserved
+      res_0_5 : Bool;   // Bit 5: Reserved
+      res_0_6 : Bool;   // Bit 6: Reserved
+      writeAccept : Bool;   // Bit 7: 1=Acceptance of the data transfer in the PN/PN Coupler (= grouped acceptance; gathers the information of bits 0 and 1)
+      levelCounter : Byte;   // Per module: Level indication of the backup memory (max. 8 data sets)
+   END_STRUCT;
+
+END_TYPE
+

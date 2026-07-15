@@ -1,0 +1,301 @@
+﻿FUNCTION_BLOCK "_manualControl"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/manual'
+NAME : _manualControl
+VERSION : 6.0
+
+   VAR_INPUT 
+      enable { ExternalWritable := 'False'} : Bool;   // IR: 1=Enable manual mode 
+      ready { ExternalWritable := 'False'} : Bool;   // IR: 1=Drive is ready to work in manual mode
+      forwardLimitOk { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Limit exceeded; 1=Ready
+      forwardSensor { ExternalWritable := 'False'} : Bool;   // IR: Forward sensor value
+      backwardSensor { ExternalWritable := 'False'} : Bool;   // IR: Backward sensor value
+      backwardLimitOk { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Limit exceeded; 1=Ready
+   END_VAR
+   VAR_INPUT RETAIN
+      TIMEOUT : Time := T#10M;   // IW: Timeout to check button pressed
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Manual status
+      enabled { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive is ready to move in manual mode
+      forward { ExternalWritable := 'False'} : Bool;   // OR: 1=Forward movement
+      backward { ExternalWritable := 'False'} : Bool;   // OR: 1=Backward movement
+   END_VAR
+
+   VAR_IN_OUT 
+      hmiCommand { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UInt;   // IOX: Hmi command
+   END_VAR
+
+   VAR RETAIN
+      option { ExternalWritable := 'False'} : Struct   // SR: See option status configuration
+         buttonMode { ExternalWritable := 'False'} : Bool := 0;   // SR: 0=Xward must be pressed; 1=Xward toggle when is pressed
+         sensorMode { ExternalWritable := 'False'} : Bool := 1;   // SR: 0=Movement continues when sensor is reached; 1=Movement stops when sensor is reached
+         autoEnable { ExternalWritable := 'False'} : Bool := 1;   // SR: 0=Use HMI Command 8; 1=Always enabled
+      END_STRUCT;
+   END_VAR
+   VAR 
+      forceToClearToggle : Bool;   // SW: Additional feature to clear toggle option (only in advanced cases)
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         manualEnabled { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         fpForwardSensor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         fpBackwardSensor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         fpHmiForward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         fpHmiBackward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         forward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         backward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         hmiForward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         hmiBackward { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         monitorTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      pressed : Bool;
+      sensorChange : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      HMI_CMD_0000_NIL : UInt := 0;   // HMI Command: 0000 - No action; Mode=Clear; Area=Any
+      HMI_CMD_0008_MANUAL_MOV : UInt := 8;   // HMI Command: 0008 - Manual movement; Mode=E/D-Pulse; Area=Operating mode
+      HMI_CMD_0034_MANUAL_FWD : UInt := 34;   // HMI Command: 0034 - Manual movement forward; Mode=While; Area=Any
+      HMI_CMD_0035_MANUAL_BWD : UInt := 35;   // HMI Command: 0035 - Manual movement backward; Mode=While; Area=Any
+      HMI_CMD_0038_AUTO_ENABLE : UInt := 38;   // HMI Command: 0038 - Enable/disable auto-enable
+      HMI_CMD_0040_MANUAL_BUTTON_FEATURES : UInt := 40;   // HMI Command: 0040 - Manual movement, press option. 0=move while is pressed; 1=Toggle movement
+      HMI_CMD_0041_MANUAL_SENSOR_FEATURES : UInt := 41;   // HMI Command: 0041 - Manual movement, sensor option. 0=Stop when sensor changes, 1=Don't check sensors
+      STATUS_0000_NO_MANUAL_MODE : Int := 16#0000;   // Status 0: Drive is not in manual mode
+      STATUS_0001_READY_TO_MOVE : Int := 16#0001;   // Status 1: Drive is in manual mode and drive is ready to work and Hmi enabled movement
+      STATUS_0002_FORWARD : Int := 16#0002;   // Status 2: Drive is moving forward
+      STATUS_0003_BACKWARD : Int := 16#0003;   // Status 3: Drive is moving backward
+      STATUS_7000_DRIVE_NOT_READY : Int := 16#7000;   // Status Warning 7000: Drive is not ready to work
+      STATUS_7001_MOVEMENT_DISABLED : Int := 16#7001;   // Status Warning 7001: Drive is not enabled to move
+      STATUS_7002_FORWARD_LIMIT : Int := 16#7002;   // Status Warning 7002: Forward limit exceeded
+      STATUS_7003_BACKWARD_LIMIT : Int := 16#7003;   // Status Warning 7003: Backward limit exceeded
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v6.0 | 2024-04-20 | cyanezf | Features were added, interface updated |
+| v5.0 | 2024-01-19 | cyanezf | Fix bugs |
+| v4.0 | 2023-10-10 | cyanezf | Remove config input, add option static and HMI Commands |
+| v3.0 | 2023-10-05 | cyanezf | Add config input |
+| v2.1 | 2023-09-06 | cyanezf | Fix bugs |
+| v2.0 | 2023-07-28 | cyanezf | HMI command variable is inout |
+| v1.0 | 2020-01-01 | cyanezf | First version |
+
+## Description
+
+This function controls a standard manual movement.
+
+## Options
+
+| option | description |
+|:-------|:------------|
+| forceToClearToggle | It'is a signal to clear toggle option |
+| option.buttonMode | 0=Manual movement while button is pressed. 1=Manual movement toggle with button. |
+| option.sensorMode | 0=Manual movement continues if sensor changes. 1=Manual movement stops if sensor changes. |
+| option.autoEnable | 0=Use HMI Command 08. 1=Always enabled |
+
+## Used HMI commands
+
+| command | description |
+|:-------:|:------------|
+| 8 | enable/disable movement in manual |
+| 34 | sets forward movement |
+| 35 | sets backward movement |
+| 38 | enable/disable auto enable |
+| 40 | sets button feature option |
+| 41 | sets sensor feature option |
+
+## RLO and Status output codes
+
+| RLO | code | description |
+|:---:|:----:|:------------|
+| TRUE | 0 | Drive is NOT in manual mode |
+| TRUE | 1 | Drive is in manual mode AND drive is ready TO work AND Hmi enabled movement |
+| TRUE | 2 | Drive is moving forward |
+| TRUE | 3 | Drive is moving backward |
+| TRUE | 0x7000 | Warning. Drive is NOT ready TO work |
+| TRUE | 0x7001 | Warning. Drive is NOT enabled TO move |
+| TRUE | 0x7002 | Warning. Forward limit exceeded |
+| TRUE | 0x7003 | Warning. Backward limit exceeded |
+
+--*)
+
+	REGION Clear
+	  
+	  // Clear toggle option
+	  IF #forceToClearToggle AND #option.buttonMode THEN
+	    #option.buttonMode := false;
+	    #forceToClearToggle := false;
+	  END_IF;
+	  
+	  // Clear with while pressed mode
+	  IF NOT #option.buttonMode THEN
+	    #private.hmiForward := FALSE;
+	    #private.hmiBackward := FALSE;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION HMI Command
+	  
+	  IF #hmiCommand <> #HMI_CMD_0000_NIL THEN
+	    
+	    CASE #hmiCommand OF
+	        
+	        // Enable/Disable manual
+	      #HMI_CMD_0008_MANUAL_MOV:
+	        #private.manualEnabled := NOT #private.manualEnabled;
+	        #hmiCommand := #HMI_CMD_0000_NIL;
+	        
+	        // Forward movement
+	      #HMI_CMD_0034_MANUAL_FWD:
+	        IF #option.buttonMode THEN
+	          #private.hmiForward := NOT #private.hmiForward;
+	          #private.hmiBackward := false;
+	          #hmiCommand := #HMI_CMD_0000_NIL;
+	        ELSE
+	          #private.hmiForward := true;
+	          #private.hmiBackward := false;
+	        END_IF;
+	        
+	        // Backward movement
+	      #HMI_CMD_0035_MANUAL_BWD:
+	          IF #option.buttonMode THEN
+	          #private.hmiForward := false;
+	          #private.hmiBackward := NOT #private.hmiBackward;
+	          #hmiCommand := #HMI_CMD_0000_NIL;
+	        ELSE
+	          #private.hmiForward := false;
+	          #private.hmiBackward := true;
+	        END_IF;
+	        
+	        // Enable/Disable auto-enable
+	      #HMI_CMD_0038_AUTO_ENABLE:
+	        #option.autoEnable := NOT #option.autoEnable;
+	        #hmiCommand := #HMI_CMD_0000_NIL;
+	        
+	        // Option button features
+	      #HMI_CMD_0040_MANUAL_BUTTON_FEATURES:
+	        #option.buttonMode := NOT #option.buttonMode;
+	        #hmiCommand := #HMI_CMD_0000_NIL;
+	        
+	        // Option sensor change
+	      #HMI_CMD_0041_MANUAL_SENSOR_FEATURES:
+	        #option.sensorMode := NOT #option.sensorMode;
+	        #hmiCommand := #HMI_CMD_0000_NIL;
+	        
+	    END_CASE;
+	    
+	    // HMI Command monitor
+	    // A command can not be set more than TIMEOUT time.
+	    #private.monitorTimer(IN := TRUE,
+	                          PT := #TIMEOUT);
+	    
+	    // Clear HMI Command
+	    IF #private.monitorTimer.Q THEN
+	      #hmiCommand := #HMI_CMD_0000_NIL;
+	      RESET_TIMER(#private.monitorTimer);
+	    END_IF;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION Clear manual enabled
+	    
+	  IF #option.autoEnable THEN
+	    #private.manualEnabled := true;
+	  END_IF;
+	  
+	  IF NOT #enable OR NOT #ready THEN
+	    #private.manualEnabled := false;
+	  END_IF;
+	  
+	  #enabled := #ok := #enable AND #ready AND #private.manualEnabled;
+	
+	END_REGION
+	
+	REGION Forward movement
+	  
+	  // Safety to prevent involuntary movements while the button is held down and the movement conditions return.
+	  #pressed := (#private.hmiForward AND NOT #private.fpHmiForward) OR #private.forward;
+	  
+	  // Safety TO stop movement when the sensor value changes.
+	  #sensorChange := #option.sensorMode AND (#forwardSensor XOR #private.fpForwardSensor);
+	  
+	  // Movement
+	  #private.forward :=
+	  #forward := #pressed AND #private.hmiForward AND NOT #private.hmiBackward AND #ok AND #forwardLimitOk AND NOT #sensorChange;
+	  
+	  // Save value changes
+	  #private.fpHmiForward := #private.hmiForward;
+	  #private.fpForwardSensor := #forwardSensor;
+	  
+	END_REGION
+	
+	REGION Backward movement
+	  
+	  // Safety to prevent involuntary movements while the button is held down and the movement conditions return.
+	  #pressed := (#private.hmiBackward AND NOT #private.fpHmiBackward) OR #private.backward;
+	  
+	  // Safety TO stop movement when the sensor value changes.
+	  #sensorChange := #option.sensorMode AND (#backwardSensor XOR #private.fpBackwardSensor);
+	  
+	  // Movement
+	  #private.backward :=
+	  #backward := #pressed AND #ok AND #backwardLimitOk AND #private.hmiBackward AND NOT #private.hmiForward AND NOT #sensorChange;
+	  
+	  // Save value changes
+	  #private.fpHmiBackward := #private.hmiBackward;
+	  #private.fpBackwardSensor := #backwardSensor;
+	  
+	END_REGION
+	
+	REGION Status
+	  
+	  IF NOT #enable THEN
+	    #status := #STATUS_0000_NO_MANUAL_MODE;
+	    
+	  ELSIF #forward THEN
+	    #status := #STATUS_0002_FORWARD;
+	    
+	  ELSIF #backward THEN
+	    #status := #STATUS_0003_BACKWARD;
+	    
+	  ELSIF #ok THEN
+	    #status := #STATUS_0001_READY_TO_MOVE;
+	    
+	  ELSIF NOT #ready THEN
+	    #status := #STATUS_7000_DRIVE_NOT_READY;
+	    
+	  ELSIF NOT #private.manualEnabled THEN
+	    #status := #STATUS_7001_MOVEMENT_DISABLED;
+	    
+	  ELSIF NOT #forwardLimitOk THEN
+	    #status := #STATUS_7002_FORWARD_LIMIT;
+	    
+	  ELSIF NOT #backwardLimitOk THEN
+	    #status := #STATUS_7003_BACKWARD_LIMIT;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Save RLO
+	  
+	  ENO := TRUE;
+	  
+	END_REGION
+		
+END_FUNCTION_BLOCK
+

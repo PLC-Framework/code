@@ -1,0 +1,79 @@
+﻿FUNCTION "_externalHmiCommand" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _externalHmiCommand
+VERSION : 1.0
+
+   VAR_INPUT 
+      ID : UInt;   // Drive ID
+      ext_selector : Int;   // External ID to control
+      ext_hmiCommand : UInt;   // External HMI Command
+   END_VAR
+
+   VAR_IN_OUT 
+      hmiCommand : UInt;   // Drive Hmi Command variable
+      auxBit1 : Bool;   // Auxiliary bit to edges
+      auxBit2 : Bool;   // Auxiliary bit to edges
+   END_VAR
+
+   VAR_TEMP 
+      match : Bool;
+      matchOn : Bool;
+      matchOff : Bool;
+      nil : Bool;
+      nilOn : Bool;
+      nilOff : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      HMI_CMD_0_NIL : UInt := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-03-19 | cyanezf | First version |
+
+## Description
+This function updates `hmiCommand` with `ext_hmicommand` and `ext_selector` matches with `ID`.
+
+--*)
+	
+	// Catch selector events
+	#match := #ext_selector = #ID;
+	#matchOn := #match AND NOT #auxBit1;
+	#matchOff := NOT #match AND #auxBit1;
+	#auxBit1 := #match;
+	
+	// Catch hmiCommand events
+	#nil := #ext_hmiCommand = #HMI_CMD_0_NIL;
+	#nilOn := #nil AND NOT #auxBit2;
+	#nilOff := NOT #nil AND #auxBit2;
+	#auxBit2 := #nil;
+	
+	// Clear HMI commmand when some ID event
+	IF #matchOn OR #matchOff OR #nilOff THEN
+	  #hmiCommand := #HMI_CMD_0_NIL;
+	END_IF;
+	
+	// Load hmiCommand
+	// Info: I uses double IF to reduce cycle time, ext_hmiCommand must be evaluated
+	// only when match is true.
+	IF #match THEN
+	  IF #ext_hmiCommand <> #HMI_CMD_0_NIL THEN
+	    #hmiCommand := #ext_hmiCommand;
+	  END_IF;
+	END_IF;
+	
+	// Save RLO
+	ENO := #match;
+	
+END_FUNCTION
+

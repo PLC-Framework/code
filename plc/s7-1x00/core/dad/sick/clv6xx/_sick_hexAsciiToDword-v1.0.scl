@@ -1,0 +1,144 @@
+﻿FUNCTION "_sick_hexAsciiToDword" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SICKAG
+FAMILY : 'core/dad/sick/clv6xx'
+VERSION : 1.0
+//This function is needs to get a value out of a SICK CoLa command.
+   VAR_INPUT 
+      bufferLength : UInt;   // Length of the source telegram
+      hexValueLength : USInt;   // ASCII length of the value [1..8] = Fix length | [0]= Variable
+   END_VAR
+
+   VAR_OUTPUT 
+      hexValue : DWord;   // Read hexadecimal value
+   END_VAR
+
+   VAR_IN_OUT 
+      buffer : Array[*] of Byte;   // Data record (contains the whole CoLa telegram)
+      index : UInt;   // Position offset of the value before and after (starting from 0)
+   END_VAR
+
+   VAR_TEMP 
+      i : Int;   // Temporarily variable
+      segmentLength : UInt;   // Length of the segement
+      tmp : DWord;   // Temporarily variable
+   END_VAR
+
+   VAR CONSTANT 
+      MIN_BUFFER : Int := 1;
+      MAX_BUFFER : Int := 500;
+      FIX_VALUE_LENGTH : USInt := 0;
+      MAX_VALUE_LENGTH : USInt := 8;
+      ERROR_0X0000_OK : Int := 16#0000;
+      ERROR_0X0001_INVALID_TELEGRAM_LEN : Int := 16#0001;
+      ERROR_0X0002_INVALID_POSITION : Int := 16#0002;
+      ERROR_0X0003_INVALID_VALUE_LENGTH : Int := 16#0003;
+      ERROR_0X0004_INVALID_SEGMENT_LENGTH : Int := 16#0004;
+      ERROR_0X0005_DATA_IS_NOT_ALPHANUMERIC : Int := 16#0005;
+      ETX : Char := '$03';   // 0x03: End of Text
+      SPACE : Char := ' ';   // 0x20: Space charancter
+   END_VAR
+
+
+BEGIN
+	(*===========================================================================================
+	Name:   SICK_GetValue
+	Author: SICK AG
+	=============================================================================================
+	Description: 
+	This function is for internal use only. The function gets the selected Hex-value string out 
+	of the CoLa-Telegram and convert it into a hexadecimal number. 
+	
+	=============================================================================================
+	Error codes:
+	16#0000 = No error
+	16#0001 = Invaild telegram length   
+	16#0002 = Invalid position index 
+	16#0003 = Invalid value length
+	16#0004 = Invalid segment length 
+	16#0005 = ASCII character is not in a hexadecimal format             
+	                                                                      
+	=============================================================================================
+	Version history:
+	Date       | Version | created under               | Author  | Remark
+	---------------------------------------------------------------------------------------------
+	30/01/2014 | V1.0    | TIA Portal V12 SP1 Update 2 | SICK AG | Initial version
+	============================================================================================*)
+	
+	(*===================================== INITIALISATION =====================================*)
+	#segmentLength := 0;
+	#hexValue := 16#0000_0000;
+	
+	(*======================================= READ VALUE =======================================*)
+	(*Check telegram length*)
+	IF #bufferLength < #MIN_BUFFER OR #bufferLength > #MAX_BUFFER THEN
+	  #_sick_hexAsciiToDword := #ERROR_0X0001_INVALID_TELEGRAM_LEN; (*Error: Invaild telegram length*)
+	  RETURN;
+	END_IF;
+	
+	(*Check current position of the value*)
+	IF #index > (#bufferLength - 1) THEN
+	  #_sick_hexAsciiToDword := #ERROR_0X0002_INVALID_POSITION; (*Error: Invalid position index*)
+	  RETURN;
+	END_IF;
+	
+	(*Check value length*)
+	IF #hexValueLength > #MAX_VALUE_LENGTH THEN
+	  #_sick_hexAsciiToDword := #ERROR_0X0003_INVALID_VALUE_LENGTH; (*Error: Invalid value length*)
+	  RETURN;
+	END_IF;
+	
+	(*Get a value with a variable length (ends with a ' ' or [ETX]*)
+	IF #hexValueLength = #FIX_VALUE_LENGTH THEN
+	  FOR #i := UINT_TO_INT(#index) TO UINT_TO_INT(#bufferLength - 1) DO
+	    IF #buffer[#i] = #SPACE OR #buffer[#i] = #ETX THEN
+	      EXIT;
+	    END_IF;
+	    (*Length of the current value segement*)
+	    #segmentLength += 1;
+	  END_FOR;
+	  
+	(*Get a value with a fixed character length [1..8]*)
+	ELSE
+	  #segmentLength := #hexValueLength;
+	END_IF;
+	
+	(*Check if the segment length is valid*)
+	IF (#segmentLength > #MAX_VALUE_LENGTH) OR (#segmentLength = 0) THEN
+	  #_sick_hexAsciiToDword := #ERROR_0X0004_INVALID_SEGMENT_LENGTH; (*Error: Invalid segment length*)
+	  RETURN;
+	END_IF;
+	
+	(*Convert ASCII string into a hexadecimal number*)
+	FOR #i := UINT_TO_INT(#index) TO UINT_TO_INT(#index + #segmentLength - 1) DO
+	  (*ACSII value = [0..9]*)
+	  IF #buffer[#i] >= '0' AND #buffer[#i] <= '9' THEN
+	    #tmp := #buffer[#i] - 48;
+	    (*ASCII value = [A..F]*)
+	  ELSIF #buffer[#i] >= 'A' AND #buffer[#i] <= 'F' THEN
+	    #tmp := #buffer[#i] - 55;
+	    (*ASCII value = [a..f]*)
+	  ELSIF #buffer[#i] >= 'a' AND #buffer[#i] <= 'f' THEN
+	    #tmp := #buffer[#i] - 87;
+	  ELSE
+	    #_sick_hexAsciiToDword := #ERROR_0X0005_DATA_IS_NOT_ALPHANUMERIC; (*Error: ASCII character is not in a hexadecimal format *)
+	    RETURN;
+	  END_IF;
+	  
+	  (*Create hexadecimal number*)
+	  #hexValue := SHL(IN := #hexValue, N := 4);
+	  #hexValue := #hexValue + #tmp;
+	END_FOR;
+	
+	(*Set the position of the next element in the telegram*)
+	IF #hexValueLength = 0 THEN
+	  #index := #index + #segmentLength + 1; (*With blank character*)
+	ELSE
+	  #index := #index + #segmentLength; (*Without blank character*)
+	END_IF;
+	
+	#_sick_hexAsciiToDword := #ERROR_0X0000_OK;
+	
+END_FUNCTION
+

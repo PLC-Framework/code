@@ -1,0 +1,58 @@
+﻿FUNCTION "_linearInterpolation" : Real
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/scaling'
+NAME : _linearInterpolation
+VERSION : 1.0
+
+   VAR_INPUT 
+      MIN_INPUT : Real;   // Min input value
+      MAX_INPUT : Real;   // Max input value
+      MIN_OUTPUT : Real;   // Min output value
+      MAX_OUTPUT : Real;   // Max output value
+      input : Real;   // Current input value
+      limitOutput : Bool;   // 0=No limit output; 1=Limit output to interval (MIN_OUTPUT ... MAX_OUTPUT)
+   END_VAR
+
+   VAR_TEMP 
+      output : Real;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-02-24 | cyanezf | First version |
+
+## Description
+
+This function returns the linear interpolation of input.
+
+--*)
+
+	#output := #MIN_OUTPUT + ((#input - #MIN_INPUT) / (#MAX_INPUT - #MIN_INPUT)) * (#MAX_OUTPUT - #MIN_OUTPUT);
+	
+	// Check limits
+	IF #limitOutput THEN
+	  
+	  IF #output > #MAX_OUTPUT THEN
+	    #output := #MAX_OUTPUT;
+	  ELSIF #output < #MIN_OUTPUT THEN
+	    #output := #MIN_OUTPUT;
+	  END_IF;
+	  
+	END_IF;
+	
+	// Return output
+	#_linearInterpolation := #output;
+	
+	// Return RLO
+	ENO := true;
+  
+END_FUNCTION
+

@@ -1,0 +1,351 @@
+﻿FUNCTION_BLOCK "_ecc_dfc_24_0x_speedControl"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi","ecc_dfc_24_0x_fullPlcModePdo","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : _ecc_dfc_24_0x_speedControl
+VERSION : 1.0
+   VAR_INPUT 
+      motorNr { ExternalWritable := 'False'} : USInt;   // IR: 0=Left motor (default); 1=Right motor
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      velocity { ExternalWritable := 'False'} : LReal;   // IR: User speed in ECR=[mm/s]; ECG=[rpm]x10
+      acceleration { ExternalWritable := 'False'} : LReal;   // IR: Acceleration ECR=mm; ECG=inc/rev
+      deceleration { ExternalWritable := 'False'} : LReal;   // IR: Deceleration ECR=mm; ECG=inc/rev
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: Ackn pulse
+      config_ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Forward is Clockwise; 1=Forward is Coutner clockwise
+      config_brakeMode { ExternalWritable := 'False'} : Word := #BRAKE_MODE_1_STANDARD;   // IR: 1=Standard (default) ; 2=Coasting; 3=ServoBrake
+   END_VAR
+
+   VAR_OUTPUT 
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=Ready
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      isBraked { ExternalWritable := 'False'} : Bool;   // OR: 1=Brake is applied
+      status { ExternalWritable := 'False'} : Int;   // OR: Status code
+      actualVelocity { ExternalWritable := 'False'} : LReal;   // OR: Actual velocity
+      actualCurrent { ExternalWritable := 'False'} : LReal;   // OR: Actual current in Ampers
+      actualFrequency { ExternalWritable := 'False'} : LReal;   // OR: Actual frequency in Hz
+      actualMotorTemperature { ExternalWritable := 'False'} : LReal;   // OR: Actual temperature in ºc of motor
+      actualModuleTemperature { ExternalWritable := 'False'} : LReal;   // OR: Actual temperature in ºc of power module
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "ecc_dfc_24_0x_fullPlcModePdi";   // IOX: PDI
+      pdo : "ecc_dfc_24_0x_fullPlcModePdo";   // IOX: PDO
+   END_VAR
+
+   VAR 
+      rx { ExternalWritable := 'False'} : Struct   // SR: RX status
+         current { ExternalWritable := 'False'} : Int;   // 8.0: Left motor roller current in mA: 5000 for 5A
+         frequency { ExternalWritable := 'False'} : Int;   // 10.0: Frequency at the hall effect sensor on the left motor roller in Hz: 500 for 500Hz
+         temperature { ExternalWritable := 'False'} : SInt;   // 12.0: Calculated temperature of the left motor roller in ºC
+         moduleTemperature { ExternalWritable := 'False'} : SInt;   // 13.0: Temperature of the power section of the left drive axis measured in ºC
+         mdrDiagnostics { ExternalWritable := 'False'} : Struct   // 14.0:Lefy MDR diagnostics
+            x0_overheat { ExternalWritable := 'False'} : Bool;   // 14.0: Overheat: Overtemperature fault. The temperature of the motor roller exceeded 105ºc
+            x1_maxTorque { ExternalWritable := 'False'} : Bool;   // 14.1: Max torque: Motor at current limit
+            x2_shortcircuit { ExternalWritable := 'False'} : Bool;   // 14.2: Motor short circuit
+            x3_mdrNotconnected { ExternalWritable := 'False'} : Bool;   // 14.3: No motor is connected to the motor port
+            x4_overload { ExternalWritable := 'False'} : Bool;   // 14.4: Overload detected. Speed lowered to <10% of the setpoint speed due tot he overload
+            x5_stalled { ExternalWritable := 'False'} : Bool;   // 14.5: Motor blockade detected
+            x6_mdrBadHall { ExternalWritable := 'False'} : Bool;   // 14.6: Hall sensor fault
+            x7_mdrNotUsed { ExternalWritable := 'False'} : Bool;   // 14.7: Zone was not configured in ZPA
+            x8_mdrStatusBit1 { ExternalWritable := 'False'} : Bool;   // 15.0: Description of the 2-bit coded
+            x9_mdrStatusBit2 { ExternalWritable := 'False'} : Bool;   // 15.1: Description of the 2-bit coded
+            xA_mdrInDoMode { ExternalWritable := 'False'} : Bool;   // 15.2: Motor port is connected to the digital I/O mode
+            xB { ExternalWritable := 'False'} : Bool;   // 15.3
+            xC { ExternalWritable := 'False'} : Bool;   // 15.4
+            xD { ExternalWritable := 'False'} : Bool;   // 15.5
+            xE_overVoltage { ExternalWritable := 'False'} : Bool;   // 15.6: Overvoltage fault
+            xF_lowVoltage { ExternalWritable := 'False'} : Bool;   // 15.7: Undervoltage fault
+         END_STRUCT;
+         mdrRealSpeed { ExternalWritable := 'False'} : Int;   // 50.0: Left - measured speed/rotaional speed of the drive - ECR= v(ECR)[m/s]x1000; ECG=v(ECG)[rpm]x10; Addtional limit value report, speed setpoint: Bit14=TRUE setpoint speed > max. possible speed; Bit15=TRUE setpoint speed < miin. possibled speed; BIt14/15=FALSE setpoint speed/rotational speed ok
+      END_STRUCT;
+      tx { ExternalWritable := 'False'} : Struct   // SR: TX control
+         brakeMode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;
+         mdrControl { ExternalWritable := 'False'} : Struct   // 8.0: Left MDR control
+            x0_mdrDirection { ExternalWritable := 'False'} : Bool;   // 8.0: Changeover of direction of rotation; 0=Default direction; 1=Counter-clockwise
+            x1 { ExternalWritable := 'False'} : Bool;   // 8.1
+            x2 { ExternalWritable := 'False'} : Bool;   // 8.2
+            x3 { ExternalWritable := 'False'} : Bool;   // 8.3
+            x4 { ExternalWritable := 'False'} : Bool;   // 8.4
+            x5 { ExternalWritable := 'False'} : Bool;   // 8.5
+            x6 { ExternalWritable := 'False'} : Bool;   // 8.6
+            x7 { ExternalWritable := 'False'} : Bool;   // 8.7
+            x8_runMdr { ExternalWritable := 'False'} : Bool;   // 9.0: Enabling of motor; 0=Stop; 1=Release
+            x9 { ExternalWritable := 'False'} : Bool;   // 9.1
+            xA { ExternalWritable := 'False'} : Bool;   // 9.2
+            xB { ExternalWritable := 'False'} : Bool;   // 9.3
+            xC { ExternalWritable := 'False'} : Bool;   // 9.4
+            xD { ExternalWritable := 'False'} : Bool;   // 9.5
+            xE { ExternalWritable := 'False'} : Bool;   // 9.6
+            xF { ExternalWritable := 'False'} : Bool;   // 9.7
+         END_STRUCT;
+         mdrSpeed { ExternalWritable := 'False'} : Int;   // 20.0: Speed/rotational speed of left drive: ECR=[m/s]x1000; ECG=[rpm]x10
+         mdrAcceleration { ExternalWritable := 'False'} : Int;   // 24.0: Acceleration of the left drive: ECR=mm; ECG=inc.
+         mdrDeceleration { ExternalWritable := 'False'} : Int;   // 26.0: Deleration of the left drive: ECR=mm; ECG=inc.
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         ackn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         acknTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      nil : Bool;
+      ok : Bool;
+      isCw : Bool;
+      isCcw : Bool;
+      motor : Struct
+         run : Bool;   // 1=Run
+         direction : Bool;   // 0=CW; 1=CCW
+         speed : Int;   // Setpoint speed
+         overSpeed : Bool;   // Bit14= setpoint speed > max. possible speed
+         underSpeed : Bool;   // Bit15= setpoint speed < min. possible speed
+         brakeMode : Word;
+      END_STRUCT;
+   END_VAR
+
+   VAR CONSTANT 
+      MOTOR_0_LEFT : USInt := 0;
+      MOTOR_1_RIGHT : USInt := 1;
+      NO_MOTOR_SPEED : Int := 0;   // Lineal
+      MAX_MOTOR_SPEED : Int := 32767;   // Lineal
+      BRAKE_MODE_0_IDLE : Word := 0;   // Brake mode - 0 - Idle
+      BRAKE_MODE_1_STANDARD : Word := 1;   // Brake mode - 1 - Standard brake ramp
+      BRAKE_MODE_2_COASTING : Word := 2;   // Brake mode - 2 - Coasting
+      BRAKE_MODE_3_SERVO_BRAKE : Word := 3;   // Brake mode - 3 - ServoBrake
+      SERVO_CONTROL_00_IDLE : Word := 0;
+      STATUS_0000_READY : Int := 0;
+      STATUS_7000_OVER_SPEED : Int := 16#7000;
+      STATUS_7001_UNDER_SPEED : Int := 16#7001;
+      STATUS_8000_MDR_NOT_CONNECTED : Int := 16#8000;
+      STATUS_8001_MDR_BAD_HALL : Int := 16#8001;
+      STATUS_8002_MDR_NOT_USED : Int := 16#8002;
+      STATUS_8003_MDR_IN_DO_MODE : Int := 16#8003;
+      STATUS_8004_SHORT_CIRCUIT : Int := 16#8004;
+      STATUS_8005_OVERHEAT : Int := 16#8005;
+      STATUS_8006_MAX_TORQUE : Int := 16#8006;
+      STATUS_8007_OVERLOAD : Int := 16#8007;
+      STATUS_8008_STALLED : Int := 16#8008;
+      STATUS_8009_OVER_VOLTAGE : Int := 16#8009;
+      STATUS_800A_LOW_VOLTAGE : Int := 16#800A;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v0.1 | 2026-06-19 | cyanezf | First beta version |
+
+## Description
+
+This function block controls a single motor as speed control.
+
+## MDR Status bits
+
+| Bit 1 | Bit 2 | Description |
+| ----- | ----- | ----------- |
+|  0    |   0   | Motor not running, started or servo Brake applied |
+|  0    |   1   | Motor running in CW direction |
+|  1    |   0   | Motor running in CCW direction |
+|  1    |   1   | Motor not running and no braking applied (free to spin)
+
+--*)
+	
+	// MDR = Motor Driven Roller
+	
+	REGION Set speed
+	  // Speed to %
+	  // maxSpeed -> 100%
+	  // speed    -> ?
+	  // 
+	  IF #velocity <= 0.0 THEN
+	    #motor.speed := #NO_MOTOR_SPEED;
+	  ELSIF #velocity >= INT_TO_LREAL(#MAX_MOTOR_SPEED) THEN
+	    #motor.speed := #MAX_MOTOR_SPEED;
+	  ELSE
+	    #motor.speed := LREAL_TO_INT(#velocity);
+	  END_IF;
+	END_REGION
+	
+	REGION Motor contorl
+	  // Ok
+	  #ok := #controlOn AND #emrgStopOk AND #motor.speed > #NO_MOTOR_SPEED;
+	  #motor.run := (#runForward XOR #runBackward) AND #ok;
+	  
+	  // | runForward | runBackward | ccw || Direction | Description |
+	  // | :--------- | :---------- | :-- || :-------- | :---------- |
+	  // | 1          | 0           | 0   || 0         | Forward is clock wise |
+	  // | 1          | 0           | 1   || 1         | Forward is counter clock wise |
+	  // | 0          | 1           | 0   || 0         | Backward is counter clock wise |
+	  // | 0          | 1           | 1   || 1         | Backward is clock wise |
+	  #motor.direction := #motor.run AND ((#runBackward AND NOT #config_ccw) OR (#runForward AND #config_ccw)); // 0=cw; 1=ccw
+	  
+	  // Brake mode
+	  IF #config_brakeMode < #BRAKE_MODE_1_STANDARD OR #config_brakeMode > #BRAKE_MODE_3_SERVO_BRAKE THEN
+	    #motor.brakeMode := #BRAKE_MODE_1_STANDARD;
+	  ELSE
+	    #motor.brakeMode := #config_brakeMode;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Select status
+	  IF #motorNr = #MOTOR_1_RIGHT THEN
+	    
+	    #rx.current := #pdi.right_current;
+	    #rx.frequency := #pdi.right_frequency;
+	    #rx.temperature := #pdi.right_temperature;
+	    #rx.moduleTemperature := #pdi.right_moduleTemperature;
+	    #rx.mdrDiagnostics := #pdi.right_mdrDiagnostics;
+	    #rx.mdrRealSpeed := #pdi.right_mdrRealSpeed;
+	    
+	  ELSE
+	    #rx.current := #pdi.left_current;
+	    #rx.frequency := #pdi.left_frequency;
+	    #rx.temperature := #pdi.left_temperature;
+	    #rx.moduleTemperature := #pdi.left_moduleTemperature;
+	    #rx.mdrDiagnostics := #pdi.left_mdrDiagnostics;
+	    #rx.mdrRealSpeed := #pdi.left_mdrRealSpeed;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION Status code
+	  
+	  #motor.overSpeed := #rx.mdrRealSpeed.%X14;
+	  #motor.underSpeed := #rx.mdrRealSpeed.%X15;
+	  
+	  IF #rx.mdrDiagnostics.x3_mdrNotconnected THEN
+	    #status := #STATUS_8000_MDR_NOT_CONNECTED;
+	    
+	  ELSIF #rx.mdrDiagnostics.x6_mdrBadHall THEN
+	    #status := #STATUS_8001_MDR_BAD_HALL;
+	    
+	  ELSIF #rx.mdrDiagnostics.x7_mdrNotUsed THEN
+	    #status := #STATUS_8002_MDR_NOT_USED;
+	    
+	  ELSIF #rx.mdrDiagnostics.xA_mdrInDoMode THEN
+	    #status := #STATUS_8003_MDR_IN_DO_MODE;
+	    
+	  ELSIF #rx.mdrDiagnostics.x2_shortcircuit THEN
+	    #status := #STATUS_8004_SHORT_CIRCUIT;
+	    
+	  ELSIF #rx.mdrDiagnostics.x0_overheat THEN
+	    #status := #STATUS_8005_OVERHEAT;
+	    
+	  ELSIF #rx.mdrDiagnostics.x1_maxTorque THEN
+	    #status := #STATUS_8006_MAX_TORQUE;
+	    
+	  ELSIF #rx.mdrDiagnostics.x4_overload THEN
+	    #status := #STATUS_8007_OVERLOAD;
+	    
+	  ELSIF #rx.mdrDiagnostics.x5_stalled THEN
+	    #status := #STATUS_8008_STALLED;
+	    
+	  ELSIF #rx.mdrDiagnostics.xE_overVoltage THEN
+	    #status := #STATUS_8009_OVER_VOLTAGE;
+	    
+	  ELSIF #rx.mdrDiagnostics.xF_lowVoltage THEN
+	    #status := #STATUS_800A_LOW_VOLTAGE;
+	    
+	  ELSIF #motor.overSpeed THEN
+	    #status := #STATUS_7000_OVER_SPEED;
+	    
+	  ELSIF #motor.underSpeed THEN
+	    #status := #STATUS_7001_UNDER_SPEED;
+	    
+	  ELSE
+	    #status := #STATUS_0000_READY;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION Function outputs
+	  // Bit outputs
+	  #ready := #status >= #STATUS_0000_READY;
+	  
+	  #isRunning := #rx.mdrDiagnostics.x8_mdrStatusBit1 XOR #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	  #isBraked := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	  #isCw := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	  #isCcw := #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	  #direction := (NOT #config_ccw AND #isCcw) OR (#config_ccw AND #isCw); // 0=Forward; 1=Backward
+	  
+	  // Actual values
+	  #actualCurrent := INT_TO_LREAL(#rx.current) / 1000;
+	  #actualFrequency := #rx.frequency;
+	  #actualMotorTemperature := #rx.temperature;
+	  #actualModuleTemperature := #rx.moduleTemperature;
+	  #actualVelocity := INT_TO_LREAL(#rx.mdrRealSpeed AND 16#3FFF);
+	  
+	END_REGION
+	
+	REGION Control
+	  
+	  // Brake mode
+	  #tx.brakeMode := #motor.brakeMode;
+	  
+	  // Accelerations
+	  #tx.mdrAcceleration := ABS(LREAL_TO_INT(#acceleration));
+	  #tx.mdrDeceleration := ABS(LREAL_TO_INT(#deceleration));
+	  
+	  // Control
+	  #tx.mdrControl.x0_mdrDirection := #motor.direction;
+	  #tx.mdrControl.x8_runMdr := #motor.run;
+	  
+	  // Speed
+	  #tx.mdrSpeed := #motor.speed;
+	  
+	END_REGION
+	
+	REGION Select control
+	  IF #motorNr = #MOTOR_1_RIGHT THEN
+	    #pdo.right_brakeMode := #tx.brakeMode;
+	    #pdo.right_mdrControl := #tx.mdrControl;
+	    #pdo.right_mdrSpeed := #tx.mdrSpeed;
+	    #pdo.right_mdrAcceleration := #tx.mdrAcceleration;
+	    #pdo.right_mdrDeceleration := #tx.mdrDeceleration;
+	    #pdo.right_servoControlPosition := 0;
+	    #pdo.right_servoControlCommand := #SERVO_CONTROL_00_IDLE;
+	    
+	  ELSE
+	    #pdo.left_brakeMode := #tx.brakeMode;
+	    #pdo.left_mdrControl := #tx.mdrControl;
+	    #pdo.left_mdrSpeed := #tx.mdrSpeed;
+	    #pdo.left_mdrAcceleration := #tx.mdrAcceleration;
+	    #pdo.left_mdrDeceleration := #tx.mdrDeceleration;
+	    #pdo.left_servoControlPosition := 0;
+	    #pdo.left_servoControlCommand := #SERVO_CONTROL_00_IDLE;
+	    
+	  END_IF;
+	END_REGION
+	  
+	REGION Ackn
+	  // Why so comple?
+	  // Because clearMdrError is a shared reset for all module.
+	  IF #ackn AND NOT #private.ackn THEN
+	    #pdo.clearMdrError := 1;
+	  END_IF;
+	  
+	  #private.ackn := #ackn;
+	  #private.acknTon(IN := #pdo.clearMdrError <> 0,
+	                   PT := t#100ms);
+	  
+	  IF #private.acknTon.Q THEN
+	    #pdo.clearMdrError := 0;
+	  END_IF;
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

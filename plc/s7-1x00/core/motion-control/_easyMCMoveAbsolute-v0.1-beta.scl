@@ -1,0 +1,973 @@
+﻿FUNCTION_BLOCK "_easyMCMoveAbsolute"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/motion-control'
+NAME : _easyMCMoveAbsolute
+VERSION : 0.1
+
+   VAR_INPUT 
+      execute { ExternalWritable := 'False'} : Bool;   // IR: FP=Rising edge starts a new movement
+      hold { ExternalWritable := 'False'} : Bool;   // IR: 1=Level-triggered: decelerates, holds position, resumes from STATE_3 on release
+      cancel { ExternalWritable := 'False'} : Bool;   // IR: 1=Level-triggered: decelerates and stops the movement
+      currentPosition { ExternalWritable := 'False'} : Real;   // IR: Feedback position [U]
+      targetPosition { ExternalWritable := 'False'} : Real;   // IR: Destination position [U]
+      maxVelocity { ExternalWritable := 'False'} : Real;   // IR: Maximum velocity [U/s] (> 0)
+      minVelocity { ExternalWritable := 'False'} : Real;   // IR: Minimum velocity / creep speed [U/s] (> 0, < vMax)
+      acceleration { ExternalWritable := 'False'} : Real;   // IR: Maximum acceleration ramp [U/s^2] (> 0)
+      deceleration { ExternalWritable := 'False'} : Real;   // IR: Maximum deceleration ramp [U/s^2] (> 0)
+      jerk { ExternalWritable := 'False'} : Real;   // IR: Max jerk for S-Curve profile [U/s^3] (> 0, ignored if Trapezoidal)
+      cycleTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // IX: Actual scan-cycle time [s] (> 0)
+   END_VAR
+   VAR_INPUT RETAIN
+      settings : Struct   // IW: Settings
+         profileType { ExternalWritable := 'False'} : Bool;   // IW: 0 = Trapezoidal, 1 = S-Curve
+         positionTolerance { ExternalWritable := 'False'} : Real;   // IW: In-position window [U] (> 0)
+         inPositionDelay { ExternalWritable := 'False'} : Real;   // IW: Time inside window before InPosition is set [s]
+      END_STRUCT;
+   END_VAR
+
+   VAR_OUTPUT 
+      velocity { ExternalWritable := 'False'} : Real;   // OR: Velocity setpoint to drive [U/s] (signed)
+      done { ExternalWritable := 'False'} : Bool;   // OR: 1=Target reached and confirmed
+      busy { ExternalWritable := 'False'} : Bool;   // OR: 1=Movement in progress
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Fault active
+      holding { ExternalWritable := 'False'} : Bool;   // OR: 1=While movement is held
+      cancelled { ExternalWritable := 'False'} : Bool;   // OR: 1=After a cancel, cleared on next execute
+      status { ExternalWritable := 'False'} : Int;   // OR: Current status. See constants
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int;   // SR: States
+      isTriangular { ExternalWritable := 'False'} : Bool;   // SR: 0=Trapezoidal; 1=Triangular
+      onFly { ExternalWritable := 'False'} : Bool;   // SR: 1=On fly
+      direction { ExternalWritable := 'False'} : Real;   // SR: +1.0 or -1.0
+      peakVelocity { ExternalWritable := 'False'} : Real;   // SR: Actual peak velocity (may be < vMax for triangular)
+      accelerationDistance { ExternalWritable := 'False'} : Real;   // SR: Distance consumed during acceleration [U]
+      decelerationDistance { ExternalWritable := 'False'} : Real;   // SR: Distance consumed during deceleration [U]
+      creepDistance { ExternalWritable := 'False'} : Real;   // SR: Distance consumed at creep speed [U]
+      watchdogTime { ExternalWritable := 'False'} : Real;   // SR: Auto-calculated timeout [s]
+      absVelocityReference { ExternalWritable := 'False'} : Real;   // SR: Internal unsigned velocity reference [U/s] S-Curve: secondary integrator for jerk-limited ramping
+      currentAcceleration { ExternalWritable := 'False'} : Real;   // SR: Jerk-filtered actual acceleration [U/s²]
+      locked { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Locked process variables
+         targetPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // targetPosition locked at move start or retarget [U]
+         acceleration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // acceleration locked at move start [U/s²]
+         deceleration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // deceleration locked at move start [U/s²]
+         jerk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // jerk locked at move start [U/s³]
+         minVelocity { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // minVelocity locked at move start [U/s]
+         maxVelocity { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // maxVelocity locked at move start [U/s]
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         fp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Ts in seconds (converted each cycle)
+         watchdogTimer { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Elapsed time accumulator [s] Runtime velocity integrator
+         inPosTimer { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Time spent inside window [s] Execute edge detection
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      executePulse : Bool;   // Rising edge on execute
+      decelerate : Bool;   // Flag to start deceleration when distance to target is less than braking distance
+      inPosition : Bool;   // In position
+      accelerationTime : Real;   // Acceleration time [s]
+      peakTime : Real;   // Constant-velocity time [s]
+      decelerationTime : Real;   // Deceleration time [s]
+      creepTime : Real;   // Creep time [s]
+      distance : Real;   // |target - currentPosition| [U]
+      distanceNeededToDecelerate : Real;   // Braking distance at current vRef [U]
+      signedDistance : Real;   // direction * (targetPosition - currentPosition): >0 ahead, <0 behind
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_00_IDLE : Int := 0;   // Waiting for execute rising edge
+      STATE_01_CHECK_ERRORS : Int := 1;   // Check parameters
+      STATE_02_CHECK_IN_POSITION : Int := 2;   // Check if in position
+      STATE_03_PRECALCULATION : Int := 3;   // Parameter validation & profile pre-calculation
+      STATE_04_ACCELERATION : Int := 4;   // Acceleration ramp
+      STATE_05_CONSTANT : Int := 5;   // Constant velocity
+      STATE_06_DECELERATION : Int := 6;   // Deceleration ramp
+      STATE_07_CREEP : Int := 7;   // Approach at vMin
+      STATE_08_IN_POSITION_CONFIRMATION : Int := 8;   // In-position confirmation timer
+      STATE_09_HOLD_DECELERATION : Int := 9;   // Controlled deceleration to hold
+      STATE_10_HOLD : Int := 10;   // Holding position, waiting for hold to release
+      STATE_11_CANCEL_DECELERATION : Int := 11;   // Controlled deceleration to stop after cancel
+      STATE_12_CANCELLED : Int := 12;   // Movement cancelled, waiting for execute reset
+      STATE_13_RETARGET_DECELERATION : Int := 13;   // Controlled deceleration before reversing direction on retarget
+      STATE_20_DONE : Int := 20;   // Movement completed Motion constants
+      STATE_8000_ERROR : Int := 16#8000;   // Error state
+      TIMEOUT_MARGIN_PERCENTAGE : Real := 1.3;   // 30 % margin over theoretical move time
+      TIMEOUT_GUARD : Real := 0.5;   // Additional guard time [s] to account for disturbances and calculation inaccuracies
+      STATUS_0_IDLE : Int := 0;   // Idle state
+      STATUS_2_BUSY : Int := 2;   // Busy state
+      STATUS_3_DONE : Int := 3;   // Done state
+      STATUS_7000_HOLD : Int := 16#7000;   // Movement on hold
+      STATUS_7001_CANCELLED : Int := 16#7001;   // Movement cancelled
+      STATUS_8000_INVALID_VELOCITY : Int := 16#8000;   // Invalid velocity
+      STATUS_8001_INVALID_ACCELERATION : Int := 16#8001;   // Invalid acceleration
+      STATUS_8002_INVALID_DECELERATION : Int := 16#8002;   // Invalid deceleration
+      STATUS_8003_INVALID_POSITION_TOLERANCE : Int := 16#8003;   // Invalid position tolerance
+      STATUS_8004_INVALID_JERK : Int := 16#8004;   // Invalid jerk
+      STATUS_8005_VELOCITY_MIN_MAX_INVERTED : Int := 16#8005;   // Min velocity greater than max velocity
+      STATUS_8006_MOVEMENT_TIMEOUT : Int := 16#8006;   // Movement timeout
+      STATUS_8007_INVALID_CYCLE_TIME : Int := 16#8007;   // Invalid cycle time
+      STATUS_8008_INVALID_MIN_VELOCITY : Int := 16#8008;   // Invalid minimum velocity
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v0.1 | 2026-03-10 | cyanezf | Beta version |
+
+# Warning
+
+- This function block is in early beta stage. Interface and functionality may change without deprecation.
+
+## Description
+
+This function block implements an absolute position move with trapezoidal or S-curve profile, 
+including on-the-fly retargeting, hold, and cancel functionality. 
+It calculates the motion profile based on the current and target positions, 
+velocity and acceleration limits, and updates the velocity output accordingly. 
+The function block also includes error handling and status reporting. 
+It is designed for use in motion control applications where precise and flexible movement commands are required.
+
+## Status
+
+| Status | Description |
+|:------:|:------------|
+| STATUS_0_IDLE | Idle state |
+| STATUS_2_BUSY | Movement in progress |
+| STATUS_3_DONE | Target reached and confirmed |
+| STATUS_7000_HOLD | Movement on hold |
+| STATUS_7001_CANCELLED | Movement cancelled |
+| STATUS_8000_INVALID_VELOCITY | Invalid velocity parameter |
+| STATUS_8001_INVALID_ACCELERATION | Invalid acceleration parameter |
+| STATUS_8002_INVALID_DECELERATION | Invalid deceleration parameter |
+| STATUS_8003_INVALID_POSITION_TOLERANCE | Invalid position tolerance parameter |
+| STATUS_8004_INVALID_JERK | Invalid jerk parameter |
+| STATUS_8005_VELOCITY_MIN_MAX_INVERTED | Minimum velocity greater than or equal to maximum velocity |
+| STATUS_8006_MOVEMENT_TIMEOUT | Movement did not complete within expected time |
+| STATUS_8007_INVALID_CYCLE_TIME | Invalid cycle time parameter |
+| STATUS_8008_INVALID_MIN_VELOCITY | Invalid minimum velocity parameter |
+
+--*)
+
+	REGION Cyclical
+	  // 1. Rising edge on Execute - request new movement
+	  #executePulse := #execute AND NOT #private.fp;
+	  #private.fp := #execute;
+	  
+	  // 2. Get distance and signed direction
+	  #distance := ABS(#targetPosition - #currentPosition);
+	  #signedDistance := #direction * (#targetPosition - #currentPosition);
+	  #inPosition := #distance <= #settings.positionTolerance;
+	END_REGION
+	
+	REGION Interceptors
+	  
+	  REGION Watchdog -> State 0x8000 (Unconditional transition)
+	    IF #busy AND NOT #holding THEN
+	      // Update timer
+	      #private.watchdogTimer := #private.watchdogTimer + #cycleTime;
+	      
+	      // Error
+	      IF #private.watchdogTimer >= #watchdogTime THEN
+	        #status := #STATUS_8006_MOVEMENT_TIMEOUT;
+	        #state := #STATE_8000_ERROR;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION Retarget (States 4..8) -> State 13 | State 3 | Hot recalc (Unconditional transition)
+	    
+	    IF #onFly AND
+	      #state <= #STATE_08_IN_POSITION_CONFIRMATION AND
+	      #targetPosition <> #locked.targetPosition THEN
+	      
+	      // IN-POSITION: target moved into tolerance window around current position
+	      IF #inPosition THEN
+	        ;
+	        // Hot recalc - states 04/05/06 will trigger decel automatically; 07/08 handle via inPosition flag
+	        
+	        // REVERSAL: target is now behind the current travel direction
+	      ELSIF #signedDistance < - #settings.positionTolerance THEN
+	        
+	        IF #state = #STATE_08_IN_POSITION_CONFIRMATION THEN
+	          // Already stopped - go straight to precalc
+	          #absVelocityReference := 0.0;
+	          #currentAcceleration := 0.0;
+	          #state := #STATE_03_PRECALCULATION;
+	        ELSE
+	          // Moving - decelerate first
+	          #state := #STATE_13_RETARGET_DECELERATION;
+	        END_IF;
+	        
+	        // AHEAD: target is in the same direction - hot recalc full geometry
+	      ELSE
+	        // Recalculate all distances with updated distance
+	        #accelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.acceleration);
+	        #decelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.deceleration);
+	        #creepDistance := (#locked.minVelocity * #locked.minVelocity) / (2.0 * #locked.deceleration);
+	        IF #creepDistance < #settings.positionTolerance THEN
+	          #creepDistance := #settings.positionTolerance;
+	        END_IF;
+	        
+	        // Recalculate peak velocity (movement may become triangular or revert to trapezoidal)
+	        IF #accelerationDistance + #decelerationDistance > #distance THEN
+	          #isTriangular := TRUE;
+	          #peakVelocity := SQRT(2.0 * #locked.acceleration * #locked.deceleration * #distance / (#locked.acceleration + #locked.deceleration));
+	          IF #peakVelocity < #locked.minVelocity THEN
+	            #peakVelocity := #locked.minVelocity;
+	          END_IF;
+	          #accelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.acceleration);
+	          #decelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.deceleration);
+	        ELSE
+	          #isTriangular := FALSE;
+	          #peakVelocity := #locked.maxVelocity;
+	        END_IF;
+	        
+	        // Recalculate watchdog with remaining distance
+	        #watchdogTime := ((#distance / MAX(IN1 := #absVelocityReference, IN2 := #locked.minVelocity)) *
+	        #TIMEOUT_MARGIN_PERCENTAGE) + #settings.inPositionDelay + #TIMEOUT_GUARD;
+	        
+	        // If extending while in decel or creep - re-accelerate
+	        IF #state = #STATE_06_DECELERATION OR #state = #STATE_07_CREEP THEN
+	          #state := #STATE_04_ACCELERATION;
+	          // If extending while in STATE_08 (stopped) - restart movement
+	        ELSIF #state = #STATE_08_IN_POSITION_CONFIRMATION THEN
+	          #absVelocityReference := 0.0;
+	          #currentAcceleration := 0.0;
+	          #state := #STATE_03_PRECALCULATION;
+	        END_IF;
+	        // STATE_04 and STATE_05: no state change - decel trigger recalculates every cycle
+	        
+	      END_IF;
+	      
+	      // Update locked target position for all cases
+	      #locked.targetPosition := #targetPosition;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION Velocity (States 4..8) -> Hot recalc (Unconditional transition)
+	    IF #onFly AND
+	      #state <= #STATE_08_IN_POSITION_CONFIRMATION AND
+	      #maxVelocity <> #locked.maxVelocity THEN
+	      
+	      // Clamp: zero or sub-minimum velocity → use minimum velocity
+	      IF #maxVelocity < #locked.minVelocity THEN
+	        #locked.maxVelocity := #locked.minVelocity;
+	      ELSE
+	        #locked.maxVelocity := #maxVelocity;
+	      END_IF;
+	      
+	      // Recalculate geometry with new vMax
+	      #accelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.acceleration);
+	      #decelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.deceleration);
+	      #creepDistance := (#locked.minVelocity * #locked.minVelocity) / (2.0 * #locked.deceleration);
+	      IF #creepDistance < #settings.positionTolerance THEN
+	        #creepDistance := #settings.positionTolerance;
+	      END_IF;
+	      
+	      #isTriangular := #accelerationDistance + #decelerationDistance > #distance;
+	      
+	      // Recalculate peak velocity (movement may become triangular)
+	      IF #isTriangular THEN
+	        #peakVelocity := SQRT(2.0 * #locked.acceleration * #locked.deceleration * #distance / (#locked.acceleration + #locked.deceleration));
+	        IF #peakVelocity < #locked.minVelocity THEN
+	          #peakVelocity := #locked.minVelocity;
+	        END_IF;
+	        #accelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.acceleration);
+	        #decelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.deceleration);
+	      ELSE
+	        #peakVelocity := #locked.maxVelocity;
+	      END_IF;
+	      
+	      // Recalculate watchdog with remaining distance
+	      #watchdogTime := ((#distance / MAX(IN1 := #absVelocityReference, IN2 := #locked.minVelocity)) *
+	      #TIMEOUT_MARGIN_PERCENTAGE) + #settings.inPositionDelay + #TIMEOUT_GUARD;
+	      
+	      // State transitions
+	      IF #absVelocityReference > #peakVelocity THEN
+	        #state := #STATE_06_DECELERATION;
+	        
+	      ELSIF (#state = #STATE_05_CONSTANT OR
+	        #state = #STATE_06_DECELERATION OR
+	        #state = #STATE_07_CREEP) AND
+	        #absVelocityReference < #locked.maxVelocity THEN
+	        #state := #STATE_04_ACCELERATION;
+	      END_IF;
+	      // STATE_04 with reduction: no state change, decel trigger handles it next cycle
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION Hold (States 4..7) -> State 9 (Unconditional transition)
+	    IF #hold AND #state >= #STATE_04_ACCELERATION AND #state <= #STATE_07_CREEP THEN
+	      #state := #STATE_09_HOLD_DECELERATION;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION Cancel (States 4..10) -> State 11 | State 12 (Unconditional transition)
+	    IF #cancel AND #state >= #STATE_04_ACCELERATION AND #state <= #STATE_10_HOLD THEN
+	      IF #onFly THEN
+	        #state := #STATE_11_CANCEL_DECELERATION;
+	      ELSE
+	        #state := #STATE_12_CANCELLED;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	END_REGION
+	
+	REGION State machine
+	  REGION State 0 -> State 1 (Multicycle)
+	    IF #state = #STATE_00_IDLE THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := FALSE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_0_IDLE;
+	      #onFly := false;
+	      // Clear
+	      #private.watchdogTimer := 0.0;
+	      
+	      IF #executePulse THEN
+	        #state := #STATE_01_CHECK_ERRORS;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 1 -> State 2 | State 0x8000 (One cycle)
+	    IF #state = #STATE_01_CHECK_ERRORS THEN
+	      // Set variables
+	      #onFly := false;
+	      
+	      // Check parameters
+	      IF #cycleTime <= 0.0 THEN
+	        #status := #STATUS_8007_INVALID_CYCLE_TIME;
+	      ELSIF #maxVelocity <= 0.0 THEN
+	        #status := #STATUS_8000_INVALID_VELOCITY;
+	      ELSIF #acceleration <= 0.0 THEN
+	        #status := #STATUS_8001_INVALID_ACCELERATION;
+	      ELSIF #deceleration <= 0.0 THEN
+	        #status := #STATUS_8002_INVALID_DECELERATION;
+	      ELSIF #settings.positionTolerance <= 0.0 THEN
+	        #status := #STATUS_8003_INVALID_POSITION_TOLERANCE;
+	      ELSIF #settings.profileType AND #jerk <= 0.0 THEN
+	        #status := #STATUS_8004_INVALID_JERK;
+	      ELSIF #minVelocity <= 0.0 THEN
+	        #status := #STATUS_8008_INVALID_MIN_VELOCITY;
+	      ELSIF #minVelocity >= #maxVelocity THEN
+	        #status := #STATUS_8005_VELOCITY_MIN_MAX_INVERTED;
+	      ELSE
+	        #status := #STATUS_0_IDLE; // No errors
+	      END_IF;
+	      
+	      // Next steps
+	      IF #status = #STATUS_0_IDLE THEN
+	        #state := #STATE_02_CHECK_IN_POSITION;
+	      ELSE
+	        #state := #STATE_8000_ERROR;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 2 -> State 8 | State 3 (One cycle)
+	    IF #state = #STATE_02_CHECK_IN_POSITION THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := false;
+	      // Clear for next step
+	      #private.inPosTimer := 0.0;
+	      
+	      // Next step
+	      IF #inPosition THEN
+	        #state := #STATE_08_IN_POSITION_CONFIRMATION;
+	      ELSE
+	        #state := #STATE_03_PRECALCULATION;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 3 -> State 4 (One cycle)
+	    IF #state = #STATE_03_PRECALCULATION THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := false;
+	      
+	      // Lock input parameters for this movement
+	      #locked.targetPosition := #targetPosition;
+	      #locked.acceleration := #acceleration;
+	      #locked.deceleration := #deceleration;
+	      #locked.jerk := #jerk;
+	      #locked.minVelocity := #minVelocity;
+	      #locked.maxVelocity := #maxVelocity;
+	      
+	      // Compute motion geometry
+	      
+	      // Select direction
+	      IF #targetPosition > #currentPosition THEN
+	        #direction := 1.0; // Move forward
+	      ELSE
+	        #direction := -1.0; // Move backward
+	      END_IF;
+	      
+	      (*
+	        dAccel, dConst, dDecel, dCreep:
+	        
+	             velocity (U/s)
+	                ^
+	                |
+	         vMax > +··········/---------------------\               <- Max velocity
+	                |         /|                     |\
+	                |        / |                     | \
+	                |       /  |                     |  \
+	                |      /   |                     |   \
+	         vMin > +·····/····|·····················|····\--------+ <- Min velocity
+	                |    /     |                     |     \       |
+	              0 +---+------+---------------------+---─--+------+--> Position (U)
+	                    |dAccel|       dConst        |dDecel|dCreep|
+	                    |                                          |
+	             currentPosition                             targetPosition
+	                    |<------------- distance ----------------->|
+	                    
+	      Formula:
+	                   maxVelocity^2   [(U/s)^2]
+	      dAccel [U] = --------------------------
+	                   2·acceleration  [U/s^3]
+	                   
+	                   maxVelocity^2   [(U/s)^2]
+	      dDecel [U] = --------------------------
+	                   2·deceleration  [U/s^3]
+	                   
+	                       / maxVelocity^2   [(U/s)^2]                        \
+	      dCreep [U] = max| -------------------------- , positionTolerance [U] |
+	                       \ 2·deceleration  [U/s^3]                          /
+	  
+	      *)
+	      
+	      // Distance to accelerate from 0 to vMax
+	      #accelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.acceleration);
+	      
+	      // Distance to decelerate from vMax to vMin
+	      #decelerationDistance := (#locked.maxVelocity * #locked.maxVelocity) / (2.0 * #locked.deceleration);
+	      
+	      // Distance to decelerate from vMin to 0
+	      // (creep phase absorbs final approach - small buffer)
+	      #creepDistance := (#locked.minVelocity * #locked.minVelocity) / (2.0 * #locked.deceleration);
+	      IF #creepDistance < #settings.positionTolerance THEN
+	        #creepDistance := #settings.positionTolerance;
+	      END_IF;
+	      
+	      // Select type of movement
+	      (*
+	      Triangular:
+	           velocity (U/s)
+	              ^
+	              |
+	       vMax > |            <- Max. velocity is never reached!
+	              |
+	      vPeak > |       ^
+	              |      / \
+	              |     /   \
+	              |    /     \
+	              |   /       \
+	              |  /         \ 
+	          0 > +-/-----|-----\--> position (U)
+	                dAccel dDecel
+	                <- distance ->
+	
+	      Trapezoidal:
+	           velocity (U/s)
+	            v ^
+	              |
+	       vMax > |        /------\ <- Peak velocity is the same as max. velocity!
+	              |       /        \
+	              |      /          \
+	              |     /            \
+	              |    /              \
+	              |   /                \
+	              |  /                  \ 
+	          0 > +-/------|------|------\--> position (U)
+	                 dAccel dConst dDecel
+	                 <----- distance ----->
+	     *)
+	      
+	      #isTriangular := #accelerationDistance + #decelerationDistance > #distance;
+	      
+	      // Triangular movement
+	      IF #isTriangular THEN
+	        (*
+	        vPeak from energy balance: 
+	                          __________________________________________________
+	                        / 2 · acceleration · deceleration · totalDistance
+	        vPeak [U/s] =  / -------------------------------------------------
+	                     \/      acceleration + deceleration
+	        *)
+	        #peakVelocity := SQRT(2.0 * #locked.acceleration * #locked.deceleration * #distance / (#locked.acceleration + #locked.deceleration));
+	        IF #peakVelocity < #locked.minVelocity THEN
+	          #peakVelocity := #locked.minVelocity; // very short move - go at creep speed
+	        END_IF;
+	        
+	        #accelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.acceleration);
+	        #decelerationDistance := (#peakVelocity * #peakVelocity) / (2.0 * #locked.deceleration);
+	        
+	        // Trapezoidal movement
+	      ELSE
+	        #peakVelocity := #locked.maxVelocity;
+	      END_IF;
+	      
+	      // Calculate ramp times
+	      (*
+	                          peakVelocity [U/s]
+	    xcelerationTime [s] = ------------------
+	                          xceleration [U/s^2]
+	    *)
+	      #accelerationTime := #peakVelocity / #locked.acceleration;
+	      #decelerationTime := #peakVelocity / #locked.deceleration;
+	      
+	      // Calculate peak time
+	      IF #isTriangular THEN
+	        #peakTime := 0.0;
+	      ELSE
+	        #peakTime := (#distance - #accelerationDistance - #decelerationDistance - #creepDistance) / #peakVelocity;
+	        IF #peakTime < 0.0 THEN
+	          #peakTime := 0.0;
+	        END_IF;
+	      END_IF;
+	      
+	      // Calculate creep time
+	      IF #locked.minVelocity > 0.0 THEN
+	        #creepTime := #creepDistance / #locked.minVelocity;
+	      ELSE
+	        #creepTime := 0.0;
+	      END_IF;
+	      
+	      // Set watchdog time
+	      #watchdogTime := ((#accelerationTime + #peakTime + #decelerationTime + #creepTime) *
+	      #TIMEOUT_MARGIN_PERCENTAGE) + #settings.inPositionDelay + #TIMEOUT_GUARD;
+	      
+	      // Clear next step
+	      #absVelocityReference := 0.0;
+	      #currentAcceleration := 0.0;
+	      
+	      // Next step
+	      #state := #STATE_04_ACCELERATION;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 4 -> State State 5 | State 6 (Multicycle)
+	    IF #state = #STATE_04_ACCELERATION THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #cancelled := FALSE;
+	      #holding := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      
+	      // Distance needed to decelerate from current vRef to vMin
+	      (*
+	                                     (absVelocityReference [U/s])^2 - (minVelocity [U/s])^2
+	    distanceNeededToDecelerate [U] = -------------------------------------------------------
+	                                     2 · deceleration [U/s^2]
+	    *)
+	      IF #absVelocityReference > #locked.minVelocity THEN
+	        #distanceNeededToDecelerate := ((#absVelocityReference * #absVelocityReference) - (#locked.minVelocity * #locked.minVelocity)) / (2.0 * #locked.deceleration);
+	      ELSE
+	        #distanceNeededToDecelerate := 0.0;
+	      END_IF;
+	      
+	      // Decelerate
+	      #decelerate := #distance - #creepDistance <= #distanceNeededToDecelerate;
+	      
+	      // Should we start decelerating already?
+	      IF #decelerate THEN
+	        #state := #STATE_06_DECELERATION;
+	        
+	      ELSE
+	        // Accelerate S-Curve #######################
+	        IF #settings.profileType THEN
+	          // Calculate current acceleration
+	          #currentAcceleration += #locked.jerk * #cycleTime; // U/s^2 + (U/s^3 * s)
+	          IF #currentAcceleration > #locked.acceleration THEN
+	            #currentAcceleration := #locked.acceleration;
+	          END_IF;
+	          // Calculate absolute velocity reference
+	          #absVelocityReference += #currentAcceleration * #cycleTime;
+	          
+	          // Accelerate Trapezoidal ######################
+	        ELSE
+	          #absVelocityReference += #locked.acceleration * #cycleTime;
+	        END_IF;
+	        
+	        // Check reference overflow
+	        IF #absVelocityReference >= #peakVelocity THEN
+	          // Set to peak
+	          #absVelocityReference := #peakVelocity;
+	          #currentAcceleration := 0.0;
+	          
+	          IF #isTriangular THEN
+	            #state := #STATE_06_DECELERATION; // triangular -> straight to decel
+	          ELSE
+	            #state := #STATE_05_CONSTANT; // trapezoidal -> constant velocity
+	          END_IF;
+	        END_IF;
+	      END_IF;
+	      
+	      // Set velocity with direction
+	      #velocity := #direction * #absVelocityReference;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 5 -> State 6 (Multicycle)
+	    IF #state = #STATE_05_CONSTANT THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      
+	      // Distance needed to decelerate from current vRef to vMin
+	      (*
+	                                     (absVelocityReference [U/s])^2 - (minVelocity [U/s])^2
+	    distanceNeededToDecelerate [U] = -------------------------------------------------------
+	                                     2 · deceleration [U/s^2]
+	    *)
+	      IF #absVelocityReference > #locked.minVelocity THEN
+	        #distanceNeededToDecelerate := ((#absVelocityReference * #absVelocityReference) - (#locked.minVelocity * #locked.minVelocity)) / (2.0 * #locked.deceleration);
+	      ELSE
+	        #distanceNeededToDecelerate := 0.0;
+	      END_IF;
+	      
+	      // Set variables
+	      #absVelocityReference := #peakVelocity;
+	      #currentAcceleration := 0.0;
+	      // Set outputs
+	      #velocity := #direction * #absVelocityReference;
+	      
+	      // Next steps
+	      IF #distance - #creepDistance <= #distanceNeededToDecelerate THEN
+	        #state := #STATE_06_DECELERATION;
+	      END_IF;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 6 -> State 7 (Multicycle)
+	    IF #state = #STATE_06_DECELERATION THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      
+	      // Decelerate S-Curve #######################
+	      IF #settings.profileType THEN
+	        #currentAcceleration -= #locked.jerk * #cycleTime;
+	        IF #currentAcceleration < - #locked.deceleration THEN
+	          #currentAcceleration := - #locked.deceleration;
+	        END_IF;
+	        
+	        #absVelocityReference += #currentAcceleration * #cycleTime;
+	        
+	        // Decelerate Trapezoidal ######################
+	      ELSE
+	        #absVelocityReference -= #locked.deceleration * #cycleTime;
+	      END_IF;
+	      
+	      // Next step
+	      IF #absVelocityReference <= #locked.minVelocity THEN
+	        #absVelocityReference := #locked.minVelocity;
+	        #currentAcceleration := 0.0;
+	        #state := #STATE_07_CREEP;
+	      END_IF;
+	      
+	      // Set output
+	      #velocity := #direction * #absVelocityReference;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 7 -> State 8 (Multicycle)
+	    IF #state = #STATE_07_CREEP THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      
+	      // Set variables
+	      #absVelocityReference := #locked.minVelocity;
+	      #private.inPosTimer := 0.0;
+	      
+	      // Set output
+	      #velocity := #direction * #absVelocityReference;
+	      
+	      // Next step
+	      IF #inPosition THEN
+	        #state := #STATE_08_IN_POSITION_CONFIRMATION;
+	      END_IF;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 8 -> State 7 | State 20 (Multicycle)
+	    IF #state = #STATE_08_IN_POSITION_CONFIRMATION THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := false;
+	      #absVelocityReference := 0.0;
+	      
+	      // Update timer (paused during hold)
+	      IF NOT #hold THEN
+	        #private.inPosTimer += #cycleTime;
+	      END_IF;
+	      
+	      // Next step
+	      IF NOT #inPosition THEN
+	        #state := #STATE_07_CREEP;
+	      ELSIF #private.inPosTimer >= #settings.inPositionDelay THEN
+	        #state := #STATE_20_DONE;
+	      END_IF;
+	      
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 9 -> State 10 (Multicycle)
+	    IF #state = #STATE_09_HOLD_DECELERATION THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      // Decelerate S-Curve
+	      IF #settings.profileType THEN
+	        #currentAcceleration -= #locked.jerk * #cycleTime;
+	        IF #currentAcceleration < - #locked.deceleration THEN
+	          #currentAcceleration := - #locked.deceleration;
+	        END_IF;
+	        #absVelocityReference += #currentAcceleration * #cycleTime;
+	        // Decelerate Trapezoidal
+	      ELSE
+	        #absVelocityReference -= #locked.deceleration * #cycleTime;
+	      END_IF;
+	      
+	      // Clamp: prevent negative reference on last decel cycle
+	      IF #absVelocityReference < 0.0 THEN
+	        #absVelocityReference := 0.0;
+	        #currentAcceleration := 0.0;
+	      END_IF;
+	      
+	      // Set output
+	      #velocity := #direction * #absVelocityReference;
+	      
+	      // Next step
+	      IF #absVelocityReference <= 0.0 THEN
+	        #state := #STATE_10_HOLD;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 10 -> State 3 (Multicycle)
+	    IF #state = #STATE_10_HOLD THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := TRUE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_7000_HOLD;
+	      #onFly := false;
+	      
+	      // Clear for resume
+	      #absVelocityReference := 0.0;
+	      #currentAcceleration := 0.0;
+	      
+	      // Resume: recalculate movement from current position
+	      IF NOT #hold THEN
+	        #state := #STATE_03_PRECALCULATION;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 11 -> State 12 (Multicycle)
+	    IF #state = #STATE_11_CANCEL_DECELERATION THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := true;
+	      
+	      // Decelerate S-Curve
+	      IF #settings.profileType THEN
+	        #currentAcceleration -= #locked.jerk * #cycleTime;
+	        IF #currentAcceleration < - #locked.deceleration THEN
+	          #currentAcceleration := - #locked.deceleration;
+	        END_IF;
+	        #absVelocityReference += #currentAcceleration * #cycleTime;
+	        // Decelerate Trapezoidal
+	      ELSE
+	        #absVelocityReference -= #locked.deceleration * #cycleTime;
+	      END_IF;
+	      
+	      // Clamp: prevent negative reference on last decel cycle
+	      IF #absVelocityReference < 0.0 THEN
+	        #absVelocityReference := 0.0;
+	        #currentAcceleration := 0.0;
+	      END_IF;
+	      
+	      // Set output
+	      #velocity := #direction * #absVelocityReference;
+	      
+	      // Stopped - cascade to IDLE same cycle
+	      IF #absVelocityReference <= 0.0 THEN
+	        #state := #STATE_12_CANCELLED;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 12 -> State 0 (One cycle)
+	    IF #state = #STATE_12_CANCELLED THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := FALSE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := TRUE;
+	      #status := #STATUS_7001_CANCELLED;
+	      #onFly := false;
+	      
+	      // Next step
+	      IF NOT #execute AND NOT #cancel THEN
+	        #state := #STATE_00_IDLE;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 13 -> State 3 (Multicycle)
+	    IF #state = #STATE_13_RETARGET_DECELERATION THEN
+	      // Set outputs
+	      #busy := TRUE;
+	      #done := FALSE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_2_BUSY;
+	      #onFly := TRUE;
+	      
+	      // Decelerate S-Curve
+	      IF #settings.profileType THEN
+	        #currentAcceleration -= #locked.jerk * #cycleTime;
+	        IF #currentAcceleration < - #locked.deceleration THEN
+	          #currentAcceleration := - #locked.deceleration;
+	        END_IF;
+	        #absVelocityReference += #currentAcceleration * #cycleTime;
+	        // Decelerate Trapezoidal
+	      ELSE
+	        #absVelocityReference -= #locked.deceleration * #cycleTime;
+	      END_IF;
+	      
+	      // Clamp: prevent negative reference on last decel cycle
+	      IF #absVelocityReference < 0.0 THEN
+	        #absVelocityReference := 0.0;
+	        #currentAcceleration := 0.0;
+	      END_IF;
+	      
+	      // Set output
+	      #velocity := #direction * #absVelocityReference;
+	      
+	      // Stopped - recalculate full profile in opposite direction
+	      IF #absVelocityReference <= 0.0 THEN
+	        #state := #STATE_03_PRECALCULATION;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 20 -> State 0 (Multicycle)
+	    IF #state = #STATE_20_DONE THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := FALSE;
+	      #done := TRUE;
+	      #error := FALSE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      #status := #STATUS_3_DONE;
+	      #onFly := false;
+	      
+	      // Stay here until next execute rising edge (handled at top)
+	      // Reset state to IDLE so a new move can be triggered
+	      IF NOT #execute THEN
+	        #state := #STATE_00_IDLE;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION State 0x8000 -> State  0 (One cycle)
+	    IF #state = #STATE_8000_ERROR THEN
+	      // Set outputs
+	      #velocity := 0.0;
+	      #busy := FALSE;
+	      #done := FALSE;
+	      #error := TRUE;
+	      #holding := FALSE;
+	      #cancelled := FALSE;
+	      //#status := #status; // Error from State 1 or watchdog
+	      #onFly := false;
+	      // Next step
+	      #state := #STATE_00_IDLE;
+	    END_IF;
+	  END_REGION
+	END_REGION
+	
+	// Save Rlo
+	ENO := NOT #error;
+	 
+END_FUNCTION_BLOCK
+

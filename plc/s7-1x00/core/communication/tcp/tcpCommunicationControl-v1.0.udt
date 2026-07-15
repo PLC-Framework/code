@@ -1,0 +1,21 @@
+﻿TYPE "tcpCommunicationControl"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/tcp","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2024-11-07 | cyanezf | First version |
+//
+//## Description
+//TCP communication control
+//--*)
+
+  STRUCT
+    length : UDInt;   // SW: 0..N=Data length to be sent/received
+    command : Int;   // SW: Command. 0=Nop; 1=Sending request; 2=Busy; 3=Done (Data was sent/received); 0x8000=Error
+  END_STRUCT;
+
+END_TYPE
+

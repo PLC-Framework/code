@@ -1,0 +1,206 @@
+﻿FUNCTION_BLOCK "_background"
+TITLE = {"status":"deprecated","deprecatedBy":"_background-v4.0","dependencies" : ["TON_TIME", "RUNTIME", "RD_LOC_T"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/system'
+NAME : _background
+VERSION : 3.1
+
+   VAR_INPUT 
+      OB_initial_call { ExternalWritable := 'False'} : Bool;   // IR: Map the initial call from OB1
+      HW_firstScan { ExternalWritable := 'False'} : Bool;   // IR: Map the first scan from memory bit.
+      HW_diagStatusUpdate { ExternalWritable := 'False'} : Bool;   // IR: Map the diagnostic status update from Memory bit.
+      HW_clock { ExternalWritable := 'False'} : Byte;   // IR: Map the clock byte from Memory byte.
+      HW_TRUE { ExternalWritable := 'False'} : Bool := 1;   // IR: Map the always TRUE from Memory bit.
+      HW_FALSE { ExternalWritable := 'False'} : Bool := 0;   // IR: Map the always FALSE from Memory bit.
+      clockSource { ExternalWritable := 'False'} : Bool := 0;   // IR: 0=From Hw if confured, 1=This function generates it.
+      TMP_EMRG_BYPASS_TIMEOUT { ExternalWritable := 'False'} : Time := T#0s;   // IR: 0=Forever; >0=Timeout
+   END_VAR
+
+   VAR_OUTPUT 
+      PROV_TRUE { ExternalWritable := 'False'} : Bool := 1;   // OR: Provisional always true.
+      PROV_FALSE { ExternalWritable := 'False'} : Bool := 0;   // OR: Provisional always false.
+      clock { ExternalWritable := 'False'} : Byte;   // OR: Block output if is done by Hw or Sw.
+      pulse { ExternalWritable := 'False'} : Byte;   // OR: Get positive edges from clock.
+      cycleTime { ExternalWritable := 'False'} : Time;   // OR: Cycle time in milliseconds.
+      now {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalWritable := 'False'} : DTL;   // OR: Current date and time.
+      weekday { ExternalWritable := 'False'} : Struct   // OR: Current weekday in bits.
+         d0_nil { ExternalWritable := 'False'} : Bool;
+         d1_sunday { ExternalWritable := 'False'} : Bool;
+         d2_monday { ExternalWritable := 'False'} : Bool;
+         d3_tuesday { ExternalWritable := 'False'} : Bool;
+         d4_wednesday { ExternalWritable := 'False'} : Bool;
+         d5_thursday { ExternalWritable := 'False'} : Bool;
+         d6_friday { ExternalWritable := 'False'} : Bool;
+         d7_saturday { ExternalWritable := 'False'} : Bool;
+      END_STRUCT;
+   END_VAR
+
+   VAR_IN_OUT 
+      tmp_errorAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Error ackn.
+      tmp_emrgAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Emrg. ackn.
+      tmp_emrgBypass { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Emrg. bypass
+      tmp_loadFactory { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Load factory
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         cycleTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;
+         clock { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;
+         errorAcknTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         emrgAcknTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         emrgBypassTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle0750Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle1600Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle2000Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         laodFactoryTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      result : Int;
+      clockByte : Byte;
+      tCycleTime : LReal;
+      vCycleTime : DInt;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v3.1 | 2025-05-29 | cyanezf | tmp_loadFactory added |
+| v3.0 | 2025-05-06 | cyanezf | Refactored |
+| v2.0 | 2025-04-30 | cyanezf | Tmp variables control added |
+| v1.1 | 2023-11-12 | cyanezf | Fix bugs |
+| v1.0 | 2020-09-06 | cyanezf | First version |
+
+## Description
+
+This function generates datetime, cycle time and rest of useful and global flags.
+
+--*)
+	
+	// Provisional
+	#PROV_FALSE := 0;
+	#PROV_TRUE := 1;
+	
+	(*
+	  SW Clock or HW Clock
+	  100 ms > 50 x 2
+	  200 ms > 50 x 4
+	  400 ms > 50 x 8
+	  500 ms > 50 x 10
+	  750 ms > 50 x 15
+	 1000 ms > 50 x 20
+	 1600 ms > 50 x 32
+	 2000 ms > 50 x 40
+	 *)
+	IF #clockSource THEN
+	  
+	  // Run timer
+	  #private.cycle0750Timer(IN := true,
+	                          PT := t#750ms,
+	                          ET => #vCycleTime);
+	  
+	  #clockByte.%X4 := (#vCycleTime / 375) MOD 2 > 0;
+	  
+	  #private.cycle1600Timer(IN := true,
+	                          PT := t#1600ms,
+	                          ET => #vCycleTime);
+	  
+	  #clockByte.%X6 := (#vCycleTime / 800) MOD 2 > 0;
+	  
+	  #private.cycle2000Timer(IN := true,
+	                          PT := t#2s,
+	                          ET => #vCycleTime);
+	  
+	  #clockByte.%X0 := (#vCycleTime / 50) MOD 2 > 0;
+	  #clockByte.%X1 := (#vCycleTime / 100) MOD 2 > 0;
+	  #clockByte.%X2 := (#vCycleTime / 200) MOD 2 > 0;
+	  #clockByte.%X3 := (#vCycleTime / 250) MOD 2 > 0;
+	  #clockByte.%X5 := (#vCycleTime / 500) MOD 2 > 0;
+	  #clockByte.%X7 := (#vCycleTime / 1000) MOD 2 > 0;
+	  #clock := #clockByte;
+	  
+	  // Reset timer
+	  IF #private.cycle0750Timer.Q THEN
+	    RESET_TIMER(#private.cycle0750Timer);
+	  END_IF;
+	  
+	  IF #private.cycle1600Timer.Q THEN
+	    RESET_TIMER(#private.cycle1600Timer);
+	  END_IF;
+	  
+	  IF #private.cycle2000Timer.Q THEN
+	    RESET_TIMER(#private.cycle2000Timer);
+	  END_IF;
+	  
+	ELSE
+	  #clock := #HW_clock;
+	  
+	END_IF;
+	
+	// Pulses
+	// XOR
+	// C F - X - P
+	// 0 0 - 0 - 0
+	// 0 1 - 1 - 0
+	// 1 0 - 1 - 1
+	// 1 1 - 0 - 0
+	
+	//#pulse := (#clock XOR #private.clock) AND #private.clock; // option a
+	#pulse := #clock AND NOT #private.clock; // option b
+	#private.clock := #clock;
+	
+	// Cycle Time
+	#tCycleTime := RUNTIME(#private.cycleTime);
+	#cycleTime := LREAL_TO_DINT(#tCycleTime * 1000.0);
+	
+	// Now
+	#result := RD_LOC_T(#now);
+	
+	// Weekday
+	#weekday.d0_nil := 0;
+	#weekday.d1_sunday := #now.WEEKDAY = 1;
+	#weekday.d2_monday := #now.WEEKDAY = 2;
+	#weekday.d3_tuesday := #now.WEEKDAY = 3;
+	#weekday.d4_wednesday := #now.WEEKDAY = 4;
+	#weekday.d5_thursday := #now.WEEKDAY = 5;
+	#weekday.d6_friday := #now.WEEKDAY = 6;
+	#weekday.d7_saturday := #now.WEEKDAY = 7;
+	
+	// Temporal
+	#private.errorAcknTimer(IN := #tmp_errorAckn,
+	                        PT := t#500ms);
+	IF #private.errorAcknTimer.Q THEN
+	  #tmp_errorAckn := false;
+	END_IF;
+	
+	#private.emrgAcknTimer(IN := #tmp_emrgAckn,
+	                        PT := t#500ms);
+	 IF #private.emrgAcknTimer.Q THEN
+	   #tmp_emrgAckn := false;
+	 END_IF;
+	 
+	 #private.emrgBypassTimer(IN := #tmp_emrgBypass AND #TMP_EMRG_BYPASS_TIMEOUT > t#0s,
+	                          PT := #TMP_EMRG_BYPASS_TIMEOUT);
+	 IF #private.emrgBypassTimer.Q AND #TMP_EMRG_BYPASS_TIMEOUT > t#0s THEN
+	   #tmp_emrgBypass := false;
+	 END_IF;
+	 
+	 // Load factory
+	 #private.laodFactoryTimer(IN:=#tmp_loadFactory,
+	                           PT:=t#2s);
+	 IF #private.laodFactoryTimer.Q THEN
+	   #tmp_loadFactory := false;
+	 END_IF;
+	 
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

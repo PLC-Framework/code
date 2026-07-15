@@ -1,0 +1,314 @@
+﻿FUNCTION_BLOCK "_standBy"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2", "TOF_TIME", "TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/conveyor-technology'
+NAME : _standBy
+VERSION : 2.0
+
+   VAR_INPUT 
+      in00 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in01 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in02 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in03 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in04 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in05 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in06 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in07 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in08 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in09 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in10 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in11 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in12 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in13 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in14 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in15 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in16 { ExternalWritable := 'False'} : Bool;   // IR: input variable to awake up
+      in17 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in18 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in19 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in20 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in21 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in22 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in23 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in24 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in25 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in26 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in27 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in28 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in29 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in30 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      in31 { ExternalWritable := 'False'; S7_HiddenAssignment := 'HideIfNoParamAssigned'} : Bool;   // IR: input variable to awake up
+      forceToAwakeUp { ExternalWritable := 'False'} : Bool;   // IR: 1=Force to awake up
+      forceToStandBy { ExternalWritable := 'False'} : Bool;   // IR: 1=Force to stand by
+      timeout { ExternalWritable := 'False'} : Time := T#30S;   // IR: Timeout to stand by
+      progressiveTime { ExternalWritable := 'False'} : Time := T#100ms;   // IR: Time to progressive awake/asleep
+      progressiveModeAwake { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Awake from first array element; 1=Awake from last array element
+      progressiveModeAsleep { ExternalWritable := 'False'} : Bool := 0;   // IR: 0=Asleep from first array element; 1=Asleep from last array element
+   END_VAR
+
+   VAR_OUTPUT 
+      on { ExternalWritable := 'False'} : Bool;   // OR: 1=Is asleep
+      off { ExternalWritable := 'False'} : Bool;   // OR: 1=is awake
+      isAsleep { ExternalWritable := 'False'} : Bool;   // OR: 1=Is asleep
+      isAwake { ExternalWritable := 'False'} : Bool;   // OR: 1=is awake
+      ET { ExternalWritable := 'False'} : Time;   // OR: Elapsed time to stand by
+      RT { ExternalWritable := 'False'} : Time;   // OR: Remaining time to stand by
+      awake { ExternalWritable := 'False'} : Array[#LOWER_INDEX..#UPPER_INDEX] of Bool;   // OR: 1=Progressive awake up
+   END_VAR
+
+   VAR_IN_OUT 
+      ESC : "escOutput";   // IOX: ESC
+   END_VAR
+
+   VAR 
+      awakeState { ExternalWritable := 'False'} : Int;   // SR: Awake state
+      i { ExternalWritable := 'False'} : Int;   // SR: index
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         prev1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;
+         prev2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;
+         isAwake { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         om { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;
+         oc { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;
+         awakeUpTimer {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
+         lagTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      curr1 : DInt;
+      curr2 : DInt;
+      awakeUp : Bool;
+      lagTimeDone : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      LOWER_INDEX : Int := 0;
+      UPPER_INDEX : Int := 7;
+      AWAKE_STATE_0_INIT_AWAKE : Int := 0;
+      AWAKE_STATE_1_LAG : Int := 1;
+      AWAKE_STATE_2_AWAKE : Int := 2;
+      AWAKE_STATE_3_INIT_ASLEEP : Int := 3;
+      AWAKE_STATE_4_LAG : Int := 4;
+      AWAKE_STATE_5_ASLEEP : Int := 5;
+      AWAKE_STATE_6_END : Int := 6;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-22 | cyanezf | Pregressive awake/asleep added |
+| v1.1 | 2025-07-17 | cyanezf | Fill up to DWORD as inputs |
+| v1.0 | 2025-06-19 | cyanezf | First version |
+
+## Description
+
+This function monitors the change of inputs to enter standby.
+
+--*)
+	
+	// Pass to int
+	#curr1.%X0 := #in00;
+	#curr1.%X1 := #in01;
+	#curr1.%X2 := #in02;
+	#curr1.%X3 := #in03;
+	#curr1.%X4 := #in04;
+	#curr1.%X5 := #in05;
+	#curr1.%X6 := #in06;
+	#curr1.%X7 := #in07;
+	
+	#curr1.%X8 := #in08;
+	#curr1.%X9 := #in09;
+	#curr1.%X10 := #in10;
+	#curr1.%X11 := #in11;
+	#curr1.%X12 := #in12;
+	#curr1.%X13 := #in13;
+	#curr1.%X14 := #in14;
+	#curr1.%X15 := #in15;
+	
+	#curr1.%X16 := #in16;
+	#curr1.%X17 := #in17;
+	#curr1.%X18 := #in18;
+	#curr1.%X19 := #in19;
+	#curr1.%X20 := #in20;
+	#curr1.%X21 := #in21;
+	#curr1.%X22 := #in22;
+	#curr1.%X23 := #in23;
+	
+	#curr1.%X24 := #in24;
+	#curr1.%X25 := #in25;
+	#curr1.%X26 := #in26;
+	#curr1.%X27 := #in27;
+	#curr1.%X28 := #in28;
+	#curr1.%X29 := #in29;
+	#curr1.%X30 := #in30;
+	#curr1.%X31 := #in31;
+	
+	#curr2 := 0;
+	#curr2.%X0 := #ESC.om.SEL <> #private.om;
+	#curr2.%X1 := #ESC.oc.SEL <> #private.oc;
+	#curr2.%X2 := #forceToAwakeUp;
+	#curr2.%X3 := #forceToStandBy;
+	#curr2.%X4 := #ESC.emrgAckn;
+	#curr2.%X5 := #ESC.errorAckn;
+	
+	// standBy
+	#private.awakeUpTimer(IN := #curr1 <> #private.prev1 OR #curr2 <> #private.prev2,
+	                      PT := #timeout,
+	                      Q => #awakeUp,
+	                      ET => #ET);
+	
+	// Save previos
+	#private.prev1 := #curr1;
+	#private.prev2 := #curr2;
+	#private.oc := #ESC.oc.SEL;
+	#private.om := #ESC.om.SEL;
+	
+	// Update outpus
+	#isAwake := #off := (#awakeUp OR #forceToAwakeUp) AND NOT #forceToStandBy;
+	#isAsleep := #on := NOT #off;
+	#RT := #timeout - #private.awakeUpTimer.ET;
+	
+	REGION Progressive awake up
+	  
+	  // Unconditional transition to init process
+	  IF #isAwake AND NOT #private.isAwake THEN
+	    #awakeState := #AWAKE_STATE_0_INIT_AWAKE;
+	    
+	  ELSIF NOT #isAwake AND #private.isAwake THEN
+	    #awakeState := #AWAKE_STATE_3_INIT_ASLEEP;
+	    
+	  END_IF;
+	  #private.isAwake := #isAwake;
+	  
+	  REGION Awake
+	    // #############################################
+	    // Init awake
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_0_INIT_AWAKE THEN
+	      IF #progressiveModeAwake THEN
+	        #i := #UPPER_INDEX;
+	      ELSE
+	        #i := #LOWER_INDEX;
+	      END_IF;
+	      #awakeState := #AWAKE_STATE_1_LAG;
+	      RESET_TIMER(#private.lagTon);
+	    END_IF;
+	    
+	    // #############################################
+	    // Lag time
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_1_LAG THEN
+	      
+	      #private.lagTon(IN := 1,
+	                      PT := #progressiveTime,
+	                      Q => #lagTimeDone);
+	      
+	      IF #lagTimeDone THEN
+	        #awakeState := #AWAKE_STATE_2_AWAKE;
+	      END_IF;
+	    END_IF;
+	    
+	    // #############################################
+	    // Awake
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_2_AWAKE THEN
+	      
+	      IF #i < #LOWER_INDEX OR #i > #UPPER_INDEX THEN
+	        IF #progressiveModeAwake THEN
+	          #i := #UPPER_INDEX;
+	        ELSE
+	          #i := #LOWER_INDEX;
+	        END_IF;
+	      END_IF;
+	      
+	      #awake[#i] := 1;
+	      
+	      IF #progressiveModeAwake THEN
+	        #i -= 1;
+	      ELSE
+	        #i += 1;
+	      END_IF;
+	      
+	      RESET_TIMER(#private.lagTon);
+	      
+	      IF (#i > #UPPER_INDEX AND NOT #progressiveModeAwake) OR (#i < #LOWER_INDEX AND #progressiveModeAwake) THEN
+	        #awakeState := #AWAKE_STATE_6_END;
+	      ELSE
+	        #awakeState := #AWAKE_STATE_1_LAG;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	  
+	  REGION Asleep
+	    
+	    // #############################################
+	    // Init asleep
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_3_INIT_ASLEEP THEN
+	      IF #progressiveModeAsleep THEN
+	        #i := #UPPER_INDEX;
+	      ELSE
+	        #i := #LOWER_INDEX;
+	      END_IF;
+	      RESET_TIMER(#private.lagTon);
+	      #awakeState := #AWAKE_STATE_4_LAG;
+	    END_IF;
+	    
+	    // #############################################
+	    // Lag
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_4_LAG THEN
+	      
+	      #private.lagTon(IN := 1,
+	                      PT := #progressiveTime,
+	                      Q => #lagTimeDone);
+	      
+	      IF #lagTimeDone THEN
+	        #awakeState := #AWAKE_STATE_5_ASLEEP;
+	      END_IF;
+	    END_IF;
+	    
+	    // #############################################
+	    // Asleep
+	    // #############################################
+	    IF #awakeState = #AWAKE_STATE_5_ASLEEP THEN
+	      
+	      IF #i < #LOWER_INDEX OR #i > #UPPER_INDEX THEN
+	        IF #progressiveModeAsleep THEN
+	          #i := #UPPER_INDEX;
+	        ELSE
+	          #i := #LOWER_INDEX;
+	        END_IF;
+	      END_IF;
+	      
+	      #awake[#i] := 0;
+	      
+	      IF #progressiveModeAsleep THEN
+	        #i -= 1;
+	      ELSE
+	        #i += 1;
+	      END_IF;
+	      
+	      RESET_TIMER(#private.lagTon);
+	      
+	      IF (#i > #UPPER_INDEX AND NOT #progressiveModeAsleep) OR (#i < #LOWER_INDEX AND #progressiveModeAsleep) THEN
+	        #awakeState := #AWAKE_STATE_6_END;
+	      ELSE
+	        #awakeState := #AWAKE_STATE_4_LAG;
+	      END_IF;
+	    END_IF;
+	  END_REGION
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

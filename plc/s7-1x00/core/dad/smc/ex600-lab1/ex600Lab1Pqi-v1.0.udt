@@ -1,0 +1,51 @@
+﻿TYPE "ex600Lab1Pqi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/smc/ex600-lab1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-03-03 | cyanezf | First version |
+//
+//## Description
+//SMC EX600-LAB1 PDI
+//--*)
+
+   STRUCT
+      p1_idMismatch : Bool;   // Port 1 - Connection device matching error: 1=Mismatch
+      p1_pdMappingMismatch : Bool;   // Port 1 - Process data mapping size error: 1=Excceding size
+      p1_powerShortCircuit : Bool;   // Port 1 - L+ short circuit or P24 short circuit: 1=Short circuited
+      p1_cqShortCircuit : Bool;   // Port 1 -  C/Q short circuit: 1=Short circuited
+      p1_dataStorageSaved : Bool;   // Port 1 -  Data storage (DS) saved: 1=DS saved data is valid
+      p1_deviceConnected : Bool;   // Port 1 -  Port communication status: 1=Operation or preparation
+      p1_deviceError : Bool;   // Port 1 - Event (device or master event status): 1=Warning or error
+      p1_processDataOk : Bool;   // Port 1 - Received input process data valid: 1=Valid
+      p2_idMismatch : Bool;   // Port 2 - Connection device matching error: 1=Mismatch
+      p2_pdMappingMismatch : Bool;   // Port 2 - Process data mapping size error: 1=Excceding size
+      p2_powerShortCircuit : Bool;   // Port 2 - L+ short circuit or P24 short circuit: 1=Short circuited
+      p2_cqShortCircuit : Bool;   // Port 2 -  C/Q short circuit: 1=Short circuited
+      p2_dataStorageSaved : Bool;   // Port 2 - Data storage (DS) saved: 1=DS saved data is valid
+      p2_deviceConnected : Bool;   // Port 2 -  Port communication status: 1=Operation or preparation
+      p2_deviceError : Bool;   // Port 2 - Event (device or master event status): 1=Warning or error
+      p2_processDataOk : Bool;   // Port 2 - Received input process data valid: 1=Valid
+      p3_idMismatch : Bool;   // Port 3 - Connection device matching error: 1=Mismatch
+      p3_pdMappingMismatch : Bool;   // Port 3 - Process data mapping size error: 1=Excceding size
+      p3_powerShortCircuit : Bool;   // Port 3 - L+ short circuit or P34 short circuit: 1=Short circuited
+      p3_cqShortCircuit : Bool;   // Port 3 -  C/Q short circuit: 1=Short circuited
+      p3_dataStorageSaved : Bool;   // Port 3 - Data storage (DS) saved: 1=DS saved data is valid
+      p3_deviceConnected : Bool;   // Port 3 -  Port communication status: 1=Operation or preparation
+      p3_deviceError : Bool;   // Port 3 - Event (device or master event status): 1=Warning or error
+      p3_processDataOk : Bool;   // Port 3 - Received input process data valid: 1=Valid
+      p4_idMismatch : Bool;   // Port 4 - Connection device matching error: 1=Mismatch
+      p4_pdMappingMismatch : Bool;   // Port 4 - Process data mapping size error: 1=Excceding size
+      p4_powerShortCircuit : Bool;   // Port 4 - L+ short circuit or P44 short circuit: 1=Short circuited
+      p4_cqShortCircuit : Bool;   // Port 4 -  C/Q short circuit: 1=Short circuited
+      p4_dataStorageSaved : Bool;   // Port 4 - Data storage (DS) saved: 1=DS saved data is valid
+      p4_deviceConnected : Bool;   // Port 4 -  Port communication status: 1=Operation or preparation
+      p4_deviceError : Bool;   // Port 4 - Event (device or master event status): 1=Warning or error
+      p4_processDataOk : Bool;   // Port 4 - Received input process data valid: 1=Valid
+   END_STRUCT;
+
+END_TYPE
+

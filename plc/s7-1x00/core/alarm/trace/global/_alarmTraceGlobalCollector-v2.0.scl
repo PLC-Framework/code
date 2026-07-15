@@ -1,0 +1,143 @@
+﻿FUNCTION "_alarmTraceGlobalCollector" : Void
+TITLE = {"status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceSuperData-v2.0", "alarmTraceGlobalData-v2.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/trace/global'
+NAME : _alarmTraceGlobalCollector
+VERSION : 2.0
+   VAR_INPUT 
+      superId : UInt;   // 0=No group; 1=Group ID
+   END_VAR
+
+   VAR_IN_OUT 
+      super : "alarmTraceSuperData";   // Alarm trace group
+      global : "alarmTraceGlobalData";   // Alarm trace super
+   END_VAR
+
+   VAR CONSTANT 
+      NO_ALARM : Int := 16#0000;
+      NO_OBJECT : UInt := 0;
+      NO_GROUP : UInt := 0;
+      NO_SUPER : UInt := 0;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | update new UDT |
+| v1.0 | 2025-01-27 | cyanezf | First version |
+
+## Description
+
+This function updates global variables according to super variables.
+
+--*)
+	
+	
+	// Info alarms
+	IF #super.a1i.triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #global.a1i.id = #NO_ALARM AND #global.a1i.object = #NO_OBJECT AND #global.a1i.group = #NO_GROUP AND #global.a1i.super = #NO_SUPER THEN
+	    #global.a1i.id := #super.a1i.id;
+	    #global.a1i.object := #super.a1i.object;
+	    #global.a1i.group := #super.a1i.group;
+	    #global.a1i.super := #superId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #global.a1i.collector += #super.a1i.triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #global.a1i.id = #super.a1i.id AND #global.a1i.object = #super.a1i.object AND #global.a1i.group = #super.a1i.group AND #global.a2w.super = #superId THEN
+	    #global.a1i.id := #NO_ALARM;
+	    #global.a1i.object := #NO_OBJECT;
+	    #global.a1i.group := #NO_GROUP;
+	    #global.a1i.super := #NO_SUPER;
+	  END_IF;
+	END_IF;
+	
+	// Warning alarms
+	IF #super.a2w.triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #global.a2w.id = #NO_ALARM AND #global.a2w.object = #NO_OBJECT AND #global.a2w.group = #NO_GROUP AND #global.a3e.super = #NO_SUPER THEN
+	    #global.a2w.id := #super.a2w.id;
+	    #global.a2w.object := #super.a2w.object;
+	    #global.a2w.group := #super.a2w.group;
+	    #global.a2w.super := #superId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #global.a2w.collector += #super.a2w.triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #global.a2w.id = #super.a2w.id AND #global.a2w.object = #super.a2w.object AND #global.a2w.group = #super.a2w.group AND #global.a2w.super = #superId THEN
+	    #global.a2w.id := #NO_ALARM;
+	    #global.a2w.object := #NO_OBJECT;
+	    #global.a2w.group := #NO_GROUP;
+	    #global.a2w.super := #NO_SUPER;
+	  END_IF;
+	END_IF;
+	
+	// Error alarms
+	IF #super.a3e.triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #global.a3e.id = #NO_ALARM AND #global.a3e.object = #NO_OBJECT AND #global.a3e.group = #NO_GROUP AND #global.a3e.super = #NO_SUPER THEN
+	    #global.a3e.id := #super.a3e.id;
+	    #global.a3e.object := #super.a3e.object;
+	    #global.a3e.group := #super.a3e.group;
+	    #global.a3e.super := #superId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #global.a3e.collector += #super.a3e.triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #global.a3e.id = #super.a3e.id AND #global.a3e.object = #super.a3e.object AND #global.a3e.group = #super.a3e.group AND #global.a3e.super = #superId THEN
+	    #global.a3e.id := #NO_ALARM;
+	    #global.a3e.object := #NO_OBJECT;
+	    #global.a3e.group := #NO_GROUP;
+	    #global.a3e.super := #NO_SUPER;
+	  END_IF;
+	END_IF;
+	
+	// Emergency alarms
+	IF #super.a4f.triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #global.a4f.id = #NO_ALARM AND #global.a4f.object = #NO_OBJECT AND #global.a4f.group = #NO_GROUP AND #global.a4f.super = #NO_SUPER THEN
+	    #global.a4f.id := #super.a4f.id;
+	    #global.a4f.object := #super.a4f.object;
+	    #global.a4f.group := #super.a4f.group;
+	    #global.a4f.super := #superId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #global.a4f.collector += #super.a4f.triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #global.a4f.id = #super.a4f.id AND #global.a4f.object = #super.a4f.object AND #global.a4f.group = #super.a4f.group AND #global.a4f.super = #superId THEN
+	    #global.a4f.id := #NO_ALARM;
+	    #global.a4f.object := #NO_OBJECT;
+	    #global.a4f.group := #NO_GROUP;
+	    #global.a4f.super := #NO_SUPER;
+	  END_IF;
+	END_IF;
+	
+	// Save RLO
+	ENO := 1;
+	
+END_FUNCTION
+

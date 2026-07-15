@@ -1,0 +1,227 @@
+﻿FUNCTION_BLOCK "_sick_clv6xx_reader"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["_sick_cola-v1.2", "TONR_TIME", "DPRD_DAT", "DPWR_DAT"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SICKAG
+FAMILY : 'core/dad/sick/clv6xx'
+VERSION : 1.2
+//This function block is used for a communication between a SICK Lector6xx / SICK CLV6xx code reader and a Siemens S7-1200/S7-1500 PLC via  PROFINET/PROFIBUS
+   VAR_INPUT 
+      HW_STATUS_ID { ExternalWritable := 'False'} : HW_SUBMODULE;
+      HW_CONTROL_ID { ExternalWritable := 'False'} : HW_SUBMODULE;
+      HW_INPUT_ID { ExternalWritable := 'False'} : HW_SUBMODULE;   // Hardware identification number of the input module
+      HW_INPUT_LENGTH { ExternalWritable := 'False'} : USInt := 32;   // Size of the input module (32 by default)
+      HW_OUTPUT_ID { ExternalWritable := 'False'} : HW_SUBMODULE;   // Hardware identification number of the output module
+      HW_OUTPUT_LENGTH { ExternalWritable := 'False'} : USInt := 32;   // Size of the output module (32 by default)
+      READING_TIMEOUT { ExternalWritable := 'False'} : Time := T#5S;   // Time out
+      RESPONSE_TIMEOUT { ExternalWritable := 'False'} : Time := T#2s;
+      trigger { ExternalWritable := 'False'} : Bool;   // 1=Read; 0=Stop
+      convIsRunning { ExternalWritable := 'False'} : Bool;   // 1=Is running
+   END_VAR
+
+   VAR_OUTPUT 
+      ready { ExternalWritable := 'False'} : Bool;   // Scanner is ready
+      reading { ExternalWritable := 'False'} : Bool;   // OR: 1=Readig
+      readFinish { ExternalWritable := 'False'} : Bool;   // FP=Read done or read error
+      goodRead { ExternalWritable := 'False'} : Bool;   // FP=Read done
+      noRead { ExternalWritable := 'False'} : Bool;   // FP=Read error
+      readCount { ExternalWritable := 'False'} : UDInt;
+      readData { ExternalWritable := 'False'} : String;
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : USInt;   // Currrent FB step
+      com { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "_sick_cola";   // Instance: CoLa communication block
+      status { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "sick_cdf600_statusWord";
+      control { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "sick_cdf600_controlWord";
+      commandLength { ExternalWritable := 'False'} : UInt;   // Length of the command that should be send
+      command { ExternalWritable := 'False'} : Array[0..499] of Byte;   // Contains the transmitted CoLa command
+      record { ExternalWritable := 'False'} : Array[0..499] of Byte;   // Contains the received telegram
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // Private static variables
+         convRunTimer {InstructionName := 'TONR_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TONR_TIME;
+         comRequestDone { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Rising edge detection
+         comError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Rising edge detection
+         trigger { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      triggerPulseOn : Bool;
+      triggerPulseOff : Bool;
+      readingTimeout : Bool;
+      com_requestDonePulse : Bool;   // Rising edge detection
+      com_errorPulse : Bool;   // Rising edge detection
+      retVal : Int;   // Get/Set function error code
+      ok : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_0_WAIT : USInt := 0;
+      STATE_1_SEND_COLA_CMD : USInt := 1;
+      STATE_2_WAIT_CMD_RESULT : USInt := 2;
+      READING_RESULT_SIZE : UInt := 254;   // Length of the reading result array
+      COLA_TRIGGER_OFF : String := 'sMN mTCgateoff';
+      NO_READ : String := 'NoRead';
+   END_VAR
+
+
+BEGIN
+	
+	// Read status word
+	#retVal := DPRD_DAT(LADDR := #HW_STATUS_ID, RECORD => #status);
+	
+	#ready := #status.deviceReady AND #status.systemReady;
+	
+	#triggerPulseOn := #trigger AND NOT #private.trigger;
+	#triggerPulseOff := NOT #trigger AND #private.trigger;
+	#private.trigger := #trigger;
+	
+	// Start reading
+	IF #triggerPulseOn AND #ready AND NOT #reading THEN
+	  #reading := true;
+	  #readData := 'start-reading';
+	END_IF;
+	
+	// Monitor reading time
+	#private.convRunTimer(IN:=#reading AND #convIsRunning,
+	                      R:=NOT #reading,
+	                      PT:=#READING_TIMEOUT,
+	                      Q=>#readingTimeout);
+	
+	// Send TrggerOff command #########################################################################
+	IF #state = #STATE_0_WAIT THEN
+	  
+	  IF #reading AND (#triggerPulseOff OR #readingTimeout) THEN
+	    #state := #STATE_1_SEND_COLA_CMD;
+	  END_IF;
+	END_IF;
+	
+	IF #state = #STATE_1_SEND_COLA_CMD THEN
+	  
+	  IF NOT #com.requestBusy THEN
+	    
+	    Strg_TO_Chars(Strg := #COLA_TRIGGER_OFF,
+	                  pChars := 0,
+	                  Cnt => #commandLength,
+	                  Chars := #command);
+	    
+	    #com.commandLength := #commandLength;
+	    #com.request := true;
+	    #state := #STATE_2_WAIT_CMD_RESULT;
+	  END_IF;
+	END_IF;
+	
+	// Communication ##################################################################################
+	#com(HW_INPUT_ID:=#HW_INPUT_ID,
+	     HW_INPUT_LENGTH:=#HW_INPUT_LENGTH,
+	     HW_OUTPUT_ID:=#HW_OUTPUT_ID,
+	     HW_OUTPUT_LENGTH:=#HW_OUTPUT_LENGTH,
+	     TIMEOUT:=#RESPONSE_TIMEOUT,
+	     command:=#command,
+	     record:=#record);
+	
+	// Flags ##########################################################################################
+	// Clear request
+	#com.request := false; (*Reset the request flag every cycle*)
+	// Get results
+	#com_requestDonePulse := #com.requestDone AND NOT #private.comRequestDone;
+	#com_errorPulse := #com.error AND NOT #private.comError;
+	// Update edges
+	#private.comRequestDone := #com.requestDone;
+	#private.comError := #com.error;
+	// Clear results
+	#noRead := false;
+	#goodRead := false;
+	
+	// Handling Trigger off request done ##############################################################
+	IF #com_requestDonePulse AND #reading THEN
+	  
+	  // Write result default
+	  #readData := 'NoRead-TriggerOffCommand-??';
+	  
+	  // 'sFA ??' -> Error
+	  #ok := #record[0] = 's'
+	  AND #record[1] = 'F'
+	  AND #record[2] = 'A';
+	  IF #ok THEN
+	    #readData := 'NoRead-TriggerOffCommand-Done-Answer-00';
+	    #readData[LEN(#readData) - 1] := #record[4];
+	    #readData[LEN(#readData)] := #record[5];
+	  END_IF;
+	  
+	  // 's           AN        off 1' -> Command executed
+	  #ok := #record[0] = 's' AND
+	  #record[12] = 'A' AND
+	  #record[13] = 'N' AND
+	  #record[22] = 'o' AND
+	  #record[23] = 'f' AND
+	  #record[24] = 'f' AND
+	  #record[25] = ' ' AND
+	  #record[26] = '1';
+	  IF #ok THEN
+	    #readData := 'NoRead-TriggerOffCommand-Done';
+	  END_IF;
+	  
+	  #state := #STATE_0_WAIT;
+	  #reading := false;
+	  #goodRead := false;
+	  #noRead := false; // old: true // Change to false because reading.Done is set even in trigger-off event
+	  //"Tag_6" := 2;  // <<<<<<<<<<<<<<<< 1
+	END_IF;
+	
+	// Handling Trigger off request error #############################################################
+	IF #com_errorPulse AND #reading THEN
+	  
+	  #state := #STATE_0_WAIT;
+	  #readData := 'NoRead-ColaFunction-Error';
+	  #reading := false;
+	  #goodRead := false;
+	  #noRead := true;
+	  //"Tag_6" := 3;
+	END_IF;
+	
+	// Handling read done #############################################################################
+	IF #com.readDone THEN
+	  
+	  #reading := false;
+	  
+	  // Length out of range
+	  IF #com.readLength < 0 OR #com.readLength > #READING_RESULT_SIZE THEN
+	    #readData := 'NoRead-DataOverflow';
+	    #noRead := false;
+	    
+	    // Length ok
+	  ELSE
+	    // '[STX]<string>[ETX]'
+	    Chars_TO_Strg(Chars := #record,
+	                  pChars := 1,  // No coppy STX
+	                  Cnt := INT_TO_UINT(#com.readLength - 2), // No copy ETX
+	                  Strg => #readData);
+	    
+	    IF #readData = #NO_READ THEN
+	      #noRead := true;
+	      //"Tag_6" := 1; // <<<<<<<<<<<<<< 2do
+	      #goodRead := false;
+	    ELSE
+	      #noRead := false;
+	      #goodRead := true;
+	      #readCount += 1;
+	    END_IF;
+	    
+	  END_IF;
+	END_IF;
+	
+	// Read finish
+	#readFinish := #noRead OR #goodRead;
+	
+	// Write control word #############################################################################
+	#control.trigger := #reading;
+	#retVal := DPWR_DAT(LADDR := #HW_CONTROL_ID, RECORD := #control);
+	
+	// Save RLO
+	ENO := true;
+	
+	
+	
+	
+END_FUNCTION_BLOCK
+

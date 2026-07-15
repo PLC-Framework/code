@@ -1,0 +1,71 @@
+﻿FUNCTION "_alarmBitMap" : Int
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/add-on'
+NAME : _alarmBitsMap
+VERSION : 2.0
+   VAR_INPUT 
+      a00 : Bool;   // 1=Alarm
+      a01 : Bool;   // 1=Alarm
+      a02 : Bool;   // 1=Alarm
+      a03 : Bool;   // 1=Alarm
+      a04 : Bool;   // 1=Alarm
+      a05 : Bool;   // 1=Alarm
+      a06 : Bool;   // 1=Alarm
+      a07 : Bool;   // 1=Alarm
+      a08 : Bool;   // 1=Alarm
+      a09 : Bool;   // 1=Alarm
+      a10 : Bool;   // 1=Alarm
+      a11 : Bool;   // 1=Alarm
+      a12 : Bool;   // 1=Alarm
+      a13 : Bool;   // 1=Alarm
+      a14 : Bool;   // 1=Alarm
+      a15 : Bool;   // 1=Alarm
+   END_VAR
+
+   VAR_TEMP 
+      t : Int;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | Keep version coherency |
+| v1.0 | 2025-01-27 | cyanezf | First version |
+
+## Description
+
+This function maps every single bit to integer variable.
+
+--*)
+	
+	// Map every single bit to temporal integer
+	#t.%X0 := #a00;
+	#t.%X1 := #a01;
+	#t.%X2 := #a02;
+	#t.%X3 := #a03;
+	#t.%X4 := #a04;
+	#t.%X5 := #a05;
+	#t.%X6 := #a06;
+	#t.%X7 := #a07;
+	#t.%X8 := #a08;
+	#t.%X9 := #a09;
+	#t.%X10 := #a10;
+	#t.%X11 := #a11;
+	#t.%X12 := #a12;
+	#t.%X13 := #a13;
+	#t.%X14 := #a14;
+	#t.%X15 := #a15;
+	
+	#_alarmBitMap := #t;
+	ENO := true;
+	
+END_FUNCTION
+

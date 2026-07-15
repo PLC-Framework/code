@@ -1,0 +1,92 @@
+﻿FUNCTION_BLOCK "_motorStarter_3RK1_308"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["motorStarter_3RK1_308_status-v1.0", "motorStarter_3RK1_308_control-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/siemens/motorStart_3RK1_308'
+NAME : _motorStarter_3RK1_308
+VERSION : 2.2
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: 1=Ackn
+      maxCurrent { ExternalWritable := 'False'} : Real;   // IR: Max current [A]
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      actualCurrent { ExternalWritable := 'False'} : Real;   // OR: Acutal current in Ampers
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "motorStarter_3RK1_308_status";   // IOX: PI Status
+      pdo : "motorStarter_3RK1_308_control";   // IOX: PQ Control
+   END_VAR
+
+   VAR_TEMP 
+      actualCurrentPer : Int;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.2 | 2026-04-10 | cyanezf | Fix bug |
+| v2.1 | 2026-04-09 | cyanezf | Update sintaxis |
+| v2.0 | 2026-04-08 | cyanezf | Process output, rename status, control to pdi, pdo |
+| v1.1 | 2024-05-09 | cyanezf | Refactor to scl |
+| v1.0 | 2023-06-06 | cyanezf | First version |
+
+## Description
+
+This function controls Siemens Motorstarter 3RK1-308.
+
+--*)
+	
+	// Run
+	#pdo.motorCw := #controlOn AND #emrgStopOk AND #runForward AND NOT #runBackward;
+	#pdo.motorCcw := #controlOn AND #emrgStopOk AND NOT #runForward AND #runBackward;
+	
+	// Reset
+	#pdo.tripReset := #ackn;
+	
+	// Clear
+	#pdo.coldStart :=
+	#pdo.emergencyStart := 0;
+	
+	// Disable quick stop
+	#pdo.disableQuickStop := #emrgStopOk;
+	
+	// Is running and direction
+	#isRunning := #pdi.motorOn;
+	#direction := #pdi.motorCcw AND NOT #pdi.motorCw;
+	
+	// Actual current
+	#actualCurrentPer := 0;
+	#actualCurrentPer.%X0 := #pdi.currMotorCurrentBit0;
+	#actualCurrentPer.%X1 := #pdi.currMotorCurrentBit1;
+	#actualCurrentPer.%X2 := #pdi.currMotorCurrentBit2;
+	#actualCurrentPer.%X3 := #pdi.currMotorCurrentBit3;
+	#actualCurrentPer.%X4 := #pdi.currMotorCurrentBit4;
+	#actualCurrentPer.%X5 := #pdi.currMotorCurrentBit5;
+	(*
+	  maxCurrent -> 100%
+	  x          -> actualCurrentPer
+	  
+	  x = maxCurrent * actualCurrentPer / 100.0;
+	*)
+	
+	#actualCurrent := #maxCurrent * INT_TO_REAL(#actualCurrentPer) / 100.0;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

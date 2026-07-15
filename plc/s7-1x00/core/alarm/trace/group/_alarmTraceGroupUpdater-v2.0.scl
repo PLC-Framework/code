@@ -1,0 +1,124 @@
+﻿FUNCTION "_alarmTraceGroupUpdater" : Void
+TITLE = {"status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceGroupData-v2.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/trace/group'
+NAME : _alarmTraceGroupUpdater
+VERSION : 1.1
+
+   VAR_IN_OUT 
+      groups : Array[*] of "alarmTraceGroupData";   // Alarm trace groups
+   END_VAR
+
+   VAR_TEMP 
+      first : DInt;
+      last : DInt;
+      i : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      ALARM_0_NIL : USInt := 0;
+      ALARM_1_INFO : USInt := 1;
+      ALARM_2_WARNING : USInt := 2;
+      ALARM_3_ERROR : USInt := 3;
+      ALARM_4_EMERGENCY : USInt := 4;
+      NO_ALARM : Int := 0;
+      NO_OBJECT : UInt := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-06-12 | cyanezf | Alarm level constants added |
+| v1.0 | 2025-03-24 | cyanezf | First version |
+
+## Description
+
+This function updates `group.aXX.triggered` and clears the rest of variables
+
+--*)
+	
+	// Get array limits
+	#first := LOWER_BOUND(ARR := #groups, DIM := 1);
+	#last := UPPER_BOUND(ARR := #groups, DIM := 1);
+	
+	// Update triggered and clear collector
+	FOR #i := #first TO #last DO
+	  
+	  // ##################################################
+	  // Clear ############################################
+	  // ##################################################
+	  // Info
+	  IF #groups[#i].a1i.collector = 0 THEN
+	    #groups[#i].a1i.id := #NO_ALARM;
+	    #groups[#i].a1i.object := #NO_OBJECT;
+	  END_IF;
+	  #groups[#i].a1i.triggered := #groups[#i].a1i.collector;
+	  #groups[#i].a1i.collector := 0;
+	  
+	  // Warning
+	  IF #groups[#i].a2w.collector = 0 THEN
+	    #groups[#i].a2w.id := #NO_ALARM;
+	    #groups[#i].a2w.object := #NO_OBJECT;
+	  END_IF;
+	  #groups[#i].a2w.triggered := #groups[#i].a2w.collector;
+	  #groups[#i].a2w.collector := 0;
+	  
+	  // Error
+	  IF #groups[#i].a3e.collector = 0 THEN
+	    #groups[#i].a3e.id := #NO_ALARM;
+	    #groups[#i].a3e.object := #NO_OBJECT;
+	  END_IF;
+	  #groups[#i].a3e.triggered := #groups[#i].a3e.collector;
+	  #groups[#i].a3e.collector := 0;
+	  
+	  // Emergency
+	  IF #groups[#i].a4f.collector = 0 THEN
+	    #groups[#i].a4f.id := #NO_ALARM;
+	    #groups[#i].a4f.object := #NO_OBJECT;
+	  END_IF;
+	  #groups[#i].a4f.triggered := #groups[#i].a4f.collector;
+	  #groups[#i].a4f.collector := 0;
+	  
+	  // ##################################################
+	  // Update level #####################################
+	  // ##################################################
+	  IF #groups[#i].a4f.triggered > 0 THEN
+	    #groups[#i].level := #ALARM_4_EMERGENCY;
+	    #groups[#i].object := #groups[#i].a4f.object;
+	    #groups[#i].id := #groups[#i].a4f.id;
+	    
+	  ELSIF #groups[#i].a3e.triggered > 0 THEN
+	    #groups[#i].level := #ALARM_3_ERROR;
+	    #groups[#i].object := #groups[#i].a3e.object;
+	    #groups[#i].id := #groups[#i].a3e.id;
+	    
+	  ELSIF #groups[#i].a2w.triggered > 0 THEN
+	    #groups[#i].level := #ALARM_2_WARNING;
+	    #groups[#i].object := #groups[#i].a2w.object;
+	    #groups[#i].id := #groups[#i].a2w.id;
+	    
+	  ELSIF #groups[#i].a1i.triggered > 0 THEN
+	    #groups[#i].level := #ALARM_1_INFO;
+	    #groups[#i].object := #groups[#i].a1i.object;
+	    #groups[#i].id := #groups[#i].a1i.id;
+	    
+	  ELSE
+	    #groups[#i].level := #ALARM_0_NIL;
+	    #groups[#i].object := #NO_OBJECT;
+	    #groups[#i].id := #NO_ALARM;
+	    
+	  END_IF;
+	  
+	END_FOR;
+	
+	// Save RLO
+	ENO := TRUE;
+	
+END_FUNCTION
+

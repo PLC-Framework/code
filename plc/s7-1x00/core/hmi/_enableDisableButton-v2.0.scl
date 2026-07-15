@@ -1,0 +1,98 @@
+﻿FUNCTION_BLOCK "_enableDisableButton"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _enableDisableButton
+VERSION : 2.0
+
+   VAR_INPUT 
+      DI_button { ExternalWritable := 'False'} : Bool;   // IR: DI button
+      IT_enable { ExternalWritable := 'False'} : Bool;   // IR: FP=IT enable signal
+      IT_disable { ExternalWritable := 'False'} : Bool;   // IR: FP=IT disable signal
+      HMI_button { ExternalWritable := 'False'} : Bool;   // IR: FP=HMI button
+   END_VAR
+
+   VAR_OUTPUT 
+      DO_enableLamp { ExternalWritable := 'False'} : Bool;   // OR: 1=DO enable lamp
+      DO_disableLamp { ExternalWritable := 'False'} : Bool;   // OR: 1=DO disable lamp
+      enabledPulseOn { ExternalWritable := 'False'} : Bool;   // OR: FP=Enabled pulse on
+      disabledPulseOn { ExternalWritable := 'False'} : Bool;   // OR: FP=Disabled pulse on
+   END_VAR
+
+   VAR_IN_OUT 
+      enabled { ExternalWritable := 'False'} : Bool;   // OR: 0=Disabled; 1=Enabled
+      esc : "escOutput";   // IOX: ESC
+      clock { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // IOX: Clock byte
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         DI_button { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         IT_enable { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         IT_disable { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         HMI_button { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         enable { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      END_STRUCT;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-05-01 | cyanezf | `HMI_button` added |
+| v1.1 | 2025-04-29 | cyanezf | `enabled` as inout to store status outside |
+| v1.0 | 2025-03-18 | cyanezf | First version |
+
+## Description
+
+This function enable/disable a bit when:
+1. DI_button pulse is detected
+2. IT_enable
+3. IT_disable
+4. HMI_button pulse is detected
+
+--*)
+
+	// Check button edge
+	IF #DI_button AND NOT #private.DI_button THEN
+	  #enabled := NOT #enabled;
+	END_IF;
+	#private.DI_button := #DI_button;
+	
+	// Check IT enable
+	IF #IT_enable AND NOT #private.IT_enable THEN
+	  #enabled := 1;
+	END_IF;
+	#private.IT_enable := #IT_enable;
+	
+	// Check IT disable
+	IF #IT_disable AND NOT #private.IT_disable THEN
+	  #enabled := 0;
+	END_IF;
+	#private.IT_disable := #IT_disable;
+	
+	// CHeck HMI button
+	IF #HMI_button AND NOT #private.HMI_button THEN
+	  #enabled := NOT #enabled;
+	END_IF;
+	#private.HMI_button := #HMI_button;
+	
+	// Check edges
+	#enabledPulseOn := #enabled AND NOT #private.enable;
+	#disabledPulseOn := NOT #enabled AND #private.enable;
+	#private.enable := #enabled;
+	
+	// Lamps
+	#DO_enableLamp := #enabled OR #esc.lampTest;
+	#DO_disableLamp := NOT #enabled OR #esc.lampTest;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

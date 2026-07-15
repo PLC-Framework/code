@@ -1,0 +1,36 @@
+﻿TYPE "jxcProfile"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxc","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-05-07 | cyanezf | First version |
+// 
+//## Description
+//This is the profile structure for the SMC JXC series actuators when used with the S7-1x00 PLCs.
+//It contains parameters related to the actuator's movement, such as velocity, position, acceleration,
+//deceleration, pushing force, and other settings that define a specific motion profile. 
+//The structure is designed to be used in conjunction with the Process Data Output (PDO) structure to
+//control the actuator's operation effectively.
+//--*)
+
+   STRUCT
+      number : USInt;   // Profile number: 0..63=Use JXC internal memory profiles
+      movementMode : USInt;   // Valid only to write stepData: 1=Absolute; 2=Relative
+      velocity : Real;   // Velocity in units/s
+      position : Real;   // Position in units (mm, º)
+      acceleration : Real;   // Acceleration in units/s^2
+      deceleration : Real;   // Deceleration in units/s^2
+      pushingForce : USInt;   // Pushing force in %
+      triggerlevel : USInt;   // Trigger level in %
+      pushingVelocity : Real;   // Pushing velocity in units/s
+      movingForce : USInt;   // Moving force in %
+      area1 : Real;   // Area position 1 in units
+      area2 : Real;   // Area position 2 in units
+      inPosition : Real;   // In position in units
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,133 @@
+﻿FUNCTION "_alarmTraceSuperUpdater" : Void
+TITLE = {"status":"deprecated","deprecatedBy":"_alarmTraceSuperUpdater-v2.1","dependencies" : ["alarmTraceSuperData-v2.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/trace/super'
+NAME : _alarmTraceSuperUpdater
+VERSION : 2.0
+
+   VAR_IN_OUT 
+      supers : Array[*] of "alarmTraceSuperData";   // Alarm trace supers
+   END_VAR
+
+   VAR_TEMP 
+      first : DInt;
+      last : DInt;
+      i : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      ALARM_0_NIL : USInt := 0;
+      ALARM_1_INFO : USInt := 1;
+      ALARM_2_WARNING : USInt := 2;
+      ALARM_3_ERROR : USInt := 3;
+      ALARM_4_EMERGENCY : USInt := 4;
+      NO_ALARM : Int := 0;
+      NO_OBJECT : UInt := 0;
+      NO_GROUP : UInt := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-06-12 | cyanezf | Alarm level constants added |
+| v1.0 | 2025-03-24 | cyanezf | First version |
+
+## Description
+
+This function updates `super.aXX.triggered` and clears the rest of variables
+
+--*)
+	
+	// Get array limits
+	#first := LOWER_BOUND(ARR := #supers, DIM := 1);
+	#last := UPPER_BOUND(ARR := #supers, DIM := 1);
+	
+	// Update triggered and clear collector
+	FOR #i := #first TO #last DO
+	  
+	  // ################################################
+	  // Clear super ####################################
+	  // ################################################
+	  // Info
+	  IF #supers[#i].a1i.collector = 0 THEN
+	    #supers[#i].a1i.id := #NO_ALARM;
+	    #supers[#i].a1i.object := #NO_OBJECT;
+	    #supers[#i].a1i.group := #NO_GROUP;
+	  END_IF;
+	  #supers[#i].a1i.triggered += #supers[#i].a1i.collector;
+	  #supers[#i].a1i.collector := 0;
+	  
+	  // Warning
+	  IF #supers[#i].a2w.collector = 0 THEN
+	    #supers[#i].a2w.id := #NO_ALARM;
+	    #supers[#i].a2w.object := #NO_OBJECT;
+	    #supers[#i].a2w.group := #NO_GROUP;
+	  END_IF;
+	  #supers[#i].a2w.triggered += #supers[#i].a2w.collector;
+	  #supers[#i].a2w.collector := 0;
+	  
+	  // Error
+	  IF #supers[#i].a3e.collector = 0 THEN
+	    #supers[#i].a3e.id := #NO_ALARM;
+	    #supers[#i].a3e.object := #NO_OBJECT;
+	    #supers[#i].a3e.group := #NO_GROUP;
+	  END_IF;
+	  #supers[#i].a3e.triggered += #supers[#i].a3e.collector;
+	  #supers[#i].a3e.collector := 0;
+	  
+	  // Emergency
+	  IF #supers[#i].a4f.collector = 0 THEN
+	    #supers[#i].a4f.id := #NO_ALARM;
+	    #supers[#i].a4f.object := #NO_OBJECT;
+	    #supers[#i].a4f.group := #NO_GROUP;
+	  END_IF;
+	  #supers[#i].a4f.triggered += #supers[#i].a4f.collector;
+	  #supers[#i].a4f.collector := 0;
+	  
+	  // ################################################
+	  // Update level ###################################
+	  // ################################################
+	  IF #supers[#i].a4f.triggered > 0 THEN
+	    #supers[#i].level := #ALARM_4_EMERGENCY;
+	    #supers[#i].id := #supers[#i].a4f.id;
+	    #supers[#i].object := #supers[#i].a4f.object;
+	    #supers[#i].group := #supers[#i].a4f.group;
+	    
+	  ELSIF #supers[#i].a3e.triggered > 0 THEN
+	    #supers[#i].level := #ALARM_3_ERROR;
+	    #supers[#i].id := #supers[#i].a3e.id;
+	    #supers[#i].object := #supers[#i].a3e.object;
+	    #supers[#i].group := #supers[#i].a3e.group;
+	    
+	  ELSIF #supers[#i].a2w.triggered > 0 THEN
+	    #supers[#i].level := #ALARM_2_WARNING;
+	    #supers[#i].id := #supers[#i].a2w.id;
+	    #supers[#i].object := #supers[#i].a2w.object;
+	    #supers[#i].group := #supers[#i].a2w.group;
+	    
+	  ELSIF #supers[#i].a1i.triggered > 0 THEN
+	    #supers[#i].level := #ALARM_1_INFO;
+	    #supers[#i].id := #supers[#i].a1i.id;
+	    #supers[#i].object := #supers[#i].a1i.object;
+	    #supers[#i].group := #supers[#i].a1i.group;
+	    
+	  ELSE
+	    #supers[#i].level := #ALARM_0_NIL;
+	    #supers[#i].id := #NO_ALARM;
+	    #supers[#i].object := #NO_OBJECT;
+	    #supers[#i].group := #NO_GROUP;
+	  END_IF;
+	  
+	END_FOR;
+	
+	// Save RLO
+	ENO := TRUE;
+	
+END_FUNCTION
+

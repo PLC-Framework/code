@@ -1,0 +1,216 @@
+﻿FUNCTION_BLOCK "_plcLogSender"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["plcLogBuffer-v1.0","queueInstanceAttributes-v3.0","tcpCommunicationControl-v1.0","_tcpCommunication-v2.2","_queue-v3.0","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/log'
+NAME : _plcLogSender
+VERSION : 1.0
+
+   VAR_INPUT 
+      Local_PNIO_IFCE_1 { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw Interface constant 1
+      Local_PNIO_IFCE_2 { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw Interface constant 2
+      SOCKET_ID { ExternalWritable := 'False'} : CONN_OUC;   // IR: TX Connection socket ID constant
+      PORT { ExternalWritable := 'False'} : UInt := 2000;   // IR: TX Port (PLC as TCP Server) constant
+      enable { ExternalWritable := 'False'} : USInt := #ENABLE_1_IFCE_1;   // IR: 0=Disabled; 1=Use IFCE_1; 2=Use IFCE_2
+   END_VAR
+
+   VAR_IN_OUT 
+      queue : "queueInstanceAttributes";   // IOX: Queue instance
+      records : Array[*] of "plcLogBuffer";   // IOX: Queue data array
+   END_VAR
+
+   VAR 
+      socket { S7_SetPoint := 'False'} : "_tcpCommunication";   // SR: Socket
+      state { ExternalWritable := 'False'} : Int;   // SR: State
+      connection { ExternalWritable := 'False'} : USInt;   // SR: Connect
+      selectedIFCE { ExternalWritable := 'False'} : HW_INTERFACE;   // SR: Selected IFCE
+      buffer { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "plcLogBuffer";   // SR: Queue buffer
+      control { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "tcpCommunicationControl";   // SR: Control
+      dummyControl { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "tcpCommunicationControl";   // SX: Dummy control
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         enable { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;
+         enableTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      dummy : Array[0..1] of Byte;
+      retVal : Int;
+      enablePulse : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      PLC_AS_TCP_SERVER : Bool := FALSE;   // PLC as TCP server
+      COM_CONTROL_0_NIL : USInt := 0;   // Communication control: 0 - Null
+      COM_CONTROL_1_REQ : USInt := 1;   // Communication control: 1 - Sending Request
+      COM_CONTROL_2_BUSY : USInt := 2;   // Communication control: 2 - Busy (sending/receiving)
+      COM_CONTROL_3_DONE : USInt := 3;   // Communication control: 3 - Done (data sent or new data received)
+      COM_CONTROL_4_ERROR : USInt := 4;   // Communication control: 4- Error (sending/receiving)
+      QUEUE_CMD_10_ENQUEUE : USInt := 10;   // Queue command: 10 - Enqueue
+      QUEUE_CMD_11_DEQUEUE : USInt := 11;   // Queue command: 11 - Dequeue
+      QUEUE_STATUS_0_DONE : Int := 0;   // Queue status: 0x0000 - Done
+      STATE_0_DISCONNECTED : Int := 0;   // TX state: 0x0000 - Disconnected
+      STATE_1_DEQUEUE_MESSAGE : Int := 1;   // TX state: 0x0001 - Dequeue message
+      STATE_2_CODE_MESSAGE : Int := 2;   // TX state: 0x0002 - Code message
+      STATE_3_CHECK_COMMUNICATION : Int := 3;   // TX state: 0x0003 - Check communication
+      STATE_4_SEND_MESSAGE : Int := 4;   // TX state: 0x0004 - Send message
+      STATE_5_DONE : Int := 5;
+      ENABLE_0_DISABLED : USInt := 0;
+      ENABLE_1_IFCE_1 : USInt := 1;
+      ENABLE_2_IFCE_2 : USInt := 2;
+      CONNECTION_0_DISCONNECT : USInt := 0;
+      CONNECTION_1_CHANGE_IFCE : USInt := 1;
+      CONNECTION_2_WAIT : USInt := 2;
+      CONNECTION_3_CONNECT : USInt := 3;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-31 | cyanezf | First version |
+
+## Description
+
+This function sends to TCP client a log buffered in a queue.
+
+--*)
+	
+	
+	REGION Connection
+	  
+	  #enablePulse := #enable <> #private.enable;
+	  #private.enable := #enable;
+	  
+	  IF #enablePulse THEN
+	    IF #private.enable = #ENABLE_0_DISABLED THEN
+	      #connection := #CONNECTION_0_DISCONNECT;
+	    ELSE
+	      #connection := #CONNECTION_1_CHANGE_IFCE;
+	    END_IF;
+	  END_IF;
+	  
+	  IF #connection = #CONNECTION_1_CHANGE_IFCE THEN
+	    IF #private.enable = #ENABLE_1_IFCE_1 THEN
+	      #selectedIFCE := #Local_PNIO_IFCE_1;
+	    ELSIF #private.enable = #ENABLE_2_IFCE_2 THEN
+	      #selectedIFCE := #Local_PNIO_IFCE_2;
+	    ELSE
+	      #selectedIFCE := 0;
+	    END_IF;
+	    #connection := #CONNECTION_2_WAIT;
+	  END_IF;
+	  
+	  #private.enableTon(IN := #connection = #CONNECTION_2_WAIT,
+	                     PT := t#5s);
+	  IF #private.enableTon.Q THEN
+	    #connection := #CONNECTION_3_CONNECT;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION TX CHANNEL
+	  
+	  #socket(Local_PNIO_IFCE := #Local_PNIO_IFCE_1,
+	          SOCKET_ID := #SOCKET_ID,
+	          socketMode := #PLC_AS_TCP_SERVER,
+	          plc_port := #PORT,
+	          partner_IP1 := 0,
+	          partner_IP2 := 0,
+	          partner_IP3 := 0,
+	          partner_IP4 := 0,
+	          partner_port := 0,
+	          connect := #connection = #CONNECTION_3_CONNECT,
+	          RX_control := #dummyControl,
+	          RX_buffer := #dummy,
+	          TX_control := #control,
+	          TX_buffer := #buffer.data);
+	  
+	END_REGION
+	
+	REGION Unconditional transition to State 0
+	  IF NOT #socket.connected THEN
+	    #state := #STATE_0_DISCONNECTED;
+	  END_IF;
+	END_REGION
+	
+	REGION State 0: Disconnected
+	  IF #state = #STATE_0_DISCONNECTED THEN
+	    
+	    // Associated actions
+	    #socket.connect := true;
+	    
+	    // Transition
+	    IF #socket.connected THEN
+	      #state := #STATE_1_DEQUEUE_MESSAGE;
+	    END_IF;
+	  END_IF;
+	END_REGION
+	
+	REGION State 1: Dequeue
+	  
+	  IF #state = #STATE_1_DEQUEUE_MESSAGE THEN
+	    
+	    // Dequeue
+	    #retVal := "_queue"(command := #QUEUE_CMD_11_DEQUEUE, instance := #queue, data := #records, buffer := #buffer);
+	    
+	    // Transition
+	    IF #retVal = #QUEUE_STATUS_0_DONE THEN
+	      #state := #STATE_2_CODE_MESSAGE;
+	    END_IF;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION State 2: Code message
+	  IF #state = #STATE_2_CODE_MESSAGE THEN
+	    
+	    // Transition
+	    #state := #STATE_3_CHECK_COMMUNICATION;
+	  END_IF;
+	END_REGION
+	
+	REGION State 3: Check communication
+	  IF #state = #STATE_3_CHECK_COMMUNICATION THEN
+	    
+	    // Transition to send command
+	    IF #control.command <> #COM_CONTROL_2_BUSY AND #control.command <> #COM_CONTROL_1_REQ THEN
+	      #state := #STATE_4_SEND_MESSAGE;
+	    END_IF;
+	  END_IF;
+	END_REGION
+	
+	REGION State 4: Send message
+	  IF #state = #STATE_4_SEND_MESSAGE THEN
+	    
+	    // Associated actiona
+	    #control.length := #buffer.length;
+	    #control.command := #COM_CONTROL_1_REQ;
+	    
+	    // Transition to wait done
+	    #state := #STATE_5_DONE;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION state 5: Done
+	  IF #state = #STATE_5_DONE THEN
+	    
+	    IF #control.command = #COM_CONTROL_3_DONE OR #control.command = #COM_CONTROL_4_ERROR THEN
+	      
+	      #state := #STATE_1_DEQUEUE_MESSAGE;
+	    END_IF;
+	  END_IF;
+	  
+	END_REGION
+	
+	// Return
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

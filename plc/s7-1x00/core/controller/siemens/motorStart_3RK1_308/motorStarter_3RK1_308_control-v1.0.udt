@@ -1,0 +1,35 @@
+﻿TYPE "motorStarter_3RK1_308_control"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/siemens/motorStart_3RK1_308","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+//
+//## Description
+//Motor starter control
+//--*)
+
+   STRUCT
+      motorCw : Bool;   // Motor CW
+      motorCcw : Bool;   // Motor CCW (Reversing starters only)
+      res02 : Bool;   // Reserved
+      tripReset : Bool;   // Trip RESET
+      emergencyStart : Bool;   // Emergency start
+      res05 : Bool;   // Reserved
+      res06 : Bool;   // Reserved
+      coldStart : Bool;   // Cold start
+      res10 : Bool;   // Reserved
+      res11 : Bool;   // Reserved
+      res12 : Bool;   // Reserved
+      res13 : Bool;   // Reserved
+      res14 : Bool;   // Reserved
+      res15 : Bool;   // Reserved
+      res16 : Bool;   // Reserved
+      disableQuickStop : Bool;   // Disable quick stop
+   END_STRUCT;
+
+END_TYPE
+

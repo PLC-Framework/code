@@ -1,0 +1,70 @@
+﻿FUNCTION "_getMonthDays" : USInt
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/util'
+NAME : _getMonthDays
+VERSION : 1.0
+
+   VAR_INPUT 
+      year : UInt;   // Year
+      month : USInt;   // Month
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function checks the `year` and `month` and returns the month days.
+
+## Return
+
+| usint | description |
+|:---:|:------------|
+| 31 | January |
+| 28 | February |
+| 29 | February (leap year) |
+| 31 | March |
+| 30 | April |
+| 31 | May |
+| 30 | June |
+| 31 | July |
+| 31 | August |
+| 30 | September |
+| 31 | October |
+| 30 | November |
+| 31 | December |
+
+--*)
+
+	CASE #month OF
+	  1, 3, 5, 7, 8, 10, 12:
+	    #_getMonthDays := 31;
+	    ENO := true;
+	  2:
+	    IF #year MOD 400 = 0 OR (#year MOD 4 = 0 AND #year MOD 100 <> 0) THEN
+	      #_getMonthDays := 29;
+	    ELSE
+	      #_getMonthDays := 28;
+	    END_IF;
+	    ENO := true;
+	    
+	  4, 6, 9, 11:
+	    #_getMonthDays := 30;
+	    ENO := true;
+	    
+	  ELSE  // No valid month
+	    #_getMonthDays := 0;
+	    ENO := false;
+	END_CASE;
+	
+END_FUNCTION
+

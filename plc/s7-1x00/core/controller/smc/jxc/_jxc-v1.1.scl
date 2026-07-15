@@ -1,0 +1,605 @@
+﻿FUNCTION_BLOCK "_jxc"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["jxcPdi-v1.0", "jxcPdo-v1.0", "jxcProfile-v1.0", "TON_TIME", "WRREC", "RDREC"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : aripoll
+FAMILY : 'core/controller/smc/jxc'
+NAME : _jxc
+VERSION : 1.1
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control On
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency stop ok
+      enable { ExternalWritable := 'False'} : Bool;   // IR: 1=Enable drive
+      hold { ExternalWritable := 'False'} : Bool;   // IR: 1=Hold drive
+      forceVelocity { ExternalWritable := 'False'} : Bool;   // IR: 1=Force low velocity
+      profile { ExternalWritable := 'False'} : "jxcProfile";   // IR: Positioning profile
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: 1=Error ackn
+      changeOnFly { ExternalWritable := 'False'} : Bool;   // IR: 0=Disable to change parameters on fly; 1=Enable to change parameters on fly
+      offset { ExternalWritable := 'False'} : Real;   // IR: Position offset for user
+      startDelay { ExternalWritable := 'False'} : Time := T#300ms;   // IR: Start delay (only for profile movement)
+      pdo_hwSubmodule { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_SUBMODULE;   // IX: Parameter data output channel
+   END_VAR
+
+   VAR_OUTPUT 
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive is ready
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive is running/moving/positioning
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive error
+      isHomed { ExternalWritable := 'False'} : Bool;   // OR: 1=Is homed, referenced
+      inPosition { ExternalWritable := 'False'} : Bool;   // OR: 1=In position, position reached
+      inArea { ExternalWritable := 'False'} : Bool;   // OR: 1=In area, area reached
+      errorId { ExternalWritable := 'False'} : USInt;   // OR: 0=Ok; 1..N=Error ID, see manual
+      actualCommand { ExternalWritable := 'False'} : Int;   // OR: 0=Nil; 1..N=Some Command. See constants
+      actualProfile { ExternalWritable := 'False'} : USInt;   // OR: 0..63=Current profile loaded
+      targetPosition { ExternalWritable := 'False'} : Real;   // OR: N=Target position in u (mm, º)
+      actualPosition { ExternalWritable := 'False'} : Real;   // OR: N=Actual postion in u (mm, º)
+      actualVelocity { ExternalWritable := 'False'} : Real;   // OR: N=Actual velocity in u/s (mm, º)/s
+      actualTorque { ExternalWritable := 'False'} : USInt;   // OR: N=Actual percentage of torque in %
+   END_VAR
+
+   VAR_IN_OUT 
+      command { ExternalWritable := 'False'} : Int;   // IOR: Command
+      pdi : "jxcPdi";   // IOX: Process data input channel
+      pdo : "jxcPdo";   // IOX: Process data output channel
+   END_VAR
+
+   VAR 
+      homing : Struct   // SW: Homing
+         status { ExternalWritable := 'False'} : Int;   // SR: Status
+         busy { ExternalWritable := 'False'} : Bool;   // SR: 1=Busy
+         done { ExternalWritable := 'False'} : Bool;   // SR: 1=Done
+         error { ExternalWritable := 'False'} : Bool;   // SR: 1=Error
+         watchdogTime : Time := T#1M;   // SW: Watchdog time
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SR: Watchdog timer
+         isHomedFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // SX: Aux fp
+         isHomedPulse { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // SX: 1=Is homed pulse
+      END_STRUCT;
+      writer {InstructionName := 'WRREC'; LibVersion := '1.1'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : WRREC;   // SX: Writer function
+      reader {InstructionName := 'RDREC'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : RDREC;   // SX: Reader function
+      writeStepData : Struct   // SW: Write step data in servo
+         status { ExternalWritable := 'False'} : Int;   // SR: Status
+         busy { ExternalWritable := 'False'} : Bool;   // SR: 1=Busy
+         done { ExternalWritable := 'False'} : Bool;   // SR: 1=Done
+         error { ExternalWritable := 'False'} : Bool;   // SR: 1=Error
+         watchdogTime : Time := T#3S;   // SW: Watchdog time
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SR: Watchdog timer
+         buffer { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..31] of Byte;   // SX: Buffer
+      END_STRUCT;
+      readStepData : Struct   // SW: Read step data from servo
+         status { ExternalWritable := 'False'} : Int;   // SR: Status
+         busy { ExternalWritable := 'False'} : Bool;   // SR: 1=Busy
+         done { ExternalWritable := 'False'} : Bool;   // SR: 1=Done
+         error { ExternalWritable := 'False'} : Bool;   // SR: 1=Error
+         watchdogTime : Time := T#3S;   // SW: Watchdog time
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SR: Watchdog timer
+         buffer { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..31] of Byte;   // SX: Buffer
+         profile { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "jxcProfile";   // SR: Read profile
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         inPositionFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         delayStart { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         startTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      nil : Bool;
+      inPositionPulse : Bool;
+      inPositionRange : Bool;
+      start : Bool;
+      startDelayed : Bool;
+      auxWord : Int;
+      auxDword : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      CMD_0_NIL : Int := 0;
+      CMD_1_STOP : Int := 1;
+      CMD_2_HALT : Int := 2;   // Not implemented
+      CMD_3_HOMING : Int := 3;
+      CMD_4_JOG_FWD : Int := 4;
+      CMD_5_JOG_BWD : Int := 5;
+      CMD_6_VELOCITY : Int := 6;   // Not implemented
+      CMD_7_RELATIVE_POS : Int := 7;
+      CMD_8_ABSOLUTE_POS : Int := 8;
+      CMD_100_EXE_STEP_DATA : Int := 100;
+      CMD_101_WRITE_STEP_DATA : Int := 101;
+      CMD_102_READ_STEP_DATA : Int := 102;
+      HOMING_STATUS_0_WAIT : Int := 0;
+      HOMING_STATUS_2_BUSY : Int := 2;
+      HOMING_STATUS_3_DONE : Int := 3;
+      HOMING_STATUS_8000_TIMEOUT_ERROR : Int := 16#8000;
+      HOMING_STATUS_8001_V_ERROR : Int := 16#8001;   // Not implemented
+      HOMING_STATUS_8002_V_ABORTED : Int := 16#8002;   // Not implemented
+      HOMING_STATUS_8003_1_ERROR : Int := 16#8003;
+      HOMING_STATUS_8004_1_ABORTED : Int := 16#8004;   // Not implemented
+      HOMING_STATUS_8005_2_ERROR : Int := 16#8005;   // Not implemented
+      HOMING_STATUS_8006_2_ABORTED : Int := 16#8006;   // Not implemented
+      STEP_DATA_STATUS_0_WAIT : Int := 0;
+      STEP_DATA_STATUS_2_BUSY : Int := 2;
+      STEP_DATA_STATUS_3_DONE : Int := 3;
+      STEP_DATA_STATUS_8000_TIMEOUT_ERROR : Int := 16#8000;
+      STEP_DATA_STATUS_8001_WRITER_ERROR : Int := 16#8001;
+      STEP_DATA_INDEX_OFFSET : DInt := 5;
+      STEP_DATA_RECORD_LENGTH : UInt := 32;
+      POS_FACTOR : Real := 100.0;
+      MOV_MODE_0_NIL : USInt := 0;
+      MOV_MODE_1_ABSOLUTE : USInt := 1;
+      MOV_MODE_2_RELATIVE : USInt := 2;
+      PROFILE_NR_0_NIL : USInt := 0;
+      ERROR_ID_0_OK : USInt := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-05-15 | aripoll | fix: delay start pulse after error |
+| v1.0 | 2026-05-07 | cyanezf | First version |
+  
+## Description
+
+This function block implements the control logic for the SMC JXC step motor controller
+based on the JXC#-OMT00006-E manual. It provides commands for homing, jogging, absolute
+and relative positioning, as well as reading and writing step data. 
+
+## Commands and profile values
+
+| Command | profile.number | profile.movementMode | profile.velocity | profile.position | profile.acceleration | profile.deceleration | profile.pushingForce | profile.triggerLevel | profile.pushingVelocity | profile.movingForce | profile.area1 | profile.area2 | profile.inPosition |
+| ------- | -------------- | -------------------- | ---------------- | ---------------- | -------------------- | -------------------- | -------------------- | -------------------- | ----------------------- | ------------------- | ------------- | ------------- | ------------------ |
+| CMD_3_HOMING | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread |
+| CMD_4_JOG_FWD | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread |
+| CMD_5_JOG_BWD | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread |
+| CMD_7_RELATIVE_POS as positioning| unread | unread | any | any | any | any | 0 | 0 | 0 | any | any | any | any |
+| CMD_7_RELATIVE_POS as force | unread | unread | any | any | any | any | any | any | any | any | any | any | any |
+| CMD_8_ABSOLUTE_POS as positioning | unread | unread | any | any | any | any | 0 | 0 | 0 | any | any | any | any |
+| CMD_8_ABSOLUTE_POS as force | unread | unread | any | any | any | any | any | any | any | any | any | any | any |
+| CMD_100_EXE_STEP_DATA | 0..63 | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread |
+| CMD_101_WRITE_STEP_DATA | 0..63 | 1=Absolute; 2=Relative | any | any | any | any | any | any | any | any | any | any | any |
+| CMD_102_READ_STEP_DATA(1) | 0..63 | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread | unread |
+
+(1): The read data from controller is stored in the output variable #readStepData.profile.
+
+# Check flag table
+
+| BUSY | INP | SVRE | Lock | SETON | OUT0 to 5 | Status |
+| ---- | --- | ---- | ---- | ----- | --------- | ------ |
+| 0    | 0   | 0    | 1    | 0     | 0         | During stopping when SVON is OFF after turning ON the power supply to the controller. |
+| 0    | 0   | 1    | 0    | 0     | 0         | During stopping when SVON is ON after turning ON the power supply to the controller. |
+| 1    | 0   | 1    | 0    | 0     | 0         | During returning to origin |
+| 0    | 1*a | 1    | 0    | 1     | 0         | Actuator is at the origin. On completion of SETUP |
+| 1    | 0   | 1    | 0    | 1     | 1*b       | During movement by positioning/pushing operation |
+| 0    | 0   | 1    | 0    | 1     | 1*b       | Actuator is paused by HOLD |
+| 0    | 1*d | 1    | 0    | 1     | 1*b       | On completion of the positioning operation |
+| 0    | 1   | 1    | 0    | 1     | 0         | Stopped due to pushing a workload in pushing operation |
+| 0    | 0*d | 0    | 1    | 1     | 1*c       | During stopping when SVON is OFF after returning to the home position |
+| 0    | 0*d | 0    | 1    | 1     | 0         | EMG signal stop from the PWR connector when the actuator is at the origin |
+
+*a: The signal turns ON when the actuator is within the range defined in the basic parameter setup.
+*b: The signal is updated on the transmition of ON->OFF of the DRIVE signal.
+*c: Retains the previous state.
+*d: The signal turns ON when the actuator is "in position" according to step data.
+
+--*) 
+	
+	// ######################################################
+	// Output ###############################################
+	// ######################################################
+	#actualCommand := #CMD_0_NIL;
+	#actualPosition := (DINT_TO_REAL(#pdi.currentPosition) / #POS_FACTOR) - #offset;
+	#targetPosition := (DINT_TO_REAL(#pdi.targetPosition) / #POS_FACTOR) - #offset;
+	#actualVelocity := INT_TO_REAL(#pdi.currentSpeed);
+	#actualTorque := INT_TO_USINT(#pdi.currentPushingForce);
+	
+	#inPosition := #pdi.status.inPosition;
+	#inPositionPulse := #inPosition AND NOT #private.inPositionFp;
+	#private.inPositionFp := #inPosition;
+	#inPositionRange := ABS(#profile.position - #actualPosition) <= #profile.inPosition;
+	
+	#inArea := #pdi.status.inArea;
+	#isHomed := #pdi.status.isHomed;
+	#error := #pdi.status.alarm;
+	#errorId := #pdi.alarm1;
+	#isRunning := #pdi.status.busy;
+	#direction := #isRunning AND #actualPosition > #targetPosition;
+	#ready := #pdi.status.ready AND #pdi.status.servoReady AND NOT #pdi.status.alarm AND NOT #pdi.status.estop;
+	
+	IF #error THEN
+	  #command := #CMD_0_NIL;
+	END_IF;
+	
+	// ######################################################
+	// PDO ##################################################
+	// ######################################################
+	
+	#pdo.control.hold := #hold;
+	#pdo.control.reset := #ackn;
+	#pdo.control.speedRestriction := #forceVelocity;
+	#pdo.control.servoOn := #controlOn AND #emrgStopOk AND #enable AND NOT #error;
+	
+	REGION Execute step data
+	  
+	  IF #command = #CMD_100_EXE_STEP_DATA THEN
+	    #pdo.control.in := #profile.number;
+	    #pdo.movementMode := #MOV_MODE_0_NIL;
+	  END_IF;
+	  
+	  #pdo.control.drive := #ready AND #isHomed AND #command = #CMD_100_EXE_STEP_DATA;
+	  
+	  IF #pdo.control.drive THEN
+	    
+	    IF #inPositionPulse OR #inPositionRange THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Write step data
+	  
+	  // Ackn
+	  IF #ackn AND #writeStepData.error THEN
+	    #writeStepData.status := #STEP_DATA_STATUS_0_WAIT;
+	  END_IF;
+	  
+	  // Start
+	  IF #ready AND NOT #isRunning AND #command = #CMD_101_WRITE_STEP_DATA AND
+	    (NOT #writeStepData.busy OR #writeStepData.done OR #writeStepData.error) THEN
+	    // Load data
+	    #writeStepData.buffer[0] := 0;
+	    #writeStepData.buffer[1] := #profile.movementMode;
+	    
+	    #auxWord := REAL_TO_INT(#profile.velocity);
+	    #writeStepData.buffer[2] := #auxWord.%B1;
+	    #writeStepData.buffer[3] := #auxWord.%B0;
+	    
+	    #auxDword := REAL_TO_DINT((#profile.position + #offset) * #POS_FACTOR);
+	    #writeStepData.buffer[4] := #auxDword.%B3;
+	    #writeStepData.buffer[5] := #auxDword.%B2;
+	    #writeStepData.buffer[6] := #auxDword.%B1;
+	    #writeStepData.buffer[7] := #auxDword.%B0;
+	    
+	    #auxWord := REAL_TO_INT(#profile.acceleration);
+	    #writeStepData.buffer[8] := #auxWord.%B1;
+	    #writeStepData.buffer[9] := #auxWord.%B0;
+	    
+	    #auxWord := REAL_TO_INT(#profile.deceleration);
+	    #writeStepData.buffer[10] := #auxWord.%B1;
+	    #writeStepData.buffer[11] := #auxWord.%B0;
+	    
+	    #writeStepData.buffer[12] := 0;
+	    #writeStepData.buffer[13] := #profile.pushingForce;
+	    
+	    #writeStepData.buffer[14] := 0;
+	    #writeStepData.buffer[15] := #profile.triggerlevel;
+	    
+	    #auxWord := REAL_TO_INT(#profile.pushingVelocity);
+	    #writeStepData.buffer[16] := #auxWord.%B1;
+	    #writeStepData.buffer[17] := #auxWord.%B0;
+	    
+	    #writeStepData.buffer[18] := 0;
+	    #writeStepData.buffer[19] := #profile.movingForce;
+	    
+	    #auxDword := REAL_TO_DINT((#profile.area1 + #offset) * #POS_FACTOR);
+	    #writeStepData.buffer[20] := #auxDword.%B3;
+	    #writeStepData.buffer[21] := #auxDword.%B2;
+	    #writeStepData.buffer[22] := #auxDword.%B1;
+	    #writeStepData.buffer[23] := #auxDword.%B0;
+	    
+	    #auxDword := REAL_TO_DINT((#profile.area2 + #offset) * #POS_FACTOR);
+	    #writeStepData.buffer[24] := #auxDword.%B3;
+	    #writeStepData.buffer[25] := #auxDword.%B2;
+	    #writeStepData.buffer[26] := #auxDword.%B1;
+	    #writeStepData.buffer[27] := #auxDword.%B0;
+	    
+	    #auxDword := REAL_TO_DINT(#profile.inPosition * #POS_FACTOR);
+	    #writeStepData.buffer[28] := #auxDword.%B3;
+	    #writeStepData.buffer[29] := #auxDword.%B2;
+	    #writeStepData.buffer[30] := #auxDword.%B1;
+	    #writeStepData.buffer[31] := #auxDword.%B0;
+	    
+	    // Start
+	    #writeStepData.status := #STEP_DATA_STATUS_2_BUSY;
+	    
+	  END_IF;
+	  
+	  #writeStepData.busy := #writeStepData.status = #STEP_DATA_STATUS_2_BUSY;
+	  
+	  // Execute
+	  #writer(REQ:=#writeStepData.busy,
+	               ID:=#pdo_hwSubmodule,
+	               INDEX:=#profile.number + #STEP_DATA_INDEX_OFFSET,
+	               LEN:=#STEP_DATA_RECORD_LENGTH,
+	               RECORD:=#writeStepData.buffer);
+	  
+	  // Watchdog
+	       #writeStepData.watchdogTimer(IN := #writeStepData.busy,
+	                                    PT := #writeStepData.watchdogTime);
+	  
+	  // Result
+	  IF #writeStepData.busy THEN
+	    #actualCommand := #CMD_101_WRITE_STEP_DATA;
+	    
+	    IF #writer.ERROR THEN
+	      #command := #CMD_0_NIL;
+	      #writeStepData.status := #STEP_DATA_STATUS_8001_WRITER_ERROR;
+	      
+	    ELSIF #writeStepData.watchdogTimer.Q THEN
+	      #command := #CMD_0_NIL;
+	      #writeStepData.status := #STEP_DATA_STATUS_8000_TIMEOUT_ERROR;
+	      
+	    ELSIF #writer.DONE THEN
+	      #command := #CMD_0_NIL;
+	      #writeStepData.status := #STEP_DATA_STATUS_3_DONE;
+	      
+	    END_IF;
+	  END_IF;
+	  
+	  #writeStepData.done := #writeStepData.status = #STEP_DATA_STATUS_3_DONE;
+	  #writeStepData.error := #writeStepData.status >= #STEP_DATA_STATUS_8000_TIMEOUT_ERROR AND #homing.status <= #STEP_DATA_STATUS_8001_WRITER_ERROR;
+	  
+	END_REGION
+	
+	REGION Read step data
+	  
+	  // Ackn
+	  IF #ackn AND #readStepData.error THEN
+	    #readStepData.status := #STEP_DATA_STATUS_0_WAIT;
+	  END_IF;
+	  
+	  // Start
+	  IF #ready AND NOT #isRunning AND #command = #CMD_102_READ_STEP_DATA AND
+	    (NOT #readStepData.busy OR #readStepData.done OR #readStepData.error) THEN
+	    
+	    #readStepData.status := #STEP_DATA_STATUS_2_BUSY;
+	    #readStepData.profile.number := #profile.number;
+	  END_IF;
+	  
+	  #readStepData.busy := #readStepData.status = #STEP_DATA_STATUS_2_BUSY;
+	  
+	  // Execute
+	  #reader(REQ := #readStepData.busy,
+	          ID := #pdo_hwSubmodule,
+	          INDEX := #readStepData.profile.number + #STEP_DATA_INDEX_OFFSET,
+	          MLEN := #STEP_DATA_RECORD_LENGTH,
+	          RECORD := #readStepData.buffer);
+	  
+	  // Watchdog
+	  #readStepData.watchdogTimer(IN := #readStepData.busy,
+	                              PT := #readStepData.watchdogTime);
+	  
+	  // Decode
+	  IF #reader.VALID THEN
+	    // Load data
+	    // #readStepData.buffer[0] := ;
+	    #readStepData.profile.movementMode := #readStepData.buffer[1];
+	    
+	    #auxWord.%B1 := #readStepData.buffer[2];
+	    #auxWord.%B0 := #readStepData.buffer[3];
+	    #readStepData.profile.velocity := INT_TO_REAL(#auxWord);
+	    
+	    #auxDword.%B3 := #readStepData.buffer[4];
+	    #auxDword.%B2 := #readStepData.buffer[5];
+	    #auxDword.%B1 := #readStepData.buffer[6];
+	    #auxDword.%B0 := #readStepData.buffer[7];
+	    #readStepData.profile.position := (DINT_TO_REAL(#auxDword) / #POS_FACTOR) - #offset;
+	    
+	    #auxWord.%B1 := #readStepData.buffer[8];
+	    #auxWord.%B0 := #readStepData.buffer[9];
+	    #readStepData.profile.acceleration := INT_TO_REAL (#auxWord);
+	    
+	    #auxWord.%B1 := #readStepData.buffer[10];
+	    #auxWord.%B0 := #readStepData.buffer[11];
+	    #readStepData.profile.deceleration := INT_TO_REAL (#auxWord);
+	    
+	    //#readStepData.buffer[12];
+	    #readStepData.profile.pushingForce := #readStepData.buffer[13];
+	    
+	    //#readStepData.buffer[14];
+	    #readStepData.profile.triggerlevel := #readStepData.buffer[15];
+	    
+	    #auxWord.%B1 := #readStepData.buffer[16];
+	    #auxWord.%B0 := #readStepData.buffer[17];
+	    #readStepData.profile.pushingVelocity := INT_TO_REAL(#auxWord);
+	    
+	    //#readStepData.buffer[18] := 0;
+	    #readStepData.profile.movingForce := #readStepData.buffer[19];
+	    
+	    #auxDword.%B3 := #readStepData.buffer[20];
+	    #auxDword.%B2 := #readStepData.buffer[21];
+	    #auxDword.%B1 := #readStepData.buffer[22];
+	    #auxDword.%B0 := #readStepData.buffer[23];
+	    #readStepData.profile.area1 := (DINT_TO_REAL(#auxDword) / #POS_FACTOR) - #offset;
+	    
+	    #auxDword.%B3 := #readStepData.buffer[24];
+	    #auxDword.%B2 := #readStepData.buffer[25];
+	    #auxDword.%B1 := #readStepData.buffer[26];
+	    #auxDword.%B0 := #readStepData.buffer[27];
+	    #readStepData.profile.area2 := (DINT_TO_REAL(#auxDword) / #POS_FACTOR) - #offset;
+	    
+	    #auxDword.%B3 := #readStepData.buffer[28];
+	    #auxDword.%B2 := #readStepData.buffer[29];
+	    #auxDword.%B1 := #readStepData.buffer[30];
+	    #auxDword.%B0 := #readStepData.buffer[31];
+	    #readStepData.profile.inPosition := DINT_TO_REAL(#auxDword) / #POS_FACTOR;
+	    
+	  END_IF;
+	  
+	  // Result
+	  IF #readStepData.busy THEN
+	    #actualCommand := #CMD_101_WRITE_STEP_DATA;
+	    
+	    IF #reader.ERROR THEN
+	      #command := #CMD_0_NIL;
+	      #readStepData.status := #STEP_DATA_STATUS_8001_WRITER_ERROR;
+	      
+	    ELSIF #readStepData.watchdogTimer.Q THEN
+	      #command := #CMD_0_NIL;
+	      #readStepData.status := #STEP_DATA_STATUS_8000_TIMEOUT_ERROR;
+	      
+	    ELSIF #reader.VALID THEN
+	      #command := #CMD_0_NIL;
+	      #readStepData.status := #STEP_DATA_STATUS_3_DONE;
+	      
+	    END_IF;
+	    
+	  END_IF;
+	  
+	  #readStepData.done := #readStepData.status = #STEP_DATA_STATUS_3_DONE;
+	  #readStepData.error := #readStepData.status >= #STEP_DATA_STATUS_8000_TIMEOUT_ERROR AND #readStepData.status <= #STEP_DATA_STATUS_8001_WRITER_ERROR;
+	  
+	END_REGION
+	
+	
+	REGION Setup (Homing)
+	  
+	  #homing.isHomedPulse := #isHomed AND NOT #homing.isHomedFp;
+	  #homing.isHomedFp := #isHomed;
+	  
+	  // Ackn
+	  IF #ackn AND #homing.error THEN
+	    #homing.status := #HOMING_STATUS_0_WAIT;
+	  END_IF;
+	  
+	  // Start homing
+	  IF #ready AND NOT #isRunning AND #command = #CMD_3_HOMING AND
+	    (NOT #homing.busy OR #homing.done OR #homing.error) THEN
+	    #homing.status := #HOMING_STATUS_2_BUSY;
+	  END_IF;
+	  
+	  #homing.busy := #homing.status = #HOMING_STATUS_2_BUSY;
+	  
+	  // Execute
+	  #pdo.control.setup := #homing.busy;
+	  
+	  // Watchdog
+	  #homing.watchdogTimer(IN := #homing.busy,
+	                        PT := #homing.watchdogTime);
+	  
+	  // Result
+	  IF #homing.busy THEN
+	    #actualCommand := #CMD_3_HOMING;
+	    
+	    IF #error THEN
+	      #command := #CMD_0_NIL;
+	      #homing.status := #HOMING_STATUS_8003_1_ERROR;
+	    
+	    ELSIF #homing.watchdogTimer.Q THEN
+	      #command := #CMD_0_NIL;
+	      #homing.status := #HOMING_STATUS_8000_TIMEOUT_ERROR;
+	      
+	    ELSIF #homing.isHomedPulse THEN
+	      #command := #CMD_0_NIL;
+	      #homing.status := #HOMING_STATUS_3_DONE;
+	      
+	    END_IF;
+	    
+	  END_IF;
+	  
+	  #homing.done := #homing.status = #HOMING_STATUS_3_DONE;
+	  #homing.error := #homing.status >= #HOMING_STATUS_8000_TIMEOUT_ERROR AND #homing.status <= #HOMING_STATUS_8006_2_ABORTED;
+	  
+	END_REGION
+	
+	REGION Jog
+	  
+	  #pdo.control.jogMinus := #command = #CMD_5_JOG_BWD;
+	  #pdo.control.jogPlus := #command = #CMD_4_JOG_FWD;
+	  #pdo.control.flgth := false;
+	  
+	  IF #command = #CMD_5_JOG_BWD OR #command = #CMD_5_JOG_BWD THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	  
+	  
+	END_REGION
+	
+	REGION Change on fly
+	  #pdo.control.movementMode :=
+	  #pdo.control.speed :=
+	  #pdo.control.position :=
+	  #pdo.control.acceleration :=
+	  #pdo.control.deceleration :=
+	  #pdo.control.pushingForce :=
+	  #pdo.control.triggerLV :=
+	  #pdo.control.pushingSpeed :=
+	  #pdo.control.movingForce :=
+	  #pdo.control.areaOutput1 :=
+	  #pdo.control.areaOutput2 :=
+	  #pdo.control.inPosition := #changeOnFly;
+	END_REGION
+	
+	REGION Absolute and Relative
+	  
+	  // 1. Set movement
+	  IF #command = #CMD_8_ABSOLUTE_POS THEN
+	    #pdo.movementMode := #MOV_MODE_1_ABSOLUTE;
+	    #pdo.control.in := #PROFILE_NR_0_NIL;
+	  ELSIF #command = #CMD_7_RELATIVE_POS THEN
+	    #pdo.movementMode := #MOV_MODE_2_RELATIVE;
+	    #pdo.control.in := #PROFILE_NR_0_NIL;
+	  END_IF;
+	  
+	  // 2. Catch error to delay the starting
+	  IF #error THEN
+	      #private.delayStart := true;
+	  END_IF;
+	  
+	  // 3. Start conditions
+	  #start := #ready AND #isHomed AND
+	  (#command = #CMD_7_RELATIVE_POS OR #command = #CMD_8_ABSOLUTE_POS) AND
+	  NOT #error AND #errorId = #ERROR_ID_0_OK;
+	  
+	  // 4. Delay start
+	  #private.startTon(IN:=#start,
+	                    PT:=#startDelay,
+	                    Q=>#startDelayed);
+	  
+	  // 5. Start command
+	  // Direct or delayed
+	  #pdo.start := (#start AND NOT #private.delayStart) OR (#startDelayed AND #private.delayStart);
+	  
+	  // 6. Associated actionns when starts
+	  IF #pdo.start THEN
+	    
+	    IF #inPositionPulse OR #inPositionRange THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	    #actualCommand := #command;
+	    #private.delayStart := false;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Set Profile
+	  
+	  // Positioning data
+	  #pdo.position := REAL_TO_DINT((#profile.position + #offset) * #POS_FACTOR);
+	  #pdo.inPosition := REAL_TO_DINT(#profile.inPosition * #POS_FACTOR);
+	  #pdo.speed := REAL_TO_INT(#profile.velocity);
+	  #pdo.acceleration := REAL_TO_INT(#profile.acceleration);
+	  #pdo.deceleration := REAL_TO_INT(#profile.deceleration);
+	  #pdo.movingForce := USINT_TO_INT(#profile.movingForce);
+	  // Force data
+	  #pdo.pushingForce := USINT_TO_INT(#profile.pushingForce);
+	  #pdo.pushingSpeed := REAL_TO_INT(#profile.pushingVelocity);
+	  #pdo.triggerLV := USINT_TO_INT(#profile.triggerlevel);
+	  // Area data
+	  #pdo.area1 := REAL_TO_DINT((#profile.area1 + #offset) * #POS_FACTOR);
+	  #pdo.area2 := REAL_TO_DINT((#profile.area2 + #offset) * #POS_FACTOR);
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

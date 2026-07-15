@@ -1,0 +1,26 @@
+﻿TYPE "sick_clv6xx"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//Sick type refactorized to adapt for core style.
+//SICK Lector/CLV6xx data type
+//This data type includes arguments and results using by the SICK_Lector_CLV6xx_PNDP function block.
+
+   STRUCT
+      matchCode : Struct   // ==Matchcode==
+         "name" : String[10];   // Matchcode number (Match[1..9]) (Input)
+         codeType : Char;   // Code type see device documentation. (Example: 'd'= EAN-Code; 's'=QR-Code; '*'= Don't care) (Input)
+         minMaxLength : USInt;   // Sets the min and may length. 0= Don't care (Input)
+         content : String[75];   // Matchcode content
+      END_STRUCT;
+      freeCommand : Struct   // ==Free Command==
+         command : String[100];   // Command (SICK CoLa-A protocol without [STX]/[ETX] framing) (In)
+         result : String[100];   // Result (SICK CoLa-A protocol) (Out)
+      END_STRUCT;
+      readingResult : Struct   // ==Reading Result==
+         count : USInt;   // This counter is incremented if a new reading result has arrived (In)
+         result : String;   // Reading result data defined in the SOPAS output format (Out)
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

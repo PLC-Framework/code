@@ -1,0 +1,58 @@
+﻿TYPE "i550Motec_customStatus"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/lenze/i550-motec","status":"current","deprecatedBy": null,"dependencies":["i550Motec_netWordOUT1Status-v1.0"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//i550 Motec - custom status
+//--*)
+
+   STRUCT
+      status { S7_SetPoint := 'False'} : "i550Motec_netWordOUT1Status";   // Index: 0x400A, subindex: 1: Process output words: NetWordOUT1 - (Read only), general, U16, 1, OH, t
+      errorCode : UInt;   // Index: 0x603F: subindex: 0: Error code - (Read only), general, U16, 1, O, t
+      frequency : UInt;   // Index: 0x400C, subindex: 6: Process output data: Frequency (0.01) x.xx Hz (Read only), MCTRL, U16, 100, - t
+      current : Int;   // Index: 0x2D88, subindex: 0: Motor current x.x A (Read only), MCTRL, S16, 10, O, t
+      position : UDInt;   // Index: 0x2C49, subindex: 3: Position counter: Actual position (read only), U32, 1, H, t
+      DI : Struct   // Index: 0x60FD, subindex: 0: Digital input status (Read only) U32, factor 1, O, t
+         bit0 : Bool;
+         bit1 : Bool;
+         bit2 : Bool;
+         bit3 : Bool;
+         bit4 : Bool;
+         bit5 : Bool;
+         bit6 : Bool;
+         bit7 : Bool;
+         bit8 : Bool;
+         bit9 : Bool;
+         bit10 : Bool;
+         bit11 : Bool;
+         bit12 : Bool;
+         bit13 : Bool;
+         bit14 : Bool;
+         bit15 : Bool;
+         bit16 : Bool;
+         bit17 : Bool;
+         bit18 : Bool;
+         bit19 : Bool;
+         bit20 : Bool;
+         bit21 : Bool;
+         bit22 : Bool;
+         bit23 : Bool;
+         bit24 : Bool;
+         bit25 : Bool;
+         bit26 : Bool;
+         bit27 : Bool;
+         bit28 : Bool;
+         bit29 : Bool;
+         bit30 : Bool;
+         bit31 : Bool;
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

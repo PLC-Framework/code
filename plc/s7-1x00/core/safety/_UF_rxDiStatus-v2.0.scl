@@ -1,0 +1,73 @@
+﻿FUNCTION "_UF_rxDiStatus" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/safety'
+NAME : _UF_rxDiStatus
+VERSION : 2.0
+
+   VAR_INPUT 
+      enable : Bool;   // 1=Enabled
+      e_stop : Bool;   // 1= Emergency stop input is true
+      bypass : Bool;   // 1=Bypass enabled
+      subsOn : Bool;   // 1=Subson
+   END_VAR
+
+   VAR CONSTANT 
+      F_STATUS_0000_DISABLED : Int := 0;   // F-Status: 0x0000 - Disabled
+      F_STATUS_0001_READY : Int := 1;   // F-Status: 0x0001 - Ready
+      F_STATUS_7000_BYPASSED : Int := 16#7000;   // F-Status: 0x7000 - Warning - F-object bypassed
+      F_STATUS_7001_SUB_ON : Int := 16#7001;   // F-Status: 0x7001 - Warning - RVCDP -  F-object is using substitutive values
+      F_STATUS_F000_ESTOP_TRIGGERED : Int := 16#F000;   // F-Status: 0xF000 - Emergency - Emergency stop triggered
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2024-08-10 | cyanezf | `enable` added |
+| v1.0 | 2023-10-17 | cyanezf | First version |
+
+## Description
+
+This function returns a processed value	for a received F-Stop signal.
+
+## RLO and return
+
+| RLO | value | description |
+|:---:|:-----:|:------------|
+| TRUE | 0 | Disabled |
+| TRUE | 1 | Ready/ok |
+| TRUE | 0x7000 | Emergency stop bypassed |
+| TRUE | 0x7001 | F-object is using substitutive values |
+| TRUE | 0xF000 | Emergency stop triggered |
+
+--*)
+
+	// Check conditions
+	IF NOT #enable THEN
+	  #_UF_rxDiStatus := #F_STATUS_0000_DISABLED;
+	  
+	ELSIF NOT #e_stop THEN
+	  #_UF_rxDiStatus := #F_STATUS_F000_ESTOP_TRIGGERED;
+	  
+	ELSIF #bypass THEN
+	  #_UF_rxDiStatus := #F_STATUS_7000_BYPASSED;
+	  
+	ELSIF #subsOn THEN
+	  #_UF_rxDiStatus := #F_STATUS_7001_SUB_ON;
+	  
+	ELSE
+	  #_UF_rxDiStatus := #F_STATUS_0001_READY;
+	  
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

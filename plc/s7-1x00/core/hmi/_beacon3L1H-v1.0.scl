@@ -1,0 +1,72 @@
+﻿FUNCTION "_beacon3L1H" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["escOutput-v2.2"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _beacon3L1H
+VERSION : 1.0
+
+   VAR_INPUT 
+      IT_ready : Bool;   // 1=IT is ready
+      clock : Byte;   // Clock byte
+   END_VAR
+
+   VAR_OUTPUT 
+      horn : Bool;   // Horn
+      red : Bool;   // Red lamp
+      yellow : Bool;   // Yellow lamp
+      green : Bool;   // Green lamp
+   END_VAR
+
+   VAR_IN_OUT 
+      esc : "escOutput";   // ESC
+      alarmTraceGlobal : "alarmTraceGlobalData";   // Alarm trace
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2023-10-27 | cyanezf | First version |
+
+## Description
+
+This function blinks lamps and horn
+
+--*)
+	
+	// Horn
+	#horn :=
+	(#esc.om.emrgStopTriggered AND #clock.%X5) OR
+	#esc.lampTest;
+	
+	// Red
+	#red :=
+	#esc.om.emrgStopTriggered OR
+	(#esc.om.emrgStopUnackn AND #clock.%X5) OR
+	(#alarmTraceGlobal.a3e.triggered > 0 AND #IT_ready AND #clock.%X5) OR
+	(NOT #IT_ready AND #clock.%X2) OR
+	#esc.lampTest;
+	
+	// Yellow
+	#yellow :=
+	(#alarmTraceGlobal.a2w.triggered > 0 AND #clock.%X5) OR
+	#esc.lampTest;
+	
+	// Green
+	#green :=
+	#esc.om.autoMode OR
+	(#esc.om.manualMode AND #clock.%X5) OR
+	(#esc.om.warmRestart AND #clock.%X1) OR
+	#esc.lampTest;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

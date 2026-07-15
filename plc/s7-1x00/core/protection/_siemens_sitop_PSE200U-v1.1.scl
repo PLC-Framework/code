@@ -1,0 +1,176 @@
+﻿FUNCTION_BLOCK "_siemens_sitop_PSE200U"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/protection'
+NAME : _siemens_sitop_PSE200U
+VERSION : 1.1
+
+   VAR_INPUT 
+      pulse { ExternalWritable := 'False'} : Bool;   // IR: Status pulse from Sitop
+      ackn : Bool;   // IW: Remote ackn.
+   END_VAR
+
+   VAR_OUTPUT 
+      ch1 { ExternalWritable := 'False'} : Bool;   // OR: 1=Channel 1 is ready
+      ch2 { ExternalWritable := 'False'} : Bool;   // OR: 1=Channel 2 is ready
+      ch3 { ExternalWritable := 'False'} : Bool;   // OR: 1=Channel 3 is ready
+      ch4 { ExternalWritable := 'False'} : Bool;   // OR: 1=Channel 4 is ready
+      reset { ExternalWritable := 'False'} : Bool;   // OR: Send reset to Sitop
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : USInt;   // SR: Decoding status
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         startTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SX: Start timer
+         watchdog {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SX: Watchdog timer
+         ch { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[1..4] of Struct   // SX: positive and negative time sample for each channel
+            fp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;
+            fn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;
+         END_STRUCT;
+         index { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;   // SX: index of channel
+         pulse { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // SX: previous pulse signal
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      sampleTime : Time;
+      pulseOn : Bool;
+      pulseOff : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_0_NIL : USInt := 0;
+      STATE_1_START : USInt := 1;
+      STATE_2_DECODE : USInt := 2;
+      STATE_3_UPDATE_OUTPUT : USInt := 3;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2023-11-12 | cyanezf | Bugs fixed |
+| v1.0 | 2023-08-30 | cyanezf | First version |
+
+## Description
+
+This function decode the status signal from PSE200U
+according to given frame and updates the channel outputs.
+
+```
+|<-------- Frame: 2750ms ------->|
+START P  C1 P  C2 P  C3 P  C4 P
++-----+  +--+  +--+  +--+  +--+  +----
+|     |  |  |  |  |  |  |  |  |  |
++     +--+  +--+  +--+  +--+  +--+
+```
+
+| step | time |
+| ---- | ---- |
+| Start | 500 ms |
+| P | 250 ms |
+| C1 | 250 ms |
+| P | 250 ms |
+| C2 | 250 ms |
+| P | 250 ms |
+| C3 | 250 ms |
+| P | 250 ms |
+| C4 | 250 ms |
+| P | 250 ms |
+| **frame** | **2750 ms** |
+
+--*)
+	
+	// Catch pulse edged
+	#pulseOn := #pulse AND NOT #private.pulse;
+	#pulseOff := NOT #pulse AND #private.pulse;
+	#private.pulse := #pulse;
+	
+	// Unconditional transition to start
+	#private.startTimer(IN := #pulse,
+	                    PT := t#400ms);
+	IF #private.startTimer.Q THEN
+	  #state := #STATE_1_START;
+	END_IF;
+	
+	// State 1: Start
+	IF #state = #STATE_1_START THEN
+	  
+	  // Transition to the next state
+	  IF #pulseOff THEN
+	    
+	    RESET_TIMER(#private.watchdog);
+	    #private.ch[1].fp :=
+	    #private.ch[1].fn :=
+	    #private.ch[2].fp :=
+	    #private.ch[2].fn :=
+	    #private.ch[3].fp :=
+	    #private.ch[3].fn :=
+	    #private.ch[4].fp :=
+	    #private.ch[4].fn := t#0s;
+	    #private.index := 1;
+	    
+	    #state := #STATE_2_DECODE;
+	    #pulseOn := false;
+	    #pulseOff := false;
+	  END_IF;
+	END_IF;
+	
+	
+	
+	// State 2: Decode
+	IF #state = #STATE_2_DECODE THEN
+	  
+	  // Associated actions
+	  #private.watchdog(IN := true,
+	                    PT := t#2250ms,
+	                    ET => #sampleTime);
+	  
+	  // Catch pulse on time
+	  IF #pulseOn THEN
+	    #private.ch[#private.index].fp := #sampleTime;
+	  END_IF;
+	  
+	  // Catch pulse off time and increase index
+	  IF #pulseOff THEN
+	    #private.ch[#private.index].fn := #sampleTime;
+	    #private.index += 1;
+	  END_IF;
+	  
+	  // Transition to the next state
+	  IF #sampleTime > t#2050ms OR #private.index > 4 THEN
+	    #state := #STATE_3_UPDATE_OUTPUT;
+	  END_IF;
+	  
+	END_IF;
+	
+	// State 3: Update output
+	IF #state = #STATE_3_UPDATE_OUTPUT THEN
+	  
+	  // Associate actions
+	  //    P       CH1     P       CH2     P       CH3     P       CH4     0
+	  // |<-250->|<-250->|<-250->|<-250->|<-250->|<-250->|<-250->|<-250->|<-250->|
+	  // 0       250     500     750     1000    1250    1500    1750    2000    2250
+	  #ch1 := #private.ch[1].fp > t#0200ms AND #private.ch[1].fp < t#0300ms AND #private.ch[1].fn > t#0450ms AND #private.ch[1].fn < t#0550ms;
+	  #ch2 := #private.ch[2].fp > t#0700ms AND #private.ch[2].fp < t#0800ms AND #private.ch[2].fn > t#0950ms AND #private.ch[2].fn < t#1050ms;
+	  #ch3 := #private.ch[3].fp > t#1200ms AND #private.ch[3].fp < t#1300ms AND #private.ch[3].fn > t#1450ms AND #private.ch[3].fn < t#1550ms;
+	  #ch4 := #private.ch[4].fp > t#1700ms AND #private.ch[4].fp < t#1800ms AND #private.ch[4].fn > t#1950ms AND #private.ch[4].fn < t#2050ms;
+	  
+	  // Transition to the next state
+	  #state := #STATE_0_NIL;
+	  
+	END_IF;
+	
+	// Reset error
+	#reset := #ackn;
+	
+	// Return
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,51 @@
+﻿TYPE "ice38iolG65iV1d_ioLinkStatus"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/pepperl-fuchs/ICE3-8IOL-G65L-V1D","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-03-03 | cyanezf | First version |
+//
+//## Description
+//P+F - ICE3-8IOL-G65L-V1D IO-Link status
+//--*)
+
+   STRUCT
+      ioLinkActive_port1 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port2 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port3 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port4 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port5 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port6 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port7 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkActive_port8 : Bool;   // 1=IO-Link port is active and IO-Link device is detected and operational
+      ioLinkPdiValid_port1 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port2 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port3 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port4 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port5 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port6 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port7 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkPdiValid_port8 : Bool;   // 1=IO-Link port PDI data is valid
+      ioLinkAuxInput_port1 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port2 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port3 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port4 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port5 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port6 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port7 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkAuxInput_port8 : Bool;   // 1=High voltage detected on the auxiliary pin of an IO-Link port
+      ioLinkError_port1 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port2 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port3 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port4 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port5 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port6 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port7 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+      ioLinkError_port8 : Bool;   // 1=An error detected. The further information about the error is available in PROFINET IO channel diagnostics
+   END_STRUCT;
+
+END_TYPE
+

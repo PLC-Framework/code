@@ -1,0 +1,23 @@
+﻿TYPE "ifm_ogd250_status"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/ifm/ogd250","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//IFM - OGD250 status
+//--*)
+
+   STRUCT
+      distance : Int;   // Current object distance [mm]= 30 to 2200 mm; 0x8008=Underload; 0x7FF8=Overload; 0x7FFC=No data
+      scaleDistance : Int;   // Byte 2=No used; Byte 3 (Scale distance)= -3 (This value enables a PLC function block to calculate the distance (from Offset 40) into the unit [m])
+      reflectivity : Int;   // Current object reflectivity= 0 to 999; 0x8008=Underload; 0x7FF8=Overload; 0x7FFC=No data
+      scaleReflectivityAndDeviceStatus : Int;   // Byte 6 (Device status): 
+   END_STRUCT;
+
+END_TYPE
+

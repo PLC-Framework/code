@@ -1,0 +1,576 @@
+﻿FUNCTION_BLOCK "_sick_cola"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SICKAG
+FAMILY : 'core/dad/sick/clv6xx'
+VERSION : 1.2
+
+//The function block use a Profinet/Probibus connection to communicate with a SICK AutoIdent
+//device. The FB makes it possible to send and receive sensor data. The Confirmed Messaging 
+//protocol (CM-Protocol) is used to receive even long fragmented read results.
+   VAR_INPUT 
+      HW_INPUT_ID : HW_SUBMODULE;   // Hardware identification number of the input module
+      HW_INPUT_LENGTH : USInt;   // Size of the input module
+      HW_OUTPUT_ID { ExternalWritable := 'False'} : HW_SUBMODULE;   // Hardware identification number of the output module
+      HW_OUTPUT_LENGTH { ExternalWritable := 'False'} : USInt;   // Size of the output module
+      TIMEOUT { ExternalWritable := 'False'} : Time := T#5S;   // Time out
+      request { ExternalWritable := 'False'} : Bool;   // A positive edge starts the request
+      commandLength { ExternalWritable := 'False'} : UInt;   // Byte length of the command
+   END_VAR
+
+   VAR_OUTPUT 
+      readDone { ExternalWritable := 'False'} : Bool;   // Reading result arrived
+      readLength { ExternalWritable := 'False'} : Int;   // Byte length of the reading result
+      requestDone { ExternalWritable := 'False'} : Bool;   // Requested data available
+      requestBusy { ExternalWritable := 'False'} : Bool;   // Request busy
+      requestLength { ExternalWritable := 'False'} : Int;   // Byte length of the requested data
+      error { ExternalWritable := 'False'} : Bool;   // Error
+      errorcode { ExternalWritable := 'False'} : DWord;   // Error code
+   END_VAR
+
+   VAR_IN_OUT 
+      command : Array[0..499] of Byte;
+      record : Array[0..499] of Byte;
+   END_VAR
+
+   VAR 
+      read { ExternalWritable := 'False'} : Struct
+         state { ExternalWritable := 'False'} : USInt;
+         fragment { ExternalWritable := 'False'} : Bool;
+         index { ExternalWritable := 'False'} : UInt;
+         headerLength { ExternalWritable := 'False'} : UInt;
+         fragmentLength { ExternalWritable := 'False'} : UInt;
+      END_STRUCT;
+      write { ExternalWritable := 'False'} : Struct
+         state { ExternalWritable := 'False'} : USInt;
+         fragment { ExternalWritable := 'False'} : Bool;
+         index { ExternalWritable := 'False'} : UInt;
+         headerLength { ExternalWritable := 'False'} : UInt;
+         fragmentLength { ExternalWritable := 'False'} : UInt;
+      END_STRUCT;
+      errorCodeTriggered { ExternalWritable := 'False'} : DWord;
+      inputImage { ExternalWritable := 'False'} : Array[0..127] of Byte;
+      outputImage { ExternalWritable := 'False'} : Array[0..127] of Byte;
+      private : Struct
+         "timer" {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         request { ExternalWritable := 'False'} : Bool := FALSE;   // Rising edge detection
+         requestBusy : Bool;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      requestPulse : Bool;   // Rising edge detection
+      status : Int;
+      responsePart : DWord;
+      commandPart : DWord;
+      i : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      RECORD_SIZE : UInt := 500;
+      COMMAND_SIZE : UInt := 500;
+      ERROR_0X00_OK : DWord := 16#0000_0000;
+      ERROR_0X01_TIMEOUT : DWord := 16#0000_0001;
+      ERROR_0X02_INPUT_LEN : DWord := 16#0000_0002;
+      ERROR_0X03_OUTPUT_LEN : DWord := 16#0000_0003;
+      ERROR_0X06_IN_CMD_OVERFLOW : DWord := 16#0000_0006;
+      ERROR_0X07_CMD_LEN_ZERO : DWord := 16#0000_0007;
+      ERROR_0X08_CMD_LEN_OVERFLOW : DWord := 16#0000_0008;
+      ERROR_0X09_FRAGMENTATION : DWord := 16#0000_0009;
+      ERROR_W0_0X04_DPWR_DAT : Word := 16#0004;
+      ERROR_W0_0X05_DPRD_DAT : Word := 16#0005;
+      WR_STATE_0_WAIT : USInt := 0;
+      WR_STATE_1_TRANSFER : USInt := 1;
+      WR_STATE_2_FRAGMENTATION : USInt := 2;
+      WR_STATE_3_WAIT_DONE : USInt := 3;
+      RD_STATE_0_WAIT : USInt := 0;
+      RD_STATE_1_READ : USInt := 1;
+      RD_STATE_2_CMD_RESPONSE : USInt := 2;
+      RD_STATE_3_READ_RESULT : USInt := 3;
+      ASCII_SPACE : Char := ' ';
+      COLA_S_OPEN : DWord := 's{  ';
+      COLA_SRA : DWord := 'sRA ';
+      COLA_SRN : DWord := 'sRN ';   // 16#73524E20
+      COLA_SRI : DWord := 'sRI ';   // 16#73524920
+      COLA_SWA : DWord := 'sWA ';   // 16#73574120
+      COLA_SWN : DWord := 'sWN ';   // 16#73574E20
+      COLA_SWI : DWord := 'sWI ';   // 16#73574920
+      COLA_SMA : DWord := 'sMA ';   // 16#734D4120
+      COLA_SMN : DWord := 'sMN ';   // 16#734D4E20
+      COLA_SMI : DWord := 'sMI ';   // 16#734D4920
+      COLA_SAN : DWord := 'sAN ';   // 16#73414E20
+      COLA_SAI : DWord := 'sAI ';   // 16#73414920
+      COLA_SEA : DWord := 'sEA ';   // 16#73454120
+      COLA_SEN : DWord := 'sEN ';   // 16#73454E20
+      COLA_SEI : DWord := 'sEI ';   // 16#73454920
+      COLA_SPX : DWord := 'sPX ';   // 16#73505820
+      COLA_SPE : DWord := 'sPE ';   // 16#73504520
+      COLA_SSI : DWord := 'sSI ';   // 16#73534920
+      COLA_SSN : DWord := 'sSN ';   // 16#73534E20
+      COLA_SFA : DWord := 'sFA ';   // 16#73464120
+      RX_0_STATUS : Int := 0;
+      RX_1_RX_COUNTER : Int := 1;
+      RX_2_TX_COUNTER_BACK : Int := 2;
+      RX_3_CMD_LEN_LSB : Int := 3;
+      RX_4_CMD_LEN_MSB : Int := 4;
+      RX_5_DATA : Int := 5;
+      TX_0_CONTROL : Int := 0;
+      TX_1_RX_COUNTER_BACK : Int := 1;
+      TX_2_TX_COUNTER : Int := 2;
+      TX_3_CMD_LEN_LSB : Int := 3;
+      TX_4_CMD_LEN_MSB : Int := 4;
+      TX_5_DATA : Int := 5;
+   END_VAR
+
+
+BEGIN
+	(*===========================================================================================
+	Name:   SICK_CCOMM_PNDP
+	Author: SICK AG
+	=============================================================================================
+	Description: 
+	The function block use a Profinet/Probibus connection to communicate with a SICK AutoIdent
+	device. The FB makes it possible to send and receive sensor data. The Confirmed Messaging 
+	protocol (CM-Protocol) is used to receive even long fragmented read results.
+	
+	Send a command:
+	The "Req" parameter must be triggered with a rising edge (signal change FALSE to TRUE) in 
+	order to carry out the function. For the time during which a valid response has yet to be 
+	received from the device, the "ReqBusy" parameter is used to signal  that a response is still 
+	pending. The module signals the "ReqDone" = TRUE output parameter when the function has been 
+	successfully completed. If data was requested by the device, this data is copied into the 
+	Record (arrRecord). The "ReqDone" indicates that new data has been received  for a PLC cycle.
+	Only one CoLa-A command request can be send to the same device at one time. 
+	
+	Receive a reading result:
+	Data sent via trigger command or directly by the device (e.g., direct trigger via a light 
+	barrier) is stored in the Record (arrRecord). The "RdDone" output indicates that new data 
+	has been received for a PLC cycle. The data sent by the device can be changed or adapted in 
+	output format of SOPAS-ET. 
+	
+	This AOI supports the folowing SICK devices:
+	- Lector6xx
+	- RFU6xx
+	- CLV6xx 
+	- RFH6xx
+	=============================================================================================
+	Confirmed Messaging Protocol definitions:
+	arrInputImage[0]        = Status byte 
+	arrInputImage[1]        = Receive counter
+	arrInputImage[2]        = Transmit counter back
+	arrInputImage[3]        = Command length LSB
+	arrInputImage[4]        = Command length MSB
+	arrInputImage[5..127]   = Device response (CoLa-A)
+	
+	arrOutputImage[0]       = Status byte 
+	arrOutputImage[1]       = Receive counter back
+	arrOutputImage[2]       = Transmit counter
+	arrOutputImage[3]       = Command length LSB
+	arrOutputImage[4]       = Command length MSB
+	arrOutputImage[5..127]  = Device request (CoLa-A)
+	=============================================================================================
+	Version history:
+	Date       | Version | Created under               | Author  | Remark
+	---------------------------------------------------------------------------------------------
+	16/01/2014 | V1.0    | TIA Portal V12 SP1 Update 2 | SICK AG | Initial version
+	07/08/2014 | V1.1    | TIA Portal V12 SP1 Update 4 | SICK AG | Replace R_TRIG function 
+	22/04/2015 | V1.2    | TIA Portal V12 SP1 Update 4 | SICK AG | Avoid warnings that occur with 
+	                                                               TIA V13
+	============================================================================================*)
+	
+	(*===================================== INITIALISATION =====================================*)
+	//#RECORD_SIZE := 500;   (*Length of the arrRecord array*)
+	//#COMMAND_SIZE := 500;  (*Length of the arrCommand array*)
+	
+	#readDone := false;
+	#read.state := #RD_STATE_0_WAIT;
+	
+	(*Rising edge detection of the request flag*)
+	#requestPulse := #request AND NOT #private.request;
+	#private.request:= #request;
+	
+	(*Error detection*)
+	IF #errorCodeTriggered <> #ERROR_0X00_OK THEN
+	  #requestDone := false;
+	  #requestBusy := false;
+	  #private.requestBusy:= false;
+	  #error := true;
+	  #errorcode := #errorCodeTriggered;
+	  #errorCodeTriggered := #ERROR_0X00_OK;
+	  #requestLength := 0;
+	  #write.state := #WR_STATE_0_WAIT;
+	  RETURN;
+	END_IF;
+	
+	(*Time out detection*)
+	#private.timer(IN := #private.requestBusy,
+	               PT := #TIMEOUT);
+	
+	IF #private.timer.Q THEN
+	  #errorCodeTriggered := #ERROR_0X01_TIMEOUT; (*Error: Time out*)
+	END_IF;
+	
+	(*Check the hardware ident length of the input module*)
+	IF #HW_INPUT_LENGTH < 8 OR #HW_INPUT_LENGTH > 128 THEN
+	  #errorCodeTriggered := #ERROR_0X02_INPUT_LEN; (*Error: Incorrect module input length*)
+	END_IF;
+	
+	(*Check the hardware ident length of the output module*)
+	IF #HW_OUTPUT_LENGTH < 8 OR #HW_OUTPUT_LENGTH > 128 THEN
+	  #errorCodeTriggered := #ERROR_0X03_OUTPUT_LEN; (*Error: Incorrect module output length*)
+	END_IF;
+	
+	(*Error detected*)
+	IF #errorCodeTriggered <> #ERROR_0X00_OK THEN
+	  RETURN;
+	END_IF;
+	
+	
+	(*===================================== COMMUNICATION ======================================*)
+	(*Set output data*)
+	#status := DPWR_DAT(LADDR := #HW_OUTPUT_ID, RECORD := #outputImage);
+	IF #status <> 0 THEN
+	  #errorCodeTriggered.%W1 := #status;
+	  #errorCodeTriggered.%W0 := #ERROR_W0_0X04_DPWR_DAT; (*Error: Set output data via DPWR_DAT*)
+	  RETURN;
+	END_IF;
+	
+	(*Get input data*)
+	#status := DPRD_DAT(LADDR := #HW_INPUT_ID, RECORD => #inputImage);
+	IF #status <> 0 THEN
+	  #errorCodeTriggered.%W1 := #status;
+	  #errorCodeTriggered.%W0 := #ERROR_W0_0X05_DPRD_DAT; (*Error: Get input data via DPRD_DAT*)
+	  RETURN;
+	END_IF;
+	
+	(*Receive counter ==0 && Receive counter back <>0*)
+	IF #inputImage[1] = 0 AND #outputImage[1] <> 0 THEN
+	  #outputImage[1] := #inputImage[1]; (*Recive counter => Receive counter back*)
+	  RETURN;
+	END_IF;
+	
+	(*Transmit counter <> Transmit counter back*)
+	IF NOT #private.requestBusy AND (#inputImage[#RX_2_TX_COUNTER_BACK] <> #outputImage[#TX_2_TX_COUNTER]) THEN
+	  #outputImage[#TX_2_TX_COUNTER] := 0; (*0 => Transmit counter*)
+	  RETURN;
+	END_IF;
+	
+	
+	(*============================== HANDLING OF THE RECEIVED DATA =============================*)
+	(*New telegram available*)
+	IF #inputImage[#RX_1_RX_COUNTER] <> #outputImage[#TX_1_RX_COUNTER_BACK] THEN
+	  
+	  (*Reset error every incoming telegram (Read only mode, e.g. for hand held scanners)*)
+	  IF #commandLength <= 0 THEN
+	    #error := false;
+	    #errorcode := #ERROR_0X00_OK;
+	  END_IF;
+	  
+	  (*Confirm the receive counter*)
+	  #outputImage[#TX_1_RX_COUNTER_BACK] := #inputImage[#RX_1_RX_COUNTER];
+	  
+	  (*Get telegram length from the received header*)
+	  #read.headerLength.%B0 := #inputImage[#RX_3_CMD_LEN_LSB];
+	  #read.headerLength.%B1 := #inputImage[#RX_4_CMD_LEN_MSB];
+	  
+	  (*Check if fragmentation is not active at the moment*)
+	  IF NOT #read.fragment THEN
+	    #read.index := 0;
+	    
+	    (*Check if fragmentation is needed*)
+	    IF (#HW_INPUT_LENGTH - 5) < #read.headerLength THEN
+	      #read.fragment := true;
+	    END_IF;
+	  END_IF;
+	  
+	  (*Fragmentation is needed*)
+	  IF #read.fragment THEN
+	    IF (#HW_INPUT_LENGTH - 5) < #read.headerLength THEN
+	      #read.fragmentLength := #HW_INPUT_LENGTH - 5;
+	    ELSE
+	      #read.fragmentLength := #read.headerLength;
+	    END_IF;
+	    
+	    (*No fragmentation needed*)
+	  ELSE
+	    #read.fragmentLength := #read.headerLength;
+	  END_IF;
+	  
+	  (*Copy input data into the output record*)
+	  IF (#read.index + #read.fragmentLength) <= #RECORD_SIZE THEN
+	    MOVE_BLK(IN := #inputImage[#RX_5_DATA],
+	             COUNT := #read.fragmentLength,
+	             OUT => #record[#read.index]);
+	  END_IF;
+	  
+	  (*Check if all data has been received*)
+	  IF (#HW_INPUT_LENGTH - 5) < #read.headerLength THEN
+	    #read.index += #read.fragmentLength;
+	    
+	    (*All data has been received*)
+	  ELSE
+	    #read.fragment := false;
+	    #read.state := #RD_STATE_1_READ;
+	  END_IF;
+	  
+	  (*Incoming data filter*)
+	  (* - Check if the receiving telegram os a CoLa answer on a requested 
+	       comand or a reading result.
+	     
+	      sRA  sWA  sMA  sAN  sAI  sEA  sPX  s{   sSI  sSN  sFA
+	  sRN  X                                       X    X    X
+	  sRI  X                                       X    X    X
+	  sWN       X                                  X    X    X
+	  sWI       X                                  X    X    X
+	  sMN            X    X                        X    X    X
+	  sMI            X         X                   X    X    X
+	  sEN                           X              X    X    X
+	  sEI                           X              X    X    X
+	  sPE                                X         X    X    X
+	  s{                                      X    X    X    X
+	  *)
+	  IF #read.state = #RD_STATE_1_READ THEN
+	    (*Filter is only active, while requested data expected*)
+	    IF #private.requestBusy THEN
+	      
+	      IF #commandLength > 3 THEN
+	        
+	        (*Get the prefix from the requested command (e.g. 'sRN '*)
+	        #commandPart.%B3 := #command[0];
+	        #commandPart.%B2 := #command[1];
+	        #commandPart.%B1 := #command[2];
+	        #commandPart.%B0 := #ASCII_SPACE;
+	        
+	        (*Get the prefix from the command response (e.g. 'sRA ')*)
+	        #responsePart.%B3 := #record[0];
+	        #responsePart.%B2 := #record[1];
+	        #responsePart.%B1 := #record[2];
+	        #responsePart.%B0 := #ASCII_SPACE;
+	      ELSE
+	        #commandPart := 16#0000_0000;
+	        #responsePart := 16#0000_0000;
+	      END_IF;
+	      
+	      CASE #responsePart OF
+	          (*'s{  '*)
+	        #COLA_S_OPEN:
+	          IF #commandPart = #COLA_S_OPEN THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sRA '*)
+	        #COLA_SRA:
+	          IF (#commandPart = #COLA_SRN) OR (#commandPart = #COLA_SRI) THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sWA '*)
+	        #COLA_SWA:
+	          IF (#commandPart = #COLA_SWN) OR (#commandPart = #COLA_SWI) THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sMA '*)
+	        #COLA_SMA:
+	          IF (#commandPart = #COLA_SMN) OR (#commandPart = #COLA_SMI) THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sAN '*)
+	        #COLA_SAN:
+	          IF #commandPart = #COLA_SMN THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sAI '*)
+	        #COLA_SAI:
+	          IF #commandPart = #COLA_SMI THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sEA '*)
+	        #COLA_SEA:
+	          IF (#commandPart = #COLA_SEN) OR (#commandPart = #COLA_SEI) THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sPX '*)
+	        #COLA_SPX:
+	          IF #commandPart = #COLA_SPE THEN
+	            #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          ELSE
+	            #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          END_IF;
+	          
+	          (*'sSI '*)
+	        #COLA_SSI:
+	          #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          
+	          (*'sSN '*)
+	        #COLA_SSN:
+	          #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	          
+	          (*'sFA '*)
+	        #COLA_SFA:
+	          #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	          
+	          (*Invalid CoLa-A answer*)
+	        ELSE
+	          (*Check if a user defined command is used (Request == Response)*)
+	          FOR #i := 0 TO UINT_TO_INT(#commandLength - 1) DO
+	            IF #command[#i] = #record[#i] THEN
+	              #read.state := #RD_STATE_2_CMD_RESPONSE; (*Command response*)
+	            ELSE
+	              #read.state := #RD_STATE_3_READ_RESULT; (*Reading result*)
+	              EXIT;
+	            END_IF;
+	          END_FOR;
+	      END_CASE;
+	      
+	      (*Reading result*)
+	    ELSE
+	      #read.state := #RD_STATE_3_READ_RESULT;  (*Reading result*)
+	    END_IF;
+	  END_IF;
+	  
+	  (*Incoming telegram is a command response*)
+	  IF #read.state = #RD_STATE_2_CMD_RESPONSE THEN
+	    IF (#read.index + #read.fragmentLength) <= #RECORD_SIZE THEN
+	      #requestLength := UDINT_TO_INT(#read.index + #read.fragmentLength);
+	      #requestDone := true;
+	      #requestBusy := false;
+	      #private.requestBusy := false;
+	    ELSE
+	      #errorCodeTriggered := #ERROR_0X06_IN_CMD_OVERFLOW; (*Error: Incoming command response > Record size*)
+	    END_IF;
+	  END_IF;
+	  
+	  (*Incoming telegram is a reading result*)
+	  IF #read.state = #RD_STATE_3_READ_RESULT THEN
+	    IF (#read.index + #read.fragmentLength) <= #RECORD_SIZE THEN
+	      #readLength := UDINT_TO_INT(#read.index + #read.fragmentLength);
+	      #readDone := true;
+	    ELSE
+	      #readLength := -1;
+	      #readDone := false;
+	    END_IF;
+	  END_IF;
+	END_IF;
+	
+	
+	(*=========================== HANDLING OF THE DATA TO BE WRITTEN ===========================*)
+	IF #requestPulse AND NOT #private.requestBusy THEN
+	  #requestDone := false;
+	  #requestBusy := true;
+	  #private.requestBusy := true;
+	  #error := false;
+	  #errorcode := #ERROR_0X00_OK;
+	  #write.index := 0;
+	  
+	  (*Check command length*)
+	  IF #commandLength <= 0 THEN
+	    #errorCodeTriggered := #ERROR_0X07_CMD_LEN_ZERO; (*Error: Command length <= 0*)
+	    RETURN;
+	    
+	  ELSIF #commandLength > #COMMAND_SIZE THEN
+	    #errorCodeTriggered := #ERROR_0X08_CMD_LEN_OVERFLOW; (*Error: Command length > command array*)
+	    RETURN;
+	  END_IF;
+	  
+	  (*Check if the the command telegram must be fragmented*)
+	  IF (#HW_OUTPUT_LENGTH - 5) < #commandLength THEN
+	    #write.fragmentLength := #HW_OUTPUT_LENGTH - 5;
+	  ELSE
+	    #write.fragmentLength := #commandLength;
+	  END_IF;
+	  
+	  #write.headerLength := #commandLength;
+	  #write.state := #WR_STATE_1_TRANSFER;
+	END_IF;
+	
+	(*Write step 1: Command transfer*)
+	IF (#write.state = #WR_STATE_1_TRANSFER) AND (#inputImage[#RX_2_TX_COUNTER_BACK] = #outputImage[#TX_2_TX_COUNTER]) THEN
+	  
+	  (*Copy command data into the output record*)
+	  IF ((#write.index + #write.fragmentLength) <= #COMMAND_SIZE) AND (#write.fragmentLength <= (#HW_OUTPUT_LENGTH - 5)) THEN
+	    MOVE_BLK(IN := #command[#write.index],
+	             COUNT := #write.fragmentLength,
+	             OUT => #outputImage[#TX_5_DATA]);
+	    
+	    (*Increment transmit counter*)
+	    IF #outputImage[#TX_2_TX_COUNTER] = 16#FF THEN
+	      #outputImage[#TX_2_TX_COUNTER] := 16#01; (*Counter overflow, zero is skipped*)
+	    ELSE
+	      #outputImage[#TX_2_TX_COUNTER] += 1;
+	    END_IF;
+	    
+	    (*Set command/fragment length*)
+	    #outputImage[#TX_3_CMD_LEN_LSB] := #write.headerLength.%B0;
+	    #outputImage[#TX_4_CMD_LEN_MSB] := #write.headerLength.%B1;
+	    
+	    (*Next step*)
+	    #write.state := #WR_STATE_2_FRAGMENTATION;
+	  ELSE
+	    #errorCodeTriggered := #ERROR_0X09_FRAGMENTATION; (*Error: Fragmentation error*)
+	  END_IF;
+	  RETURN;
+	END_IF;
+	
+	(*Write step 2: Fragmentation handling*)
+	IF #write.state = #WR_STATE_2_FRAGMENTATION  THEN
+	  
+	  (*Fragmentation is needed*)
+	  IF (#HW_OUTPUT_LENGTH - 5) < #write.headerLength THEN
+	    #write.fragment := true;
+	    
+	    (*Next index*)
+	    #write.index := #write.index + #write.fragmentLength;
+	    
+	    (*Set next header length*)
+	    #write.headerLength := #write.headerLength - #write.fragmentLength;
+	    
+	    (*Set next fragment length*)
+	    IF (#HW_OUTPUT_LENGTH - 5) < #write.headerLength THEN
+	      #write.fragmentLength := #HW_OUTPUT_LENGTH - 5;
+	    ELSE
+	      #write.fragmentLength := #write.headerLength;
+	    END_IF;
+	    
+	    (*Fragmentation is not needed*)
+	  ELSE
+	    #write.fragment := false;
+	  END_IF;
+	  
+	  (*Next step*)
+	  #write.state := #WR_STATE_3_WAIT_DONE;
+	END_IF;
+	
+	(*Write step 3: Check if the transmission of the command/fragment is done*)
+	IF #write.state = #WR_STATE_3_WAIT_DONE THEN
+	  
+	  (*Transmit counter back == Transmit counter*)
+	  IF #inputImage[#RX_2_TX_COUNTER_BACK] = #outputImage[#TX_2_TX_COUNTER] THEN
+	    IF #write.fragment THEN
+	      #write.state := #WR_STATE_1_TRANSFER;
+	    ELSE
+	      #write.state := #WR_STATE_0_WAIT;
+	    END_IF;
+	  END_IF;
+	END_IF;
+	
+END_FUNCTION_BLOCK
+

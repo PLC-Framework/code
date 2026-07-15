@@ -1,0 +1,88 @@
+﻿FUNCTION_BLOCK "_acousticSignal"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _acousticSignal
+VERSION : 1.1
+
+   VAR_INPUT 
+      on { ExternalWritable := 'False'} : Bool;   // IR: 1=On
+      LONG_ON_PERIOD { ExternalWritable := 'False'} : Time;   // IR: Long period to switch on (while on)
+      LONG_OFF_PERIOD { ExternalWritable := 'False'} : Time;   // IR: Long perdio to switch off (while on)
+   END_VAR
+
+   VAR_OUTPUT 
+      Q { ExternalWritable := 'False'} : Bool;   // OR: 1=Horn on
+   END_VAR
+
+   VAR_IN_OUT 
+      clock { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // IOX: Clock
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         toggle { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         fp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         onTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         offTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      pulse : Bool;
+      done : Bool;
+      et : Time;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2025-06-13 | cyanezf | `_horn renamed` with `_acousticSignal` |
+| v1.0 | 2023-10-27 | cyanezf | First version |
+
+## Description
+
+This function active/deactive an acoustic signal with ON/OFF periods when on is set for a long time.
+
+--*)
+
+  // Get pulses
+	#pulse := #on AND NOT #private.fp;
+	#private.fp := #on;
+	
+	IF #pulse THEN
+	  #private.toggle := 1;
+	END_IF;
+	
+	#private.onTimer(IN := #on AND #private.toggle,
+	                 PT := #LONG_ON_PERIOD,
+	                 ET=> #et,
+	                 Q => #done);
+	
+	IF #done THEN
+	  #private.toggle := 0;
+	END_IF;
+	
+	#private.offTimer(IN := #on AND NOT #private.toggle,
+	                  PT := #LONG_OFF_PERIOD,
+	                  ET=> #et,
+	                  Q => #done);
+	
+	IF #done THEN
+	  #private.toggle := 1;
+	END_IF;
+	
+	// Set output
+	#Q := #on AND #private.toggle AND #clock.%X5;
+
+   // Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

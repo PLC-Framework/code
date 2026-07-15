@@ -1,0 +1,83 @@
+TYPE "bwu3847C1ASi5output128bytes"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+//
+//## Description
+//B+W - bwu3847 C1 ASi5 output 128 bytes
+//--*)
+
+   STRUCT
+      ASi5_reserved_IB0 : Byte;   // Master - BWU3847-1byte: Reserved
+      node001_motor1_speed : SInt;   // Node 1 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node001_motor2_speed : SInt;   // Node 1 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node001_motor3_speed : SInt;   // Node 1 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node001_motor4_speed : SInt;   // Node 1 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node001_motor1_ramp : USInt;   // Node 1 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node001_motor2_ramp : USInt;   // Node 1 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node001_motor3_ramp : USInt;   // Node 1 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node001_motor4_ramp : USInt;   // Node 1 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node002_motor1_speed : SInt;   // Node 2 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node002_motor2_speed : SInt;   // Node 2 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node002_motor3_speed : SInt;   // Node 2 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node002_motor4_speed : SInt;   // Node 2 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node002_motor1_ramp : USInt;   // Node 2 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node002_motor2_ramp : USInt;   // Node 2 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node002_motor3_ramp : USInt;   // Node 2 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node002_motor4_ramp : USInt;   // Node 2 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node003_motor1_speed : SInt;   // Node 3 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node003_motor2_speed : SInt;   // Node 3 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node003_motor3_speed : SInt;   // Node 3 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node003_motor4_speed : SInt;   // Node 3 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node003_motor1_ramp : USInt;   // Node 3 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node003_motor2_ramp : USInt;   // Node 3 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node003_motor3_ramp : USInt;   // Node 3 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node003_motor4_ramp : USInt;   // Node 3 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node004_motor1_speed : SInt;   // Node 4 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node004_motor2_speed : SInt;   // Node 4 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node004_motor3_speed : SInt;   // Node 4 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node004_motor4_speed : SInt;   // Node 4 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node004_motor1_ramp : USInt;   // Node 4 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node004_motor2_ramp : USInt;   // Node 4 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node004_motor3_ramp : USInt;   // Node 4 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node004_motor4_ramp : USInt;   // Node 4 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node005_p1_outByte0 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p1_outByte1 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p1_outByte2 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p1_outByte3 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p2_outByte0 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p2_outByte1 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p2_outByte2 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p2_outByte3 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p3_outByte0 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p3_outByte1 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p3_outByte2 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p3_outByte3 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p4_outByte0 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p4_outByte1 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p4_outByte2 : Byte;   // Node 5 - BW4067-16bytes:
+      node005_p4_outByte3 : Byte;   // Node 5 - BW4067-16bytes:
+      node006_motor1_speed : SInt;   // Node 6 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node006_motor2_speed : SInt;   // Node 6 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node006_motor3_speed : SInt;   // Node 6 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node006_motor4_speed : SInt;   // Node 6 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node006_motor1_ramp : USInt;   // Node 6 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node006_motor2_ramp : USInt;   // Node 6 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node006_motor3_ramp : USInt;   // Node 6 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node006_motor4_ramp : USInt;   // Node 6 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node007_motor1_speed : SInt;   // Node 7 - BW4893-8bytes: Motor 1= -100% to 100% speed
+      node007_motor2_speed : SInt;   // Node 7 - BW4893-8bytes: Motor 2= -100% to 100% speed
+      node007_motor3_speed : SInt;   // Node 7 - BW4893-8bytes: Motor 3= -100% to 100% speed
+      node007_motor4_speed : SInt;   // Node 7 - BW4893-8bytes: Motor 4= -100% to 100% speed
+      node007_motor1_ramp : USInt;   // Node 7 - BW4893-8bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node007_motor2_ramp : USInt;   // Node 7 - BW4893-8bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node007_motor3_ramp : USInt;   // Node 7 - BW4893-8bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      node007_motor4_ramp : USInt;   // Node 7 - BW4893-8bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+   END_STRUCT;
+
+END_TYPE

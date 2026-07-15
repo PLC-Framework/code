@@ -1,0 +1,57 @@
+﻿FUNCTION "_dmu218" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/leuze/dmu218'
+NAME : _dmu218
+
+VERSION : 1.1
+   VAR_INPUT 
+      raw : DWord;   // Raw value
+   END_VAR
+
+   VAR_OUTPUT 
+      value : Real;   // Value range 0..1000 | 1800 mm
+      q1 : Bool;   // 1=Switching state (BDC1, Q1)
+   END_VAR
+
+   VAR_TEMP 
+      tmp : Int;
+      part : Byte;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-04-16 | cyanezf | Fix bugs |
+| v1.0 | 2026-04-10 | cyanezf | First version |
+
+## Description
+
+This function decodes and returns the useful data from DMU218.
+
+--*)
+	
+	
+	#tmp := 0;
+	#part := #raw.%B3;
+	
+	#tmp.%B0 := #raw.%B3;
+	#tmp.%X8 := #part.%X4;
+	#tmp.%X9 := #part.%X5;
+	#tmp.%X10 := #part.%X6;
+	#tmp.%X11 := #part.%X7;
+	
+	#value := INT_TO_REAL(#tmp);
+	#q1 := #raw.%X0;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

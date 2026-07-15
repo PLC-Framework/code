@@ -1,0 +1,38 @@
+﻿TYPE "mc_manual_synchronous2Axis"
+TITLE = {"status":"current","deprecatedBy": null,"version":"v1.0","author":"cyanezf","family":"core/control/manual","dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//MC - manual synchronous 2 Axis
+//--*)
+
+   STRUCT
+      ready { ExternalWritable := 'False'} : Bool;   // SR: 1=Ready
+      axisV : Struct   // SW: Axis 0V
+         position : LReal;   // SW: Position
+         velocity : LReal;   // SW: Velocity
+         inPosition { ExternalWritable := 'False'} : Bool;   // SR: 1=In position
+      END_STRUCT;
+      axis1 : Struct   // SW: Axis 1L
+         position : LReal;   // SW: Position
+         velocity : LReal;   // SW: Velocity
+         inPosition { ExternalWritable := 'False'} : Bool;   // SR: 1=In position
+      END_STRUCT;
+      axis2 : Struct   // SW: Axis 2R
+         position : LReal;   // SW: Position
+         velocity : LReal;   // SW: Velocity
+         inPosition { ExternalWritable := 'False'} : Bool;   // SR: 1=In position
+      END_STRUCT;
+      forward { ExternalWritable := 'False'} : Bool;   // SR: 1=Forward
+      backward { ExternalWritable := 'False'} : Bool;   // SR: 1=Backward
+      positioning { ExternalWritable := 'False'} : Bool;   // SR: 1=Positioning
+   END_STRUCT;
+
+END_TYPE
+

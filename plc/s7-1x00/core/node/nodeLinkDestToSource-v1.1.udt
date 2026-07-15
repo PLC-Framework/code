@@ -1,0 +1,24 @@
+﻿TYPE "nodeLinkDestToSource"
+TITLE = {"version":"v1.1","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.1 | 2023-10-20 | cyanezf | `shortCycle` added |
+//| v1.0 | 2023-10-19 | cyanezf | First version |
+//
+//## Description
+//Node link - destination to source
+//--*)
+
+   STRUCT
+      readyToPickUp : Bool;   // 1=Node is ready to pick up object from source
+      pickedUp : Bool;   // 1=Node has picked up object
+      isRunning : Bool;   // 1=Mechanical device is running to pick up (motor running, robot picking, etc)
+      shortCycle : Bool;   // 1=Short cycle
+   END_STRUCT;
+
+END_TYPE
+

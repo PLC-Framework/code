@@ -1,0 +1,117 @@
+﻿FUNCTION_BLOCK "_activatePnioDevice"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["TON_TIME","D_ACT_DP"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/fieldbus'
+NAME : _activatePnioDevice
+VERSION : 1.1
+
+   VAR_INPUT 
+      enable { ExternalWritable := 'False'} : Bool;   // IR: 0=Disable device; 1=Enable device
+      isEnabled { ExternalWritable := 'False'} : Bool;   // IR: 0=Is disabled; 1=Is enabled
+      device { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_DEVICE;   // IR: Hw device LADDR  "devicename~device"
+   END_VAR
+
+   VAR 
+      mode { ExternalWritable := 'False'} : USInt;   // SR: DP mode
+      state { ExternalWritable := 'False'} : Int;   // SR: Activate/Deactivate sequence state
+      busy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // SR: 1=Busy
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         busy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         watchdogTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         waitTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      nil : Bool;
+      status : Int;
+      done : Bool;
+      error : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      MODE_0_GET_INFO : USInt := 0;
+      MODE_1_ACTIVATE : USInt := 1;
+      MODE_2_DEACTIVATE : USInt := 2;
+      STATE_0_WAIT : Int := 0;
+      STATE_1_BUSY : Int := 1;
+      STATE_2_WAIT : Int := 2;
+      STATUS_0_DONE : Int := 0;
+      STATUS_1_IS_ACTIVATE : Int := 1;
+      STATUS_2_IS_DEACTIVATE : Int := 2;
+      STATUS_7000_WAITING : Int := 16#7000;
+      STATUS_7001_START_REQ : Int := 16#7001;
+      STATUS_7002_BUSY : Int := 16#7002;
+      STATUS_8000 : Int := 16#8000;
+      STATUS_8FFF : Int := 16#8FFF;
+      STATUS_8090_NO_MODULE_IN_LADDR : Int := 16#8090;
+      STATUS_8092_DEACTIVATION_NOT_POSSIBLE : Int := 16#8092;
+      STATUS_8093_LADDR_IS_NOT_DP : Int := 16#8093;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2025-08-27 | cyanezf | Bug fixed in busy waiting |
+| v1.0 | 2025-03-18 | cyanezf | First version |
+
+## Description
+
+This function activate/deactivate a Profinet IO Device.
+
+--*)
+	
+	// Waiting for a new command
+	IF #state = #STATE_0_WAIT THEN
+	  
+	  IF #enable AND NOT #isEnabled AND NOT #busy THEN
+	    #mode := #MODE_1_ACTIVATE;
+	    #state := #STATE_1_BUSY;
+	    
+	  ELSIF NOT #enable AND #isEnabled AND NOT #busy THEN
+	    #mode := #MODE_2_DEACTIVATE;
+	    #state := #STATE_1_BUSY;
+	    
+	  END_IF;
+	  
+	END_IF;
+	
+	// Change mode
+	#status := D_ACT_DP(REQ := #state = #STATE_1_BUSY,
+	                    MODE := #mode,
+	                    LADDR := #device,
+	                    BUSY => #busy);
+	
+	// Done
+	#done := #busy AND NOT #private.busy;
+	#private.busy := #busy;
+	
+	// Error
+	#private.watchdogTon(IN := #state = #STATE_1_BUSY,
+	                     PT := t#5s,
+	                     Q => #error);
+	
+	IF #done OR #error THEN
+	  #state := #STATE_2_WAIT;
+	END_IF;
+	
+	// Waiting to restart
+	#private.waitTon(IN := #state = #STATE_2_WAIT,
+	                 PT := t#2s);
+	
+	IF #private.waitTon.Q THEN
+	  #state := #STATE_0_WAIT;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

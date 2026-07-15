@@ -1,0 +1,22 @@
+﻿TYPE "deltatime"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/datetime/deltatime","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-06-17 | cyanezf | First version |
+// 
+//## Description
+//Deltatime
+//--*)
+
+   STRUCT
+      days : UDInt := 0;   // Days from 0 to 999_999_999 days
+      seconds : UDInt;   // Seconds from 0 to 86_399s (24 h * 60 m * 60 s)
+      nanoseconds : UDInt;   // Nanoseconds from 0 to 999_999_999ns
+   END_STRUCT;
+
+END_TYPE
+

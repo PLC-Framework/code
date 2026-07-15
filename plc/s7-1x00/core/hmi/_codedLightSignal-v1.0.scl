@@ -1,0 +1,137 @@
+﻿FUNCTION_BLOCK "_codedLightSignal"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _codedLightSignal
+VERSION : 1.0
+   VAR_INPUT 
+      code { ExternalWritable := 'False'} : UInt;   // IR: 0=No alarm, 1..255=Alarm code
+      opt_clearWhenNoAlarm { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=When code changes to 0, state machine continues; 1=When code changes to zero, state machine is reset
+      startTime { ExternalWritable := 'False'} : Time := t#3s;   // IR: Start time
+      pulseTime { ExternalWritable := 'False'} : Time := t#1s;   // IR: Pulse time
+      endTime { ExternalWritable := 'False'} : Time := t#2s;   // IR: End time
+   END_VAR
+
+   VAR_OUTPUT 
+      Q { ExternalWritable := 'False'} : Bool;   // OR: Coded output
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int;   // SR: State
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Static private variables
+         code { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UInt;
+         count { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UInt;
+         ton {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR CONSTANT 
+      NO_ALARM : USInt := 0;
+      STATE_0000_OK : Int := 0;
+      STATE_0001_START : Int := 1;
+      STATE_0002_PULSES : Int := 2;
+      STATE_0003_END : Int := 3;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-04 | cyanezf | First version |
+
+## Description
+
+This function codes the `code` value and shows as a pulse train in `Q`.
+
+## Coded value
+
+```
+Example:
+
+code = 2
+
+			Start: ON           Pulse: OFF     Pulse 1: ON    Pulse: OFF     Pulse 2: ON    End: OFF
+		___________________                ______________                ______________  
+Q => __|                   |______________|              |______________|              |__________________
+
+		<    startTime    > < pulseTime >  < pulseTime >                                < endTime >
+
+```
+
+--*)
+	
+	
+	// Unconditional transition
+	IF #code = #NO_ALARM AND #opt_clearWhenNoAlarm THEN
+	  #state := #STATE_0000_OK;
+	END_IF;
+	
+	// State machine
+	IF #state = #STATE_0000_OK THEN
+	  
+	  // Associate actions
+	  #Q := FALSE;
+	  
+	  // Transition
+	  IF #code <> #NO_ALARM THEN
+	    RESET_TIMER(#private.ton);
+	    #private.code := #code;
+	    #private.count := 0;
+	    #state := #STATE_0001_START;
+	  END_IF;
+	
+	
+	ELSIF #state = #STATE_0001_START THEN
+	  
+	  // Associate actions
+	  #Q := TRUE;
+	  #private.ton(IN := 1, PT := #startTime);
+	  
+	  // Transition
+	  IF #private.ton.Q THEN
+	    RESET_TIMER(#private.ton);
+	    #state := #STATE_0002_PULSES;
+	  END_IF;
+	  
+	  
+	ELSIF #state = #STATE_0002_PULSES THEN
+	  
+	  // Associated actions
+	  #private.ton(IN := 1, PT := #pulseTime * 2);
+	  #Q := #private.ton.ET >= #pulseTime;
+	  
+	  // Transition
+	  IF #private.ton.Q THEN
+	    RESET_TIMER(#private.ton);
+	    #private.count += 1;
+	    
+	    IF #private.count >= #private.code THEN
+	      #state := #STATE_0003_END;
+	    END_IF;
+	  END_IF;
+	
+	
+	ELSE // State 3 end
+	  
+	  // Associated actions
+	  #Q := false;
+	  #private.ton(IN := 1, PT := #endTime);
+	  
+	  // Transition
+	  IF #private.ton.Q THEN
+	    #state := #STATE_0000_OK;
+	  END_IF;
+	  
+	END_IF;
+	
+	  
+	// Save RLO
+	ENO := true;
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,117 @@
+﻿FUNCTION "_ifm_ogd250" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["ifm_ogd250_status-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/ifm/ogd250'
+NAME : _ifm_ogd250
+VERSION : 1.0
+
+   VAR_INPUT 
+      in : "ifm_ogd250_status"; // IFM status
+   END_VAR
+
+   VAR_OUTPUT 
+      distance : Real;   // 30..2200 mm
+      distanceStatus : Int;   // Distance: 0=Ok; 1=Underload; 2=Overload; 3=No data
+      reflectivity : Real;   // 0..100% reflectivity
+      reflectivityStatus : Int;   // Refectivity: 0=Ok; 1=Underload; 2=Overload; 3=No data
+      devicestatus : Int;   // 0=Device ok; 1=Maintenance required; 2=Out of specification; 3=Functional check; 4=Failure
+      disconnected : Bool;   // 1=Device is disconnected
+      warning : Bool;   // 1=Some warning present
+      error : Bool;   // 1=Some error present
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_OK : Int := 0;
+      STATUS_UNDERLOAD : Int := 16#8008;
+      STATUS_OVERLOAD : Int := 16#7FFB;
+      STATUS_NO_DATA : Int := 16#7FFC;
+      DEVICE_OK : Int := 0;
+      DEVICE_MAINTENANCE_REQ : Int := 1;
+      DEVICE_OUT_OF_SPEC : Int := 2;
+      DEVICE_FUNCTIONAL_CHECK : Int := 3;
+      DEVICE_FAILURE : Int := 4;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2023-06-06 | cyanezf | First version |
+
+## Description
+
+This function decodes and returns the useful data from OGD250.
+
+--*)
+
+	// Distance
+	#distance := #in.distance;
+	#distanceStatus := #STATUS_OK;
+	
+	IF #in.distance = #STATUS_UNDERLOAD THEN
+	  
+	  #distance := 0.0;
+	  #distanceStatus := #STATUS_UNDERLOAD;
+	  
+	ELSIF #in.distance = #STATUS_OVERLOAD THEN
+	  
+	  #distance := 0.0;
+	  #distanceStatus := #STATUS_OVERLOAD;
+	  
+	ELSIF #in.distance = #STATUS_NO_DATA THEN
+	  
+	  #distance := 0.0;
+	  #distanceStatus := #STATUS_NO_DATA;
+	  
+	END_IF;
+	
+	// Reflectivity
+	#reflectivity := #in.reflectivity;
+	#reflectivityStatus := #STATUS_OK;
+	
+	IF #in.reflectivity = #STATUS_UNDERLOAD THEN
+	  
+	  #reflectivity := 0.0;
+	  #reflectivityStatus := #STATUS_UNDERLOAD;
+	  
+	ELSIF #in.reflectivity = #STATUS_OVERLOAD THEN
+	  
+	  #reflectivity := 0.0;
+	  #reflectivityStatus := #STATUS_OVERLOAD;
+	  
+	ELSIF #in.reflectivity = #STATUS_NO_DATA THEN
+	  
+	  #reflectivity := 0.0;
+	  #reflectivityStatus := #STATUS_NO_DATA;
+	
+	END_IF;
+	
+	// Status
+	#devicestatus := #in.scaleReflectivityAndDeviceStatus.%B1;
+	
+	// Check disconnected
+	#disconnected :=
+	#in.distance = 0 AND
+	#in.scaleDistance = 0 AND
+	#in.reflectivity = 0 AND
+	#in.scaleReflectivityAndDeviceStatus = 0;
+	
+	// Alarms
+	#warning :=
+	#distanceStatus <> #STATUS_OK OR
+	#reflectivityStatus <> #STATUS_OK OR
+	(#devicestatus <> #DEVICE_OK AND #devicestatus <> #DEVICE_FAILURE);
+	
+	#error := #devicestatus = #DEVICE_FAILURE;
+	
+	// Save RLO
+	ENO := true;
+	
+	
+END_FUNCTION
+

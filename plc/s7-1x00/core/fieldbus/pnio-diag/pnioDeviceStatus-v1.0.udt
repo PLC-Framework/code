@@ -1,0 +1,25 @@
+﻿TYPE "pnioDeviceStatus"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/fieldbus/pnio-diag","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//PNIO device status
+//--*)
+
+   STRUCT
+      status : Int;   // 0=Not config; 1=Ready; 7000=Disabled; 7001=Problem; 7002=Not exist; 8000=Error
+      configured : Bool;   // 1=Configured
+      faulty : Bool;   // 1=Faulty
+      disabled : Bool;   // 1=Disabled
+      exist : Bool;   // 1=Exist
+      problem : Bool;   // 1=Problem. Example: Maintenance demanded or recommmended, not accessible, not available, error occurred
+   END_STRUCT;
+
+END_TYPE
+

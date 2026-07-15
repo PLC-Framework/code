@@ -1,0 +1,66 @@
+﻿FUNCTION "_removeSpaces" : String
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/string'
+NAME : _removeSpaces
+VERSION : 1.0
+
+   VAR_INPUT 
+      in : String;   // Source string
+   END_VAR
+
+   VAR_TEMP 
+      newString : String;
+      sourceLength : Int;
+      destLength : Int;
+      newLength : Int;
+      i : Int;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-03-23 | cyanezf | First version |
+
+## Description
+
+This function removes spaces from `in`.
+
+--*)
+
+	#sourceLength := LEN(#in);
+	#destLength := MAX_LEN(#_removeSpaces);
+	#newLength := 0;
+	#newString := '';
+	
+	FOR #i := 1 TO #sourceLength DO
+	  
+	  IF #in[#i] = ' ' THEN
+	    CONTINUE;
+	  END_IF;
+	  
+	  #newString := INSERT(IN1:=#newString, IN2:=#in[#i], P:=#newLength+1);
+	  #newLength += 1;
+	    
+	END_FOR;
+	
+	IF #newLength > #destLength THEN
+	  #_removeSpaces := '';
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	// Return
+	#_removeSpaces := #newString;
+
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

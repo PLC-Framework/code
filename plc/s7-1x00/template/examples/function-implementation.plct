@@ -1,0 +1,2 @@
+Example of specific template to implement a piece of code inside of another piece of code
+{{ user }}.

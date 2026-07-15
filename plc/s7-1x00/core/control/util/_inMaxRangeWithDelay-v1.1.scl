@@ -1,0 +1,46 @@
+﻿FUNCTION "_inMaxRangeWithDelay" : Bool
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/util'
+NAME : _inMaxRangeWithDelay
+VERSION : 1.1
+
+   VAR_INPUT 
+      homed : Bool;   // 1=Homed and sync ok (if there are sync axis)
+      actualPosition : LReal;   // Actual position
+      position : LReal;   // Reference position
+      tolerance : LReal;   // Tolerance (Subtract this value from position)
+      delay : Time;   // Delay time
+   END_VAR
+
+   VAR_IN_OUT 
+      "timer" {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;   // Delay timer
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-06-17 | cyanezf | refactor: Change REAL to LREAL  |
+| v1.0 | 2026-05-12 | cyanezf | First version |
+
+## Description
+
+This function checks if the `actualPosition` is in `max range` with `tolerance` and is `homed`.
+
+--*)
+	
+	#timer(IN:=#homed AND #actualPosition >= #position - #tolerance,
+	       PT:=#delay);
+	
+	// Save RLO
+	ENO := #_inMaxRangeWithDelay := #timer.Q;
+	
+END_FUNCTION
+

@@ -1,0 +1,397 @@
+﻿FUNCTION "_priorityQueue" : Int
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies"  : ["priorityQueueInstanceAttributes-v1.0", "priorityQueueMetadata-v1.0", "MOVE_BLK_VARIANT"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/adt/priority-queue'
+NAME : _priorityQueue
+VERSION : 1.0
+   VAR_INPUT 
+      method : Int;   // Method to be executed. 1=Init; 10=Enqueue(Add); 11=Dequeue(Remove); 12=Peek
+   END_VAR
+
+   VAR_IN_OUT 
+      instance : "priorityQueueInstanceAttributes";   // Queue instance
+      metadata : Array[*] of "priorityQueueMetadata";   // Array of metadata of type priorityQueueMetadata
+      data : Variant;   // Array of data of type <E>
+      buffer_data : Variant;   // Data buffer of type <E>
+      buffer_priority : DInt;   // Any value within its range: the largest number has the highest priority
+   END_VAR
+
+   VAR_TEMP 
+      retVal : Int;
+      dataLength : DInt;
+      metadataLength : DInt;
+      dataSlotIndex : DInt;
+      heapParentIndex : DInt;
+      i : DInt;
+      dataIndex : DInt;
+      dataParentIndex : DInt;
+      tmpIndex : DInt;
+      leftChildIndex : DInt;
+      rightChildIndex : DInt;
+      childIndex : DInt;
+      parentIndex : DInt;
+      swap : Bool;
+      selectRightChild : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      NIL : DInt := -1;
+
+			METHOD_00_NIL : Int := 0; // Priority Queue: 0 - Nil
+      METHOD_01_INIT : Int := 1;   // Priority Queue: 1 - Initialized
+      METHOD_10_ENQUEUE : Int := 10;   // Priority Queue: 10 - Enqueue data at the end position
+      METHOD_11_DEQUEUE : Int := 11;   // Priority Queue: 11 - Dequeue data from the first position
+      METHOD_12_PEEK : Int := 12;   // Priority Queue: 12 - Peek data from the first position
+			
+      STATUS_0000_DONE : Int := 16#0000;   // Priority Queue: 0x0000 - Done
+      STATUS_8000_NODE_LOWER_LIMIT_NOT_ZERO : Int := 16#8000;   // Priority Queue: 0x8000 - Error - Node array lower limit is not zero
+      STATUS_8002_DATA_IS_NOT_ARRAY : Int := 16#8002;   // Priority Queue: 0x8002 - Error - Data array is not an array
+      STATUS_8003_DATA_IS_NOT_VALID_ARRAY : Int := 16#8003;   // Priority Queue: 0x8003 - Error - Data array is not a valid array
+      STATUS_8004_DATA_AND_NODE_DIFF_LEN : Int := 16#8004;   // Priority Queue: 0x8004 - Error - Data and node arrays have different lengths
+      STATUS_8005_DATA_ARRAY_LESS_THAN_TWO : Int := 16#8005;   // Priority Queue: 0x8005 - Error - Data array has less than two elements
+      STATUS_8010_IS_EMPTY : Int := 16#8010;   // Priority Queue: 0x8010 - Error - Queue is empty
+      STATUS_8011_IS_FULL : Int := 16#8011;   // Priority Queue: 0x8011 - Error - Queue is full
+      STATUS_8020_ERROR_MOVE_BUFFER_TO_DATA : Int := 16#8020;   // Priority Queue: 0x8020 - Error - Move buffer to data
+      STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER : Int := 16#8021;   // Priority Queue: 0x8021 - Error - Move data to buffer
+      STATUS_8033_FREE_SLOT_CORRUPTION : Int := 16#8033;   // Priority Queue: 0x8033 - Error - Free slot corruption
+      STATUS_8FFF_UNKNOWN_METHOD : Int := 16#8FFF;   // Priority Queue: 0x8FFF - Error - Unknown method
+
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-12-26 | cyanezf | First version |
+
+## Description
+
+This function is used to queue/dequeue data with priority.
+
+## Methods
+
+In any call if queue is not initialized, the function tries to do it.
+
+| Name | Type | Value | Description |
+| :--- | :--- | :---- | :---------- |
+| `PRIORITY_QUEUE_METHOD_00_NIL` | `Int` | 0 | Priority Queue: 0 - Nil |
+| `PRIORITY_QUEUE_METHOD_01_INIT` | `Int` | 1 | Priority Queue: 1 - Initialized |
+| `PRIORITY_QUEUE_METHOD_10_ENQUEUE` | `Int` | 10 | Priority Queue: 10 - Enqueue data at the end position |
+| `PRIORITY_QUEUE_METHOD_11_DEQUEUE` | `Int` | 11 | Priority Queue: 11 - Dequeue data from the first position |
+| `PRIORITY_QUEUE_METHOD_12_PEEK` | `Int` | 12 | Priority Queue: 12 - Peek data from the first position |
+	
+## RLO and Return
+
+| Name | Type | Value | Description |
+| :--- | :--- | :---- | :---------- |
+| `PRIORITY_QUEUE_STATUS_0000_DONE` | `Int` | 0x0000 | Priority Queue: 0x0000 - Done |
+| `PRIORITY_QUEUE_STATUS_8000_NODE_LOWER_LIMIT_NOT_ZERO` | `Int` | 0x8000 | Priority Queue: 0x8000 - Error - Node array lower limit is not zero |
+| `PRIORITY_QUEUE_STATUS_8002_DATA_IS_NOT_ARRAY` | `Int` | 0x8002 | Priority Queue: 0x8002 - Error - Data array is not an array |
+| `PRIORITY_QUEUE_STATUS_8003_DATA_IS_NOT_VALID_ARRAY` | `Int` | 0x8003 | Priority Queue: 0x8003 - Error - Data array is not a valid array |
+| `PRIORITY_QUEUE_STATUS_8004_DATA_AND_NODE_DIFF_LEN` | `Int` | 0x8004 | Priority Queue: 0x8004 - Error - Data and node arrays have different lengths |
+| `PRIORITY_QUEUE_STATUS_8005_DATA_ARRAY_LESS_THAN_TWO` | `Int` | 0x8005 | Priority Queue: 0x8005 - Error - Data array has less than two elements |
+| `PRIORITY_QUEUE_STATUS_8010_IS_EMPTY` | `Int` | 0x8010 | Priority Queue: 0x8010 - Error - Queue is empty |
+| `PRIORITY_QUEUE_STATUS_8011_IS_FULL` | `Int` | 0x8011 | Priority Queue: 0x8011 - Error - Queue is full |
+| `PRIORITY_QUEUE_STATUS_8020_ERROR_MOVE_BUFFER_TO_DATA` | `Int` | 0x8020 | Priority Queue: 0x8020 - Error - Move buffer to data |
+| `PRIORITY_QUEUE_STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER` | `Int` | 0x8021 | Priority Queue: 0x8021 - Error - Move data to buffer |
+| `PRIORITY_QUEUE_STATUS_8033_FREE_SLOT_CORRUPTION` | `Int` | 0x8033 | Priority Queue: 0x8033 - Error - Free slot corruption |
+| `PRIORITY_QUEUE_STATUS_8FFF_UNKNOWN_METHOD` | `Int` | 0x8FFF | Priority Queue: 0x8FFF - Error - Unknown method |
+
+| RLO | Status | Description |
+| :-- | :----- | :---------- |
+| `TRUE`| 0x0000 | Done |
+| `FALSE`| Other | Error - Check return value for details |
+
+
+--*)
+	 
+	REGION Method 01: Initialize
+	  // 1. Initialize
+	  IF NOT #instance.isInitialized OR #method = #METHOD_01_INIT THEN
+	    
+	    // 1.1. Return if data is not array
+	    IF NOT IS_ARRAY(#data) THEN
+	      #_priorityQueue := #STATUS_8002_DATA_IS_NOT_ARRAY;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.2. Get array length
+	    #dataLength := UDINT_TO_DINT(CountOfElements(#data));
+	    
+	    // 1.3. Return if array is less than two elements
+	    IF #dataLength < 2 THEN
+	      #_priorityQueue := #STATUS_8005_DATA_ARRAY_LESS_THAN_TWO;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.4. Check array limits
+	    #retVal := MOVE_BLK_VARIANT(SRC := #data,
+	                                COUNT := 1,
+	                                SRC_INDEX := 0,
+	                                DEST_INDEX := #dataLength - 1,
+	                                DEST => #data);
+	    // 1.5. Return is array is not ok
+	    IF #retVal <> 0 THEN
+	      #_priorityQueue := #STATUS_8003_DATA_IS_NOT_VALID_ARRAY;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.6. Check metadata
+	    IF LOWER_BOUND(ARR := #metadata, DIM := 1) <> 0 THEN
+	      #_priorityQueue := #STATUS_8000_NODE_LOWER_LIMIT_NOT_ZERO;
+	      ENO := false;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.7. Metadata length
+	    #metadataLength := UPPER_BOUND(ARR := #metadata, DIM := 1) - LOWER_BOUND(ARR := #metadata, DIM := 1) + 1;
+	    IF #dataLength <> #metadataLength THEN
+	      #_priorityQueue := #STATUS_8004_DATA_AND_NODE_DIFF_LEN;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.8. Clear metadata
+	    FOR #i := 0 TO #dataLength - 1 DO
+	      #metadata[#i].heap.dataIndex := -1;
+	      #metadata[#i].data.priority := 0;
+	      #metadata[#i].freeSlot.dataIndex := 0;
+	    END_FOR;
+	    
+	    // 1.9. Initialize class attributes
+	    #instance.length := 0;
+	    #instance.total := #dataLength;
+	    #instance.isEmpty := 1;
+	    #instance.isFull := 0;
+	    // priorityMode is not initialized is an production attibute
+	    #instance.protected.freeSlots := 0;
+	    #instance.protected.nextSlotIndex := 0;
+	    #instance.isInitialized := TRUE;
+	    
+	    // 1.10. Return done if method was called
+	    IF #method = #METHOD_01_INIT THEN
+	      #_priorityQueue := #STATUS_0000_DONE;
+	      ENO := TRUE;
+	      RETURN;
+	    END_IF;
+	  END_IF;
+	END_REGION
+	 
+	 CASE #method OF
+	  #METHOD_10_ENQUEUE:
+	    // ##################################################
+	    REGION Method 10: Add to queue
+	       
+	      // 1. Return is queue is full
+	      IF #instance.isFull THEN
+	        #_priorityQueue := #STATUS_8011_IS_FULL;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 2. Calculate rear index
+	      // Get slot: reuse from free stack or allocate new one
+	      IF #instance.protected.freeSlots > 0 THEN
+	        #instance.protected.freeSlots -= 1;
+	        #dataSlotIndex := #metadata[#instance.protected.freeSlots].freeSlot.dataIndex;
+	      ELSE
+	        IF #instance.protected.nextSlotIndex >= #instance.total THEN
+	          #_priorityQueue := #STATUS_8033_FREE_SLOT_CORRUPTION;
+	          ENO := false;
+	          RETURN;
+	        END_IF;
+	        #dataSlotIndex := #instance.protected.nextSlotIndex;
+	        #instance.protected.nextSlotIndex += 1;
+	      END_IF;
+	      
+	      // 3. Move from buffer to data
+	      #retVal := MOVE_BLK_VARIANT(SRC := #buffer_data,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := 0,
+	                                  DEST_INDEX := #dataSlotIndex,
+	                                  DEST => #data);
+	     
+	      // 4. Return if data movement error
+	      IF #retVal <> 0 THEN
+	        #_priorityQueue := #STATUS_8020_ERROR_MOVE_BUFFER_TO_DATA;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 5. Move from buffer to priority
+	      #metadata[#dataSlotIndex].data.priority := #buffer_priority;
+	       
+	      // 6. Add index to heap
+	      #metadata[#instance.length].heap.dataIndex := #dataSlotIndex;
+	      
+	      // 7. HeapifyUp (pq, length)
+	      #i := #instance.length;
+	      WHILE #i > 0 DO
+	        
+	        #heapParentIndex := (#i - 1) / 2;
+	        #dataIndex := #metadata[#i].heap.dataIndex;
+	        #dataParentIndex := #metadata[#heapParentIndex].heap.dataIndex;
+	        
+	        // Check priority
+	        #swap := (NOT #instance.priorityMode AND #metadata[#dataIndex].data.priority > #metadata[#dataParentIndex].data.priority) OR
+	        (#instance.priorityMode AND #metadata[#dataIndex].data.priority < #metadata[#dataParentIndex].data.priority);
+	        
+	        IF #swap THEN
+	          #tmpIndex := #metadata[#i].heap.dataIndex;
+	          #metadata[#i].heap.dataIndex := #metadata[#heapParentIndex].heap.dataIndex;
+	          #metadata[#heapParentIndex].heap.dataIndex := #tmpIndex;
+	          #i := #heapParentIndex; // Next index
+	        ELSE
+	          EXIT;
+	        END_IF;
+	      END_WHILE;
+	       
+	      // 8. Update class attributes
+	      IF #instance.length < #instance.total THEN
+	        #instance.length += 1;
+	      END_IF;
+	      
+	      #instance.isEmpty := #instance.length <= 0;
+	      #instance.isFull := #instance.length >= #instance.total;
+	      
+	      // 9. Return true
+	      #_priorityQueue := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	     
+	  #METHOD_11_DEQUEUE:
+	    // ##################################################
+	    REGION Method 11: Remove from queue
+	      
+	      // 1. Return is queue is empty
+	      IF #instance.isEmpty THEN
+	        #_priorityQueue := #STATUS_8010_IS_EMPTY;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      #dataSlotIndex := #metadata[0].heap.dataIndex;
+	      
+	      // 2. Move from data to buffer
+	      #retVal := MOVE_BLK_VARIANT(SRC := #data,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := #dataSlotIndex,
+	                                  DEST_INDEX := 0,
+	                                  DEST => #buffer_data);
+	      
+	      // 3. Return if data movement error
+	      IF #retVal <> 0 THEN
+	        #_priorityQueue := #STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 4. Save priority
+	      #buffer_priority := #metadata[#dataSlotIndex].data.priority;
+	      
+	      // 5.  Update instance
+	      IF #instance.length > 0 THEN
+	        #instance.length -= 1;
+	      END_IF;
+	      
+	      #instance.isEmpty := #instance.length <= 0;
+	      #instance.isFull := #instance.length >= #instance.total;
+	      
+	      // 6. Heapify down
+	      IF NOT #instance.isEmpty THEN
+	        #metadata[0].heap.dataIndex := #metadata[#instance.length].heap.dataIndex;
+	        #parentIndex := 0;
+	        WHILE (2 * #parentIndex) + 1 < #instance.length DO
+	          // Get child index  
+	          #leftChildIndex := (2 * #parentIndex) + 1;
+	          #rightChildIndex := #leftChildIndex + 1; // (2 * #i) + 2;
+	          // Get next child
+	          #selectRightChild :=
+	          (NOT #instance.priorityMode AND #metadata[#metadata[#rightChildIndex].heap.dataIndex].data.priority > #metadata[#metadata[#leftChildIndex].heap.dataIndex].data.priority) OR
+	          (#instance.priorityMode AND #metadata[#metadata[#rightChildIndex].heap.dataIndex].data.priority < #metadata[#metadata[#leftChildIndex].heap.dataIndex].data.priority);
+	          //IF (#rightChildIndex < #instance.length) AND #rightChildIsSmaller THEN
+	          IF #selectRightChild THEN
+	            #childIndex := #rightChildIndex;
+	          ELSE
+	            #childIndex := #leftChildIndex;
+	          END_IF;
+	          // Swap heap
+	          #swap :=
+	          (NOT #instance.priorityMode AND #metadata[#metadata[#parentIndex].heap.dataIndex].data.priority < #metadata[#metadata[#childIndex].heap.dataIndex].data.priority) OR
+	          (#instance.priorityMode AND #metadata[#metadata[#parentIndex].heap.dataIndex].data.priority > #metadata[#metadata[#childIndex].heap.dataIndex].data.priority );
+	          
+	          IF #swap THEN
+	            #tmpIndex := #metadata[#parentIndex].heap.dataIndex;
+	            #metadata[#parentIndex].heap.dataIndex := #metadata[#childIndex].heap.dataIndex;
+	            #metadata[#childIndex].heap.dataIndex := #tmpIndex;
+	            #parentIndex := #childIndex; // next node
+	          ELSE
+	            EXIT;
+	          END_IF;
+	        END_WHILE;
+	      END_IF;
+	      
+	      #metadata[#instance.length].heap.dataIndex := #NIL;
+	      
+	      // 7. Return free slot to stack for reuse
+	      #metadata[#instance.protected.freeSlots].freeSlot.dataIndex := #dataSlotIndex;
+	      #instance.protected.freeSlots += 1;
+	      
+	      // 8. Return true
+	      #_priorityQueue := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	    
+	  #METHOD_12_PEEK:
+	    // ##################################################
+	    REGION Method 12: Peek first position
+	       
+	      // 1. Return is queue is empty
+	      IF #instance.isEmpty THEN
+	        #_priorityQueue := #STATUS_8010_IS_EMPTY;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 2. Move from data to buffer
+	      #retVal := MOVE_BLK_VARIANT(SRC := #data,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := #metadata[0].heap.dataIndex,
+	                                  DEST_INDEX := 0,
+	                                  DEST => #buffer_data);
+	      
+	      // 3. Return if data movement error
+	      IF #retVal <> 0 THEN
+	        #_priorityQueue := #STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 4. Move priority
+	      #buffer_priority := #metadata[#metadata[0].heap.dataIndex].data.priority;
+	      
+	      // 5. Return true
+	      #_priorityQueue := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	    
+	 END_CASE;
+	 
+	 // Return
+	 #_priorityQueue := #STATUS_8FFF_UNKNOWN_METHOD;
+	 ENO := FALSE;
+	 
+END_FUNCTION
+

@@ -1,0 +1,30 @@
+﻿TYPE "priorityQueueInstanceAttributes"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue", "status": "current", "deprecatedBy": null, "dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-12-26 | cyanezf | First version |
+// 
+//## Description
+//Priority Queue instance attributes
+//--*)
+
+   STRUCT
+      length : DInt := 0;   // Current length of the queue
+      total : DInt := 0;   // Total/maximum length of the queue
+      isEmpty : Bool := 1;   // 1= The queue is empty
+      isFull : Bool := 0;   // 1= The queue is full
+      isInitialized : Bool := 0;   // 1= The queue is initialized and ready to work
+      priorityMode : Bool := 0;   // 0= The highest priority is the highest number; 1= The highest priority is the lowest number
+      mutex : Bool := 0;   // Used to lock or enable access to the queue (user defines the rules)
+      protected : Struct   // Protected data
+         freeSlots : DInt := 0;   // 0..total-1=Free slots
+         nextSlotIndex : DInt := 0;   // 0..total = Next slot index
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

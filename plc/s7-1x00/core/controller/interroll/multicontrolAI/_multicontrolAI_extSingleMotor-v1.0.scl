@@ -1,0 +1,173 @@
+﻿FUNCTION_BLOCK "_multicontrolAI_extSingleMotor"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["multicontrolAI_universalFullStatus-v1.0","multicontrolAI_universalFullControl-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/interroll/multicontrolAI'
+NAME : _multicontrolAI_extSingleMotor
+VERSION : 1.0
+
+   VAR_INPUT 
+      motorNr { ExternalWritable := 'False'} : USInt;   // IR: 2=Motor 2, 3=Motor 3; 4=Motor 4, N=Motor 1
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Forward is Clockwise; 1=Forward is Coutner clockwise
+      speed { ExternalWritable := 'False'} : Real;   // IR: User speed
+      maxSpeed { ExternalWritable := 'False'} : Real := 100.0;   // IR: User max. speed
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+      actualCurrent { ExternalWritable := 'False'} : Real;   // OR: Actual current in Ampers
+      actualSpeed { ExternalWritable := 'False'} : Real;   // OR: Actual speed in speed
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "multicontrolAI_universalFullStatus";   // IOX: Process data input
+      pdo : "multicontrolAI_universalFullControl";   // IOX: Process data output
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      motor : Struct
+         run : Bool;
+         direction : Bool;
+         error : Bool;
+         speed : SInt;
+         current : UInt;
+      END_STRUCT;
+   END_VAR
+
+   VAR CONSTANT 
+      MOTOR_2 : USInt := 2;
+      MOTOR_3 : USInt := 3;
+      MOTOR_4 : USInt := 4;
+      NO_MOTOR_SPEED : SInt := 0;   // 0 %
+      MAX_MOTOR_SPEED : SInt := 100;   // 100 %
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-03-25 | cyanezf | First version |
+
+## Description
+
+This function block controls a single motor of the Interroll Multicontrol AI. 
+The motor is selected by the `motorNr` input variable. 
+The function block takes care of converting the user speed to a percentage value,
+controlling the direction and run state of the motor, and reading the actual speed, 
+current, and error status from the process data input.
+
+--*)
+	
+	// Speed to %
+	// maxSpeed -> 100%
+	// speed    -> ?
+	// 
+	IF #speed <= 0.0 THEN
+	  #motor.speed := #NO_MOTOR_SPEED;
+	ELSIF #speed >= #maxSpeed THEN
+	  #motor.speed := #MAX_MOTOR_SPEED;
+	ELSE
+	  #motor.speed := REAL_TO_SINT(#speed * SINT_TO_REAL(#MAX_MOTOR_SPEED) / #maxSpeed);
+	END_IF;
+	
+	// Ok
+	#ok := #controlOn AND #emrgStopOk AND #motor.speed > #NO_MOTOR_SPEED;
+	#motor.run := (#runForward XOR #runBackward) AND #ok;
+	
+	// | runForward | runBackward | ccw || Direction | Description |
+	// | :--------- | :---------- | :-- || :-------- | :---------- |
+	// | 1          | 0           | 0   || 0         | Forward is clock wise |
+	// | 1          | 0           | 1   || 1         | Forward is counter clock wise |
+	// | 0          | 1           | 0   || 0         | Backward is counter clock wise |
+	// | 0          | 1           | 1   || 1         | Backward is clock wise |
+	#motor.direction := #motor.run AND ((#runBackward AND NOT #ccw) OR (#runForward AND #ccw)); // 0=cw; 1=ccw
+	
+	// Select output motor
+	CASE #motorNr OF
+	  #MOTOR_2:
+	    
+	    IF #motor.run AND #motor.#direction THEN
+	      #pdo.motor2_speed := -#motor.#speed;
+	    ELSIF #motor.run AND NOT #motor.direction THEN
+	      #pdo.motor2_speed := #motor.#speed;
+	    ELSE
+	      #pdo.motor2_speed := #NO_MOTOR_SPEED;
+	    END_IF;
+	    
+	    #motor.speed := #pdi.motor2_speed;
+	    #motor.error := #pdi.motor2_error;
+	    #motor.current := #pdi.motor2_current;
+	    
+	  #MOTOR_3:
+	    
+	    IF #motor.run AND #motor.#direction THEN
+	      #pdo.motor3_speed := - #motor.#speed;
+	    ELSIF #motor.run AND NOT #motor.direction THEN
+	      #pdo.motor3_speed := #motor.#speed;
+	    ELSE
+	      #pdo.motor3_speed := #NO_MOTOR_SPEED;
+	    END_IF;
+	    
+	    #motor.speed := #pdi.motor3_speed;
+	    #motor.error := #pdi.motor3_error;
+	    #motor.current := #pdi.motor3_current;
+	    
+	  #MOTOR_4:
+	    
+	    IF #motor.run AND #motor.#direction THEN
+	      #pdo.motor3_speed := - #motor.#speed;
+	    ELSIF #motor.run AND NOT #motor.direction THEN
+	      #pdo.motor3_speed := #motor.#speed;
+	    ELSE
+	      #pdo.motor3_speed := #NO_MOTOR_SPEED;
+	    END_IF;
+	    
+	    #motor.speed := #pdi.motor3_speed;
+	    #motor.error := #pdi.motor3_error;
+	    #motor.current := #pdi.motor3_current;
+	    
+	  ELSE  // Motor 1
+	    IF #motor.run AND #motor.#direction THEN
+	      #pdo.motor1_speed := - #motor.#speed;
+	    ELSIF #motor.run AND NOT #motor.direction THEN
+	      #pdo.motor1_speed := #motor.#speed;
+	    ELSE
+	      #pdo.motor1_speed := #NO_MOTOR_SPEED;
+	    END_IF;
+	    
+	    #motor.speed := #pdi.motor1_speed;
+	    #motor.error := #pdi.motor1_error;
+	    #motor.current := #pdi.motor1_current;
+	    
+	END_CASE;
+	
+	// Output
+	#isRunning := #motor.run AND #motor.speed <> #NO_MOTOR_SPEED;
+	#direction := (NOT #ccw AND #motor.speed < #NO_MOTOR_SPEED) OR
+	(#ccw AND #motor.speed > #NO_MOTOR_SPEED);
+	#error := #motor.error;
+	#actualCurrent := UINT_TO_REAL(#motor.current) / 1000.0;
+	
+	// MAX_MOTOR_SPEED -> maxSpeed
+	// pdi.motorX_speed -> actualSpeed
+	#actualSpeed := #motor.speed * #maxSpeed / #MAX_MOTOR_SPEED;
+	IF #ccw THEN
+	  #actualSpeed *= -1.0;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK

@@ -1,0 +1,26 @@
+﻿TYPE "sick_cdf600_controlWord"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+// Sick type refactorized to adapt for core style.
+
+   STRUCT
+      plcOut8a : Bool;   // D8: 
+      plcOut8b : Bool;   // D9: 
+      plcOut8c : Bool;   // D10: 
+      plcOut8d : Bool;   // D11: 
+      distanceConfig0 : Bool;   // D12: 
+      distanceConfig1 : Bool;   // D13: 
+      distanceConfig2 : Bool;   // D14: 
+      distanceConfig3 : Bool;   // D15: 
+      trigger : Bool;   // D0: 1=Object trigger for te CLV6xx bar code scanner
+      sensorIdle : Bool;   // D1: 
+      teachIn1 : Bool;   // D2: Control of teach-in 1
+      teachIn2 : Bool;   // D3: Control of teach-in 2
+      extOutput1 : Bool;   // D4: 1=Output on OUT1 of the fieldbus module
+      extOutput2 : Bool;   // D5: 1=Output on OUT2 of the fieldbus module
+      result1 : Bool;   // D6: 1=Output on Result 1 of the barcode scanner
+      result2 : Bool;   // D7: 1=Output on Result 2 of the barcode scanner
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,290 @@
+﻿FUNCTION "_alarmBit16Id" : Void
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/add-on'
+NAME : _alarmBit16Id
+VERSION : 2.0
+   VAR_INPUT 
+      triggered : UInt;   // N=Some alarm in controller alarm group
+      a00 : Bool;   // 1=Alarm
+      a00_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a01 : Bool;   // 1=Alarm
+      a01_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a02 : Bool;   // 1=Alarm
+      a02_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a03 : Bool;   // 1=Alarm
+      a03_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a04 : Bool;   // 1=Alarm
+      a04_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a05 : Bool;   // 1=Alarm
+      a05_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a06 : Bool;   // 1=Alarm
+      a06_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a07 : Bool;   // 1=Alarm
+      a07_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a08 : Bool;   // 1=Alarm
+      a08_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a09 : Bool;   // 1=Alarm
+      a09_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a10 : Bool;   // 1=Alarm
+      a10_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a11 : Bool;   // 1=Alarm
+      a11_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a12 : Bool;   // 1=Alarm
+      a12_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a13 : Bool;   // 1=Alarm
+      a13_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a14 : Bool;   // 1=Alarm
+      a14_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a15 : Bool;   // 1=Alarm
+      a15_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+   END_VAR
+
+   VAR_IN_OUT 
+      id : Int;   // Alarm id variable in controller alarm group
+   END_VAR
+
+   VAR CONSTANT 
+      NO_ALARM : Int := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | triggered changes to UINT |
+| v1.0 | 2025-01-27 | cyanezf | First version |
+
+## Description
+
+This function updates alarm ID, check 16 bits.
+Alarm `id` is set with `aXX_id` when `a00` is true and `id` is equal to `NO_ALARM`.
+Alarm `id` is set with `NO_ALARM` when `triggered` is false;
+
+--*)
+	
+	// Clear if not triggered
+	IF #triggered = 0 THEN
+	  #id := #NO_ALARM;
+	  ENO := true;
+	  RETURN;
+	END_IF;
+	
+	// Check alarm 0
+	IF #a00 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a00_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a00_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 1
+	IF #a01 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a01_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a01_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 2
+	IF #a02 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a02_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a02_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 3
+	IF #a03 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a03_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a03_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 4
+	IF #a04 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a04_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a04_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 5
+	IF #a05 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a05_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a05_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 6
+	IF #a06 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a06_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a06_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 7
+	IF #a07 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a07_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a07_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 8
+	IF #a08 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a08_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a08_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 9
+	IF #a09 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a09_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a09_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 10
+	IF #a10 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a10_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a10_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 11
+	IF #a11 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a11_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a11_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 12
+	IF #a12 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a12_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a12_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 13
+	IF #a13 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a13_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a13_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 14
+	IF #a14 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a14_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a14_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 15
+	IF #a15 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a15_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a15_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

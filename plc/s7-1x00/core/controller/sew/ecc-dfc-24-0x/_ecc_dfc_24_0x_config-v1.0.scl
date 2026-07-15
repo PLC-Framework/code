@@ -1,0 +1,279 @@
+﻿FUNCTION_BLOCK "_ecc_dfc_24_0x_config"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi","ecc_dfc_24_0x_fullPlcModePdo","TON_TIME","TOF_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : _ecc_dfc_24_0x_config
+VERSION : 1.0
+
+   VAR_INPUT 
+      left_sensor { ExternalWritable := 'False'} : USInt;   // IR: Left sensor config
+      left_mdr { ExternalWritable := 'False'} : USInt;   // IR: Left MDR config
+      right_sensor { ExternalWritable := 'False'} : USInt;   // IR: Right sensor config
+      right_mdr { ExternalWritable := 'False'} : USInt;   // IR: Righit MDR config
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: Ackn pulse
+   END_VAR
+
+   VAR_OUTPUT 
+      voltage { ExternalWritable := 'False'} : Real;   // OR: Current voltage
+      heartbeatOk { ExternalWritable := 'False'} : Bool;   // OR: 1=Heartbeat ok
+      LDI2 { ExternalWritable := 'False'} : Bool;   // OR: Left sensor pin 2
+      LDI4 { ExternalWritable := 'False'} : Bool;   // OR: Left sensor pin 4
+      RDI2 { ExternalWritable := 'False'} : Bool;   // OR: Right sensor pin 2
+      RDI4 { ExternalWritable := 'False'} : Bool;   // OR: Right sensor pin 4
+      generic_status { ExternalWritable := 'False'} : Int;   // OR: Generic status
+      left_status { ExternalWritable := 'False'} : Int;   // OR: Left status
+      right_status { ExternalWritable := 'False'} : Int;   // OR: Right status
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "ecc_dfc_24_0x_fullPlcModePdi";   // IOX: PDI
+      pdo : "ecc_dfc_24_0x_fullPlcModePdo";   // IOX: PDO
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         ackn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         acknTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         heartbeat { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         heatbeatTof {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      nil : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      SENSOR_MODE_0_PIN2_DI_DIR_PIN4_DI_DIR : USInt := 0;
+      SENSOR_MODE_1_PIN2_DI_DIR_PIN4_DI_INV : USInt := 1;
+      SENSOR_MODE_2_PIN2_DI_INV_PIN4_DI_DIR : USInt := 2;
+      SENSOR_MODE_3_PIN2_DI_INV_PIN4_DI_INV : USInt := 3;
+      SENSOR_MODE_4_PIN2_DO_PIN4_DI_DIR : USInt := 4;
+      SENSOR_MODE_5_PIN2_DO_PIN4_DI_INV : USInt := 5;
+      MDR_MODE_0_SET_AS_MOTOR : USInt := 0;
+      MDR_MODE_1_SET_AS_DO : USInt := 1;
+      SENSOR_STATUS_0_OK : Int := 0;
+      SENSOR_STATUS_8000_SHORTCIRCUT : Int := 16#8000;
+      SENSOR_STATUS_8001_SENSOR_DETECTED : Int := 16#8001;
+      CONVEY_STOP_0_OK : Int := 0;
+      CONVEY_STOP_8000_COMMAND_PLC : Int := 16#8000;
+      CONVEY_STOP_8001_OTHER_MODULE : Int := 16#8001;
+      CONVEY_STOP_8002_LOST_CONNECTION : Int := 16#8002;
+      CONVEY_STOP_8003_LOST_PLC : Int := 16#8003;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-01 | cyanezf | First version |
+
+## Description
+
+This function is used to configure this hardware as `MDR` or `DO`, inverte `DI`, etc.
+
+## Connection
+
+### Motor connection (Male)
+
+| Pin | Name  | Function                              |
+| --- | ----- | ------------------------------------- |
+|  1  | ?     |                                       |
+|  2  | ?     |                                       |
+|  3  | DO    | Binary output PIN3 (NPN output)       |
+|  4  | DO    | Binary output PIN4 (NPN output)       |
+
+### Sensor connection (Female) M8, 4-pin, A-coded
+
+| Pin | Name  | Function                              |
+| --- | ----- | ------------------------------------- |
+|  1  | +24V  | DC 24v output (sensor supply)         |
+|  2  | DI/DO | Binary input/output PIN2 (NPN output) |
+|  3  | 0V24  | 0V24 reference potential              |
+|  4  | DI    | Binary input PIN4 (zone sensor)       |
+
+--*)
+	
+	REGION Status
+	  // Voltage
+	  #voltage := INT_TO_REAL(#pdi.voltage) / 1000.0;
+	  
+	  // hearbeat
+	  #private.heatbeatTof(IN:= #pdi.allSensors.hearbeat AND NOT #private.heartbeat, PT:=t#4s, Q=> #heartbeatOk);
+	  #private.heartbeat := #pdi.allSensors.hearbeat;
+	  
+	  // DIs
+	  #LDI2 := #pdi.allSensors.leftPin2;
+	  #RDI2 := #pdi.allSensors.rightPin2;
+	  #LDI4 := #pdi.allSensors.leftPin4;
+	  #RDI4 := #pdi.allSensors.rightPin4;
+	  
+	  // Left
+	  IF #pdi.left_mdrDIOstatus.shortcircuit THEN
+	    #left_status := #SENSOR_STATUS_8000_SHORTCIRCUT;
+	  ELSIF #pdi.sensor.leftSensorDetect THEN
+	    #left_status := #SENSOR_STATUS_8001_SENSOR_DETECTED;
+	  ELSE
+	    #left_status := #SENSOR_STATUS_0_OK;
+	  END_IF;
+	  
+	  // Right
+	  IF #pdi.right_mdrDIOstatus.shortcircuit THEN
+	    #right_status := #SENSOR_STATUS_8000_SHORTCIRCUT;
+	  ELSIF #pdi.sensor.rightSensorDetect THEN
+	    #right_status := #SENSOR_STATUS_8001_SENSOR_DETECTED;
+	  ELSE
+	    #right_status := #SENSOR_STATUS_0_OK;
+	  END_IF;
+	  
+	  // Convey stop
+	  IF #pdi.conveyStopStatus.stopActiveCommandPlc THEN
+	    #generic_status := #CONVEY_STOP_8000_COMMAND_PLC;
+	  ELSIF #pdi.conveyStopStatus.stopActiveOtherModule THEN
+	    #generic_status := #CONVEY_STOP_8001_OTHER_MODULE;
+	  ELSIF #pdi.conveyStopStatus.stopActiveLostConnection THEN
+	    #generic_status := #CONVEY_STOP_8002_LOST_CONNECTION;
+	  ELSIF #pdi.conveyStopStatus.stopActiveLostPlc THEN
+	    #generic_status := #CONVEY_STOP_8003_LOST_PLC;
+	  ELSE
+	    #generic_status := #CONVEY_STOP_0_OK;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Control
+	  // Ackn
+	  // Why so comple?
+	  // Because clearMdrError is a shared reset for all module.
+	  IF #ackn AND NOT #private.ackn THEN
+	    #pdo.clearMdrError := 1;
+	  END_IF;
+	  
+	  #private.ackn := #ackn;
+	  #private.acknTon(IN := #pdo.clearMdrError <> 0,
+	                   PT := t#100ms);
+	  
+	  IF #private.acknTon.Q THEN
+	    #pdo.clearMdrError := 0;
+	  END_IF;
+	  
+	  // Control
+	  #pdo.conveyStopControl := 0;
+	  
+	  // Left sensor
+	  CASE #left_sensor OF
+	    #SENSOR_MODE_1_PIN2_DI_DIR_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveLeftPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.leftPin2 := 0; // DIR
+	      #pdo.sensorPolarity.leftPin4 := 1; // INV
+	      
+	    #SENSOR_MODE_2_PIN2_DI_INV_PIN4_DI_DIR:
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveLeftPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.leftPin2 := 1; // INV
+	      #pdo.sensorPolarity.leftPin4 := 0; // DIR
+	      
+	    #SENSOR_MODE_3_PIN2_DI_INV_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveLeftPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.leftPin2 := 1; // INV
+	      #pdo.sensorPolarity.leftPin4 := 1; // INV
+	      
+	    #SENSOR_MODE_4_PIN2_DO_PIN4_DI_DIR:
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 1; // DO
+	      //#pdo.sensorPortsDO.x8_driveLeftPin2 := 0; // This DO is used in user program
+	      #pdo.sensorPolarity.leftPin2 := 0; // Force false
+	      #pdo.sensorPolarity.leftPin4 := 0; // DIR
+	      
+	    #SENSOR_MODE_5_PIN2_DO_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 1; // DO
+	      //#pdo.sensorPortsDO.x8_driveLeftPin2 := 0; // This DO is used in user program
+	      #pdo.sensorPolarity.leftPin2 := 0; // Force false
+	      #pdo.sensorPolarity.leftPin4 := 1; // INV
+	      
+	      //#SENSOR_MODE_0_PIN2_DI_DIR_PIN4_DI_DIR:
+	    ELSE
+	      #pdo.sensorPortsDO.setLeftPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveLeftPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.leftPin2 := 0; // DIR
+	      #pdo.sensorPolarity.leftPin4 := 0; // DIR
+	      
+	  END_CASE;
+	  
+	  // Left motor
+	  IF #left_mdr = #MDR_MODE_1_SET_AS_DO THEN
+	    #pdo.left_mdrAsDIO.setMotDIO := 1; // DO
+	    //#pdo.left_mdrAsDIO.x9_drivePin4 := 0; // This DO is used in user program
+	    //#pdo.left_mdrAsDIO.xA_drivePin3 := 0; // This DO is used in user program
+	  ELSE
+	    #pdo.left_mdrAsDIO.setMotDIO := 0; // MDR
+	    #pdo.left_mdrAsDIO.drivePin4 := 0; // Force false DO
+	    #pdo.left_mdrAsDIO.drivePin3 := 0; // Force false DO
+	  END_IF;
+	  
+	  // Right sensor
+	  CASE #right_sensor OF
+	    #SENSOR_MODE_1_PIN2_DI_DIR_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setRightPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveRightPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.rightPin2 := 0; // DIR
+	      #pdo.sensorPolarity.rightPin4 := 1; // INV
+	      
+	    #SENSOR_MODE_2_PIN2_DI_INV_PIN4_DI_DIR:
+	      #pdo.sensorPortsDO.setRightPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveRightPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.rightPin2 := 1; // INV
+	      #pdo.sensorPolarity.rightPin4 := 0; // DIR
+	      
+	      
+	    #SENSOR_MODE_3_PIN2_DI_INV_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setRightPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveRightPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.rightPin2 := 1; // INV
+	      #pdo.sensorPolarity.rightPin4 := 1; // INV
+	      
+	    #SENSOR_MODE_4_PIN2_DO_PIN4_DI_DIR:
+	      #pdo.sensorPortsDO.setRightPin2asDO := 1; // DO
+	      //#pdo.sensorPortsDO.x9_driveRightPin2 := 0; // This DO is used in user program
+	      #pdo.sensorPolarity.rightPin2 := 0; // Force false
+	      #pdo.sensorPolarity.rightPin4 := 0; // DIR
+	      
+	    #SENSOR_MODE_5_PIN2_DO_PIN4_DI_INV:
+	      #pdo.sensorPortsDO.setRightPin2asDO := 1; // DO
+	      //#pdo.sensorPortsDO.x9_driveRightPin2 := 0; // This DO is used in user program
+	      #pdo.sensorPolarity.rightPin2 := 0; // Force false
+	      #pdo.sensorPolarity.rightPin4 := 1; // INV
+	      
+	      //#SENSOR_MODE_0_PIN2_DI_DIR_PIN4_DI_DIR:
+	    ELSE
+	      #pdo.sensorPortsDO.setRightPin2asDO := 0; // DI
+	      #pdo.sensorPortsDO.driveRightPin2 := 0; // Force false DO
+	      #pdo.sensorPolarity.rightPin2 := 0; // DIR
+	      #pdo.sensorPolarity.rightPin4 := 0; // DIR
+	      
+	  END_CASE;
+	  
+	  // Right motor
+	  IF #right_mdr = #MDR_MODE_1_SET_AS_DO THEN
+	    #pdo.right_mdrAsDIO.setMotDIO := 1; // DO
+	    //#pdo.Right_mdrAsDIO.x9_drivePin4 := 0; // This DO is used in user program
+	    //#pdo.Right_mdrAsDIO.xA_drivePin3 := 0; // This DO is used in user program
+	  ELSE
+	    #pdo.right_mdrAsDIO.setMotDIO := 0; // MDR
+	    #pdo.right_mdrAsDIO.drivePin4 := 0; // Force false DO
+	    #pdo.right_mdrAsDIO.drivePin3 := 0; // Force false DO
+	  END_IF;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

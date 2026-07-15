@@ -1,0 +1,273 @@
+﻿FUNCTION_BLOCK "_configNetworkAdapter"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["IP_V4", "T_CONFIG", "RDREC", "IF_CONF_Header", "IF_CONF_v4", "TON_TIME", "RESET_TIMER"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication'
+NAME : _configNetworkAdapter
+VERSION : 1.2
+
+   VAR_INPUT 
+      Local_PNIO_IFCE { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw interface
+      forceSet { ExternalWritable := 'False'} : Bool;   // IR: 1=Force set
+      bufferOsset { ExternalWritable := 'False'} : UInt := 44;   // IR: Buffer offset to read config
+   END_VAR
+
+   VAR_OUTPUT 
+      loaded { ExternalWritable := 'False'} : Bool;   // OR: Network adapter loaded
+   END_VAR
+
+   VAR_IN_OUT 
+      "network" : Struct   // IOX: Network data
+         ip {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;
+         mask {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;
+         router {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;
+      END_STRUCT;
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int;   // SR: State
+      set {InstructionName := 'T_CONFIG'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : T_CONFIG;   // SR: Set config
+      get {InstructionName := 'RDREC'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : RDREC;   // SR: Get config
+      newData { ExternalWritable := 'False'} : Struct   // SR: New data
+         header {InstructionName := 'IF_CONF_Header'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : IF_CONF_Header := (0, 0, 1);
+         ipv4 {InstructionName := 'IF_CONF_v4'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : IF_CONF_v4 := (30, 18, (), ([()]), ([()]), ([()]));
+      END_STRUCT;
+      currentData { ExternalWritable := 'False'} : Struct   // SR: Current data
+         ip {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : IP_V4;
+         mask {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : IP_V4;
+         router {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : IP_V4;
+      END_STRUCT;
+   END_VAR
+   VAR RETAIN
+      getDones { ExternalWritable := 'False'} : UDInt;   // SR: Get dones
+      setDones { ExternalWritable := 'False'} : UDInt;   // SR: Set dones
+      getErrors { ExternalWritable := 'False'} : UDInt;   // SR: Get errors
+      setErrors { ExternalWritable := 'False'} : UDInt;   // SR: Set errors
+   END_VAR
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         forceSet { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         delayTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      buffer : Array[0..4175] of Byte;
+      ipOk : Bool;
+      maskOk : Bool;
+      routerOk : Bool;
+      forcePulse : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_0_WAIT : Int := 0;
+      STATE_1_GET : Int := 1;
+      STATE_2_CHECK : Int := 2;
+      STATE_3_LOAD : Int := 3;
+      STATE_4_SET : Int := 4;
+      STATE_5_GET : Int := 5;
+      STATE_6_DELAY : Int := 6;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.2 | 2025-08-01 | cyanezf | Added bufferOffset input because each CPU has different address.<br>Added loaded to know IP was loaded |
+| v1.1 | 2025-06-10 | cyanezf | Refactor to scl |
+| v1.0 | 2025-03-24 | cyanezf | First version |
+
+## Description
+Set ip, mask, router according to given data
+
+--*)
+	
+	
+	REGION Check configuration change
+	  
+	  #ipOk := #network.ip.ADDR[1] = #currentData.ip.ADDR[1] AND
+	  #network.ip.ADDR[2] = #currentData.ip.ADDR[2] AND
+	  #network.ip.ADDR[3] = #currentData.ip.ADDR[3] AND
+	  #network.ip.ADDR[4] = #currentData.ip.ADDR[4];
+	  
+	  #maskOk := #network.mask.ADDR[1] = #currentData.mask.ADDR[1] AND
+	  #network.mask.ADDR[2] = #currentData.mask.ADDR[2] AND
+	  #network.mask.ADDR[3] = #currentData.mask.ADDR[3] AND
+	  #network.mask.ADDR[4] = #currentData.mask.ADDR[4];
+	  
+	  #routerOk := #network.router.ADDR[1] = #currentData.router.ADDR[1] AND
+	  #network.router.ADDR[2] = #currentData.router.ADDR[2] AND
+	  #network.router.ADDR[3] = #currentData.router.ADDR[3] AND
+	  #network.router.ADDR[4] = #currentData.router.ADDR[4];
+	  
+	  #forcePulse := #forceSet AND NOT #private.forceSet;
+	  #private.forceSet := #forceSet;
+	  
+	END_REGION
+	
+	REGION State 0: Wait
+	  
+	  IF #state = #STATE_0_WAIT THEN
+	    
+	    // Transition
+	    IF NOT #ipOk OR NOT #maskOk OR NOT #routerOk THEN
+	      #get.REQ := 1;
+	      #state := #STATE_1_GET;
+	      
+	    ELSIF #forcePulse THEN
+	      #set.Req := 1;
+	      #state := #STATE_3_LOAD;
+	      
+	    END_IF;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION State 2: Check and compare data
+	  
+	  IF #state = #STATE_2_CHECK THEN
+	    
+	    #loaded := false;
+	    
+	    // Transition
+	    IF #ipOk AND #maskOk AND #routerOk THEN
+	      #state := #STATE_6_DELAY;
+	      
+	    ELSE
+	      #state := #STATE_3_LOAD;
+	      
+	    END_IF;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Get IP, mask and router
+	  
+	  
+	  #get(ID := #Local_PNIO_IFCE,
+	       INDEX := 16#F841,
+	       MLEN := 0,
+	       RECORD := #buffer);
+	  #get.REQ := 0; // Reset request
+	  
+	  
+	  IF #get.VALID THEN
+	    
+	    #getDones += 1;
+	    
+	    // IP
+	    #currentData.ip.ADDR[1] := #buffer[#bufferOsset];
+	    #currentData.ip.ADDR[2] := #buffer[#bufferOsset + 1];
+	    #currentData.ip.ADDR[3] := #buffer[#bufferOsset + 2];
+	    #currentData.ip.ADDR[4] := #buffer[#bufferOsset + 3];
+	    // Mask
+	    #currentData.mask.ADDR[1] := #buffer[#bufferOsset + 4];
+	    #currentData.mask.ADDR[2] := #buffer[#bufferOsset + 5];
+	    #currentData.mask.ADDR[3] := #buffer[#bufferOsset + 6];
+	    #currentData.mask.ADDR[4] := #buffer[#bufferOsset + 7];
+	    // Router
+	    #currentData.router.ADDR[1] := #buffer[#bufferOsset + 8];
+	    #currentData.router.ADDR[2] := #buffer[#bufferOsset + 9];
+	    #currentData.router.ADDR[3] := #buffer[#bufferOsset + 10];
+	    #currentData.router.ADDR[4] := #buffer[#bufferOsset + 11];
+	    
+	    IF #state = #STATE_1_GET THEN
+	      #state := #STATE_2_CHECK;
+	      
+	    ELSIF #state = #STATE_5_GET THEN
+	      #loaded := true;
+	      #state := #STATE_6_DELAY;
+	    END_IF;
+	    
+	  ELSIF #get.ERROR THEN
+	    
+	    #getErrors += 1;
+	    #state := #STATE_6_DELAY;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION State 3: Load
+	  
+	  IF #state = #STATE_3_LOAD THEN
+	    
+	    #newData.header.FieldType := 0;
+	    #newData.header.FieldId := 0;
+	    #newData.header.SubfieldCount := 1;
+	    
+	    #newData.ipv4.Id := 30;
+	    #newData.ipv4.Length := 18;
+	    #newData.ipv4.Mode := 2;
+	    
+	    #newData.ipv4.InterfaceAddress.ADDR[1] := #network.ip.ADDR[1];
+	    #newData.ipv4.InterfaceAddress.ADDR[2] := #network.ip.ADDR[2];
+	    #newData.ipv4.InterfaceAddress.ADDR[3] := #network.ip.ADDR[3];
+	    #newData.ipv4.InterfaceAddress.ADDR[4] := #network.ip.ADDR[4];
+	    
+	    #newData.ipv4.SubnetMask.ADDR[1] := #network.mask.ADDR[1];
+	    #newData.ipv4.SubnetMask.ADDR[2] := #network.mask.ADDR[2];
+	    #newData.ipv4.SubnetMask.ADDR[3] := #network.mask.ADDR[3];
+	    #newData.ipv4.SubnetMask.ADDR[4] := #network.mask.ADDR[4];
+	    
+	    #newData.ipv4.DefaultRouter.ADDR[1] := #network.router.ADDR[1];
+	    #newData.ipv4.DefaultRouter.ADDR[2] := #network.router.ADDR[2];
+	    #newData.ipv4.DefaultRouter.ADDR[3] := #network.router.ADDR[3];
+	    #newData.ipv4.DefaultRouter.ADDR[4] := #network.router.ADDR[4];
+	    
+	    // Request
+	    #set.Req := 1;
+	    #state := #STATE_4_SET;
+	    
+	  END_IF;
+	  
+	  
+	  #set(Interface := #Local_PNIO_IFCE,
+	       Conf_Data := #newData);
+	  #set.Req := 0; // Reset request
+	  
+	  IF #set.Done THEN
+	    
+	    #get.REQ := 1; // Set request
+	    #setDones += 1;
+	    #state := #STATE_5_GET;
+	    
+	  ELSIF #set.Error THEN
+	    
+	    #setErrors += 1;
+	    #state := #STATE_6_DELAY;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION State 6: Delay
+	  
+	  IF #state = #STATE_6_DELAY THEN
+	    
+	    #private.delayTon(IN := 1,
+	                      PT := t#1s);
+	    
+	    IF #private.delayTon.Q THEN
+	      RESET_TIMER(TIMER := #private.delayTon);
+	      #state := #STATE_0_WAIT;
+	    END_IF;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Save RLO
+	  
+	  ENO := true;
+	  
+	END_REGION
+	
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,160 @@
+﻿FUNCTION_BLOCK "_calculatePositionAndVelocity"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/util'
+NAME : _calculatePositionAndVelocity
+VERSION : 1.0
+
+   VAR_INPUT 
+      pulses { ExternalWritable := 'False'} : DInt;   // IR: Delta pulses this scan cycle [pulses]
+      pulsesPerUnit { ExternalWritable := 'False'} : Real;   // IR: Scale factor [pulses/U] (> 0)
+      preset { ExternalWritable := 'False'} : Bool;   // IR: FP=Sets position to presetValue
+      presetValue { ExternalWritable := 'False'} : Real;   // IR: Position value to load on preset [U]
+      isRunning { ExternalWritable := 'False'} : Bool;   // IR: 1=Motor drive is active
+      invertDirection { ExternalWritable := 'False'} : Bool;   // IR: 1=Invert encoder direction (encoder mounted reversed)
+      windowTime { ExternalWritable := 'False'} : Real;   // IR: Velocity averaging window [s] (> 0)
+      cycleTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // IX: Actual scan-cycle time [s] (> 0, 0 if CPU STOP)
+   END_VAR
+
+   VAR_OUTPUT 
+      position { ExternalWritable := 'False'} : Real;   // OR: Accumulated position [U]
+      velocity { ExternalWritable := 'False'} : Real;   // OR: Velocity estimate [U/s]
+      direction { ExternalWritable := 'False'} : Real;   // OR: +1.0=forward, 0.0=stopped, -1.0=backward
+      moving { ExternalWritable := 'False'} : Bool;   // OR: 1=Pulses received this cycle
+      presetDone { ExternalWritable := 'False'} : Bool;   // OR: FP=One cycle TRUE after preset applied
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         fp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Edge detection for preset input
+         windowPulseAccumulator { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Pulse accumulator for current window [pulses]
+         windowTimeAccumulator { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Time accumulator for current window [s]
+         lastWindowPulses { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Pulses from last completed window [pulses]
+         lastWindowTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Duration of last completed window [s]
+         lastDirection { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Last known non-zero direction [+1.0/0.0/-1.0]
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      deltaPosition : Real;
+      presetPulse : Bool;
+      effectivePulses : DInt;   // Pulses after direction inversion [pulses]
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-03-10 | cyanezf | First version |
+	
+## Description
+
+This function calculates position and velocity from incremental encoder pulses, 
+with support for direction inversion, presetting position, and velocity averaging over a time window. 
+It is designed for use in motion control applications where accurate tracking of position and velocity is required.
+
+--*)
+
+	  REGION Cyclical
+	
+	    // Apply direction inversion
+	    IF #invertDirection THEN
+	      #effectivePulses := -#pulses;
+	    ELSE
+	      #effectivePulses := #pulses;
+	    END_IF;
+	    
+	    IF #pulsesPerUnit > 0.0 THEN
+	      #deltaPosition := DINT_TO_REAL(#effectivePulses) / #pulsesPerUnit;
+	    ELSE
+	      #deltaPosition := 0.0;
+	    END_IF;
+	
+	  END_REGION
+	
+	  REGION Preset
+	    // 1. Detect preset rising edge
+	    #presetPulse := #preset AND NOT #private.fp;
+	    #private.fp := #preset;
+	    
+	    IF #presetPulse THEN
+	      // Load reference position
+	      #position := #presetValue;
+	      // Reset window state - position jump invalidates in-progress window
+	      #private.windowPulseAccumulator := 0;
+	      #private.windowTimeAccumulator := 0.0;
+	      #private.lastWindowPulses := 0;
+	      #private.lastWindowTime := 0.0;
+	    ELSE
+	      #position += #deltaPosition;
+	    END_IF;
+	    #presetDone := #presetPulse;
+	  END_REGION
+	
+	  REGION Velocity window
+	    IF #isRunning AND #cycleTime > 0.0 AND #windowTime > 0.0 THEN
+	      // Accumulate pulses and time into current window
+	      #private.windowPulseAccumulator += #effectivePulses;
+	      #private.windowTimeAccumulator += #cycleTime;
+	      
+	      // Window complete - latch results and reset for next window
+	      IF #private.windowTimeAccumulator >= #windowTime THEN
+	        #private.lastWindowPulses := #private.windowPulseAccumulator;
+	        #private.lastWindowTime := #private.windowTimeAccumulator;
+	        #private.windowPulseAccumulator := 0;
+	        #private.windowTimeAccumulator := 0.0;
+	      END_IF;
+	
+	    ELSE
+	      // Motor stopped or invalid inputs - clear all window state immediately
+	      #private.windowPulseAccumulator := 0;
+	      #private.windowTimeAccumulator := 0.0;
+	      #private.lastWindowPulses := 0;
+	      #private.lastWindowTime := 0.0;
+	      #private.lastDirection := 0.0;
+	    END_IF;
+	  END_REGION
+	
+	  REGION Outputs
+	    // Velocity [U/s]
+	    (*
+	                      âˆ‘ Î” pulses in window
+	     velocity [U/s] = --------------------------
+	                      T windows x pulsesPerUnit
+	    *) 
+	    IF #isRunning AND
+	      #private.lastWindowTime > 0.0 AND
+	      #private.lastWindowPulses <> 0 AND
+	      #pulsesPerUnit > 0.0 THEN
+	      #velocity := DINT_TO_REAL(#private.lastWindowPulses) / (#private.lastWindowTime * #pulsesPerUnit);
+	    ELSE
+	      #velocity := 0.0;
+	    END_IF;
+	
+	    // Direction
+	    IF NOT #isRunning THEN
+	      #direction := 0.0;
+	    ELSIF #private.lastWindowPulses > 0 THEN
+	      #direction := #private.lastDirection := 1.0;
+	    ELSIF #private.lastWindowPulses < 0 THEN
+	      #direction := #private.lastDirection := -1.0;
+	    ELSE
+	      #direction := #private.lastDirection; // Maintain during in-progress window gap
+	    END_IF;
+	    
+	    // Moving
+	    // FALSE if motor stopped or last completed window had no pulses (encoder stalled)
+	    #moving := #isRunning AND #private.lastWindowPulses <> 0;
+	
+	  END_REGION
+	
+	  // Save RLO
+	  ENO := TRUE;
+	
+END_FUNCTION_BLOCK
+

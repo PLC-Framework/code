@@ -1,0 +1,22 @@
+﻿TYPE "nodeLinkSourceToDest"
+TITLE = {"version":"v1.1","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.1 | 2023-10-20 | cyanezf | `shortCycle` added |
+//| v1.0 | 2023-10-19 | cyanezf | First version |
+// 
+//## Description
+//Node link - source to destination
+//--*)
+
+   STRUCT
+      transferring : Bool;   // 1=Transferring object
+      shortCycle : Bool;   // 1=Short cycle
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,46 @@
+﻿FUNCTION "_checkLimits" : LReal
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/util'
+NAME : _checkLimits
+VERSION : 1.1
+
+   VAR_INPUT 
+      minValue : LReal;   // Min. value
+      maxValue : LReal;   // Max. value
+      value : LReal;   // Proposal value
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-06-17 | cyanezf | refactor: Change REAL to LREAL  |
+| v1.0 | 2026-05-07 | cyanezf | First version |
+  
+## Description
+
+This function checks value is between min and max, and return the limited value
+
+--*)
+	
+	IF #value > #maxValue THEN
+	  #_checkLimits := #maxValue;
+	  
+	ELSIF #value < #minValue THEN
+	  #_checkLimits := #minValue;
+	  
+	ELSE
+	  #_checkLimits := #value;
+	  
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+
+END_FUNCTION

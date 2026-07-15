@@ -1,0 +1,23 @@
+﻿TYPE "alarmTraceGroupLevel"
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/alarm/trace/group","status": "current", "deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v2.0 | 2025-07-24 | cyanezf | Triggered changes to UINT |
+//| v1.0 | 2025-02-01 | cyanezf | First version |
+// 
+//## Description
+//Alarm trace group level
+//--*)
+
+   STRUCT
+      object : UInt;   // 0=No object; 1..N=Object id
+      id : Int;   // 0x0000=No alarm, 0xHHHH=Some alarm
+      triggered : UInt;   // N=Some alarm triggered
+      collector : UInt;   // Alarm collector
+   END_STRUCT;
+
+END_TYPE

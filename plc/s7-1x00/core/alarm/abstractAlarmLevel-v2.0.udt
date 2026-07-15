@@ -1,0 +1,55 @@
+﻿TYPE "abstractAlarmLevel"
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/alarm","status":"current", "deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v2.0 | 2025-07-24 | cyanezf | Triggered changes to UINT |
+//| v1.0 | 2025-02-01 | cyanezf | First version |
+// 
+//## Description
+//Abstract alarm level data pattern
+//--*)
+
+   STRUCT
+      triggered : UInt;   // N=Some alarm triggered
+      id : Int;   // 0x0000=No alarm, 0xHHHH=Some alarm present
+      map : Array[0..1] of Int;   // Alarm bit mapped as integer
+      a00 : Bool;   // 1=Alarm bit triggered
+      a01 : Bool;   // 1=Alarm bit triggered
+      a02 : Bool;   // 1=Alarm bit triggered
+      a03 : Bool;   // 1=Alarm bit triggered
+      a04 : Bool;   // 1=Alarm bit triggered
+      a05 : Bool;   // 1=Alarm bit triggered
+      a06 : Bool;   // 1=Alarm bit triggered
+      a07 : Bool;   // 1=Alarm bit triggered
+      a08 : Bool;   // 1=Alarm bit triggered
+      a09 : Bool;   // 1=Alarm bit triggered
+      a10 : Bool;   // 1=Alarm bit triggered
+      a11 : Bool;   // 1=Alarm bit triggered
+      a12 : Bool;   // 1=Alarm bit triggered
+      a13 : Bool;   // 1=Alarm bit triggered
+      a14 : Bool;   // 1=Alarm bit triggered
+      a15 : Bool;   // 1=Alarm bit triggered
+      a16 : Bool;   // 1=Alarm bit triggered
+      a17 : Bool;   // 1=Alarm bit triggered
+      a18 : Bool;   // 1=Alarm bit triggered
+      a19 : Bool;   // 1=Alarm bit triggered
+      a20 : Bool;   // 1=Alarm bit triggered
+      a21 : Bool;   // 1=Alarm bit triggered
+      a22 : Bool;   // 1=Alarm bit triggered
+      a23 : Bool;   // 1=Alarm bit triggered
+      a24 : Bool;   // 1=Alarm bit triggered
+      a25 : Bool;   // 1=Alarm bit triggered
+      a26 : Bool;   // 1=Alarm bit triggered
+      a27 : Bool;   // 1=Alarm bit triggered
+      a28 : Bool;   // 1=Alarm bit triggered
+      a29 : Bool;   // 1=Alarm bit triggered
+      a30 : Bool;   // 1=Alarm bit triggered
+      a31 : Bool;   // 1=Alarm bit triggered
+   END_STRUCT;
+
+END_TYPE
+

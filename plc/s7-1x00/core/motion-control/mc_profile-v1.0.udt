@@ -1,0 +1,27 @@
+﻿TYPE "mc_profile"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-06-17 | cyanezf | First version |
+// 
+//## Description
+//Type for motion control profile
+//--*)
+
+   STRUCT
+      position : LReal := 0.0;   // Setpoint position
+      velocity : LReal := 0.0;   // Setpoint velocity
+      acceleration : LReal := -1.0;   // Setpoint acceleration
+      deceleration : LReal := -1.0;   // Setpoint deceleration
+      jerk : LReal := -1.0;   // Setpoint jerk
+      torqueMode : Int := 0;   // Torque mode, 0=Disabled; 10=Torque range; 20=Torque/force limiting; 21=Fixed stop limiting
+      torqueUpperLimit : LReal := 0.0;   // Torque upper limit in mode 1, Torque limit in mode 2
+      torqueLowerLimit : LReal := 0.0;   // Torque lower limit in mode 1
+   END_STRUCT;
+
+END_TYPE
+

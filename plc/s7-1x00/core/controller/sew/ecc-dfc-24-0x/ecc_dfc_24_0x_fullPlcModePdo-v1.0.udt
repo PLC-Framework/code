@@ -1,0 +1,137 @@
+﻿TYPE "ecc_dfc_24_0x_fullPlcModePdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/sew/ecc-dfc-24-0x","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-01 | cyanezf | First version |
+//
+//## Description
+//This data type is used to set data to ECC-DFC-24-0X.
+//
+//--*)
+
+   STRUCT
+      conveyStopControl : Word;   // 0.0: ConveyStopControl - 0x01: Fieldbus controller is given the status stop; 0x02=Stop status is reset for the fieldbus controller (transition 0x00->0x02 is needed)
+      left_mdrAsDIO : Struct   // 2.0: Left MDR as DIO
+         x0 : Bool;   // 2.0
+         x1 : Bool;   // 2.1
+         x2 : Bool;   // 2.2
+         x3 : Bool;   // 2.3
+         x4 : Bool;   // 2.4
+         x5 : Bool;   // 2.5
+         x6 : Bool;   // 2.6
+         setMotDIO : Bool;   // 2.7: Changeover of PIn3/4 of the motor port as a digital output; 0=Deactivate; 1=Activate
+         x8 : Bool;   // 3.0
+         drivePin4 : Bool;   // 3.1: Set/reset digital output PIN4; 0=Reset; 1=Set
+         drivePin3 : Bool;   // 3.2: Set/reset digital output PIN3; 0=Reset; 1=Set
+         xB : Bool;   // 3.3
+         xC : Bool;   // 3.4
+         xD : Bool;   // 3.5
+         xE : Bool;   // 3.6
+         xF : Bool;   // 3.7
+      END_STRUCT;
+      right_mdrAsDIO : Struct   // 4.0: Right MDR as DIO
+         x0 : Bool;   // 4.0
+         x1 : Bool;   // 4.1
+         x2 : Bool;   // 4.2
+         x3 : Bool;   // 4.3
+         x4 : Bool;   // 4.4
+         x5 : Bool;   // 4.5
+         x6 : Bool;   // 4.6
+         setMotDIO : Bool;   // 4.7: Changeover of PIn3/4 of the motor port as a digital output; 0=Deactivate; 1=Activate
+         x8 : Bool;   // 5.0
+         drivePin4 : Bool;   // 5.1: Set/reset digital output PIN4; 0=Reset; 1=Set
+         drivePin3 : Bool;   // 5.2: Set/reset digital output PIN3; 0=Reset; 1=Set
+         xB : Bool;   // 5.3
+         xC : Bool;   // 5.4
+         xD : Bool;   // 5.5
+         xE : Bool;   // 5.6
+         xF : Bool;   // 5.7
+      END_STRUCT;
+      sensorPortsDO : Struct   // 6.0: Sensor Ports DO
+         b0 : Byte;   // 6.0
+         driveLeftPin2 : Bool;   // 7.0: Set/reset left sensor port digital output; 0=Reset; 1=Set
+         driveRightPin2 : Bool;   // 7.1: Set/reset right sensor port digital output; 0=Reset; 1=Set
+         xA : Bool;   // 7.2
+         xB : Bool;   // 7.3
+         xC : Bool;   // 7.4
+         setLeftPin2asDO : Bool;   // 7.5: Changeover of the left sensor port PIN2 as a digital output; 0=PIN2 as DI; 1=PIN2 as DO
+         setRightPin2asDO : Bool;   // 7.6: Changeover of the right sensor port PIN2 as a digital output; 0=PIN2 as DI; 1=PIN2 as DO
+         xF : Bool;   // 7.7
+      END_STRUCT;
+      left_mdrControl : Struct   // 8.0: Left MDR control
+         mdrDirection : Bool;   // 8.0: Changeover of direction of rotation; 0=Default direction; 1=Counter-clockwise
+         x1 : Bool;   // 8.1
+         x2 : Bool;   // 8.2
+         x3 : Bool;   // 8.3
+         x4 : Bool;   // 8.4
+         x5 : Bool;   // 8.5
+         x6 : Bool;   // 8.6
+         x7 : Bool;   // 8.7
+         runMdr : Bool;   // 9.0: Enabling of motor; 0=Stop; 1=Release
+         x9 : Bool;   // 9.1
+         xA : Bool;   // 9.2
+         xB : Bool;   // 9.3
+         xC : Bool;   // 9.4
+         xD : Bool;   // 9.5
+         xE : Bool;   // 9.6
+         xF : Bool;   // 9.7
+      END_STRUCT;
+      left_brakeMode : Word;   // 10.0: Left brake mode;Behavior of drive; 0x01=Standard brake ramp; 0x02=Coasting; 0x03=Servo brake
+      w12 : Word;   // 12.0
+      right_mdrControl : Struct   // 14.0: Right MDR control
+         mdrDirection : Bool;   // 14.0: Changeover of direction of rotation; 0=Default direction; 1=Counter-clockwise
+         x1 : Bool;   // 14.1
+         x2 : Bool;   // 14.2
+         x3 : Bool;   // 14.3
+         x4 : Bool;   // 14.4
+         x5 : Bool;   // 14.5
+         x6 : Bool;   // 14.6
+         x7 : Bool;   // 14.7
+         runMdr : Bool;   // 15.0: Enabling of motor; 0=Stop; 1=Release
+         x9 : Bool;   // 15.1
+         xA : Bool;   // 15.2
+         xB : Bool;   // 15.3
+         xC : Bool;   // 15.4
+         xD : Bool;   // 15.5
+         xE : Bool;   // 15.6
+         xF : Bool;   // 15.7
+      END_STRUCT;
+      right_brakeMode : Word;   // 16.0: Left brake mode; Behavior of drive; 0x01=Standard brake ramp; 0x02=Coasting; 0x03=Servo brake
+      w18 : Word;   // 18.0
+      left_mdrSpeed : Int;   // 20.0: Speed/rotational speed of left drive: ECR=[m/s]x1000; ECG=[rpm]x10
+      right_mdrSpeed : Int;   // 22.0: Speed/rotational speed of right drive: ECR=[m/s]x1000; ECG=[rpm]x10
+      left_mdrAcceleration : Int;   // 24.0: Acceleration of the left drive: ECR=mm; ECG=inc.
+      left_mdrDeceleration : Int;   // 26.0: Deleration of the left drive: ECR=mm; ECG=inc.
+      right_mdrAcceleration : Int;   // 28.0: Acceleration of the right drive: ECR=mm; ECG=inc.
+      right_mdrDeceleration : Int;   // 30.0: Deleration of the right drive: ECR=mm; ECG=inc.
+      clearMdrError : Word;   // 32.0: Fault reset; 0x01=Reset
+      statusToDownstream : Word;   // 34.0: ZPA mode; 0x01=Confirmation; 0x04=Wakeup for next zone
+      statusToUpstream : Word;   // 36.0: ZPA mode; 0x01=Cancel jam; 0x05=Jam command
+      sensorPolarity : Struct   // 38.0: Sensor polarity
+         b0 : Byte;   // 38.0
+         leftPin2 : Bool;   // 39.0: Inversion of left sensor port PIN2; 0=Default; 1=Invert DI
+         x9 : Bool;   // 39.1
+         rightPin2 : Bool;   // 39.2: Inversion of right sensor port PIN2; 0=Default; 1=Invert DI
+         xB : Bool;   // 39.3
+         leftPin4 : Bool;   // 39.4: Inversion of left sensor port PIN4; 0=Default; 1=Invert DI
+         xD : Bool;   // 39.5
+         rightPin4 : Bool;   // 39.6: Inversion of right sensor port PIN4; 0=Default; 1=Invert DI
+         xF : Bool;   // 39.7
+      END_STRUCT;
+      trackingToDownstream : DWord;   // 40.0: Tracking to down stram
+      w44 : Word;   // 44.0
+      left_servoControlPosition : DInt;   // 46.0: Target position value for left motor, absolute incremental value
+      left_servoControlCommand : Word;   // 50.0: Control word for positioning of left motor; 0x01=Referencing, ServoDistance = set 0; 0x02=Move to setpoint position in ServoControlDistance
+      right_servoControlPosition : DInt;   // 52.0: Target position value for right motor, absolute incremental value
+      right_servoControlCommand : Word;   // 56.0: Control word for positioning of right motor; 0x01=Referencing, ServoDistance = set 0; 0x02=Move to setpoint position in ServoControlDistance
+      w58 : Word;   // 58.0
+      w60 : Word;   // 60.0
+      w62 : Word;   // 62.0
+   END_STRUCT;
+
+END_TYPE
+

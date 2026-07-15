@@ -1,0 +1,113 @@
+﻿FUNCTION_BLOCK "_monitor2PosPhysicalKeyWith2NonEquivalentChannels"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _monitor2PosPhysicalKeyWith2NonEquivalentChannels
+VERSION : 1.0
+
+   VAR_INPUT 
+      DI_no { ExternalWritable := 'False'} : Bool;   // IR: Normally open digital input
+      DI_nc { ExternalWritable := 'False'} : Bool;   // IR: Normally closed digital input
+      discrepancyTime { ExternalWritable := 'False'} : Time := T#500MS;   // IR: Discrepancy time
+   END_VAR
+
+   VAR_OUTPUT 
+      Q { ExternalWritable := 'False'} : Bool;   // OR: 0=Off; 1=On
+      changing { ExternalWritable := 'False'} : Bool;   // OR: 1=Changing
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Discrepancy error
+      status { ExternalWritable := 'False'} : Int;   // OR: 0=Off; 1=On; 2=Changing; 0x8000=Discrepancy error
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         discrepancyTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      on : Bool;
+      off : Bool;
+      no_no : Bool;
+      nc_nc : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0000_OFF : Int := 0;
+      STATUS_0001_ON : Int := 1;
+      STATUS_0002_CHANGING : Int := 2;
+      STATUS_8000_DISCREPANCY_NO_NO : Int := 16#8000;
+      STATUS_8001_DISCREPANCY_NC_NC : Int := 16#8001;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-02 | cyanezf | First version |
+
+## Description
+
+This function monitors a two-position physical key with two non-equivalent channels.
+
+## Channels
+
+| DI_no | DI_nc | decription |
+|:-----:|:-----:|:-----------|
+| 0 | 0 | Discrepancy error NO-NO |
+| 0 | 1 | Key in position 0 - OFF |
+| 1 | 0 | Key in position 1 - ON |
+| 1 | 1 | Discrepancy error NC-NC |
+
+## Status
+
+| RLO | int | constant | description |
+|:---:|:---:|:---------|:------------|
+| 1 | 0 | STATUS_0000_OFF | Key in position 0 - OFF |
+| 1 | 1 | STATUS_0001_ON | Key in position 1 - ON |
+| 1 | 2 | STATUS_0002_CHANGING | Key is changing position |
+| 0 | 0x8000 | STATUS_8000_DISCREPANCY_NO_NO | Discrepancy error NO-NO |
+| 0 | 0x8001 | STATUS_8001_DISCREPANCY_NC_NC | Discrepancy error NC-NC |
+
+--*)
+	
+	// Check sensors
+	#off := NOT #DI_no AND #DI_nc;
+	#Q := #on := #DI_no AND NOT #DI_nc;
+	#no_no := NOT #DI_no AND NOT #DI_nc;
+	#nc_nc := #DI_no AND #DI_nc;
+	#changing := #no_no OR #nc_nc;
+	
+	// Check discrepancy
+	#private.discrepancyTon(IN := #changing,
+	                        PT := #discrepancyTime,
+	                        Q => #error);
+	
+	// Update status
+	IF #error AND #no_no THEN
+	  #status := #STATUS_8000_DISCREPANCY_NO_NO;
+	  
+	ELSIF #error AND #nc_nc THEN
+	  #status := #STATUS_8001_DISCREPANCY_NC_NC;
+	  
+	ELSIF #changing THEN
+	  #status := #STATUS_0002_CHANGING;
+	  
+	ELSIF #on THEN
+	  #status := #STATUS_0001_ON;
+	  
+	ELSE
+	  #status := #STATUS_0000_OFF;
+	  
+	END_IF;
+	
+	// Save RLO
+	ENO := #status = #STATUS_0001_ON OR #status = #STATUS_0000_OFF;
+	
+END_FUNCTION_BLOCK
+

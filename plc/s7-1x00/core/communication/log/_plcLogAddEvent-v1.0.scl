@@ -1,0 +1,318 @@
+﻿FUNCTION "_plcLogAddEvent" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["plcLogBuffer-v1.0", "queueInstanceAttributes-v3.0", "_queue-v3.0", "_replaceCharInString-v1.0", "_dtlToString-v1.3"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/log'
+NAME : _plcLogAddEvent
+VERSION : 1.0
+
+   VAR_INPUT 
+      addNewLine : Bool;   // 0=No; 1=Add new line chars (CR + LF)
+      eventDataLength : UDInt;   // Event data length
+   END_VAR
+
+   VAR_IN_OUT 
+      eventData : Array[*] of Byte;   // Evant data to add in logger
+      bufferData : Array[*] of Byte;   // Dummy parameter to calculate buffer length
+      buffer : "plcLogBuffer";   // Log buffer
+      queue : "queueInstanceAttributes";   // Log queue
+      records : Array[*] of "plcLogBuffer";   // Log data array
+      datetime {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Datetime
+   END_VAR
+
+   VAR_TEMP 
+      totalLength : UDInt;
+      partLength : UDInt;
+      index : DInt;
+      parts : UDInt;
+      rest : UDInt;
+      bufferOffset : UDInt;
+      eventDataPartLength : UDInt;
+      eventDataPartOffset : UDInt;
+      stringify : Struct
+         totalLength : String[5];
+         partLength : String[3];
+         parts : String[4];
+         index : String[4];
+         datetime : String[17];
+      END_STRUCT;
+      status : Int;
+      isFirst : Bool;
+      isLast : Bool;
+      withRest : Bool;
+      bufferLength : UDInt;
+   END_VAR
+
+   VAR CONSTANT 
+      MIN_BUFFER_LENGTH : UDInt := 40;   // Min. buffer length is 40 bytes because metadata = 35 bytes
+      METADATA_LENGTH : UDInt := 17;   // 1234512312341234;
+      DATETIME_LENGTH : UDInt := 18;   // YYYYMMDDHHMMSSLLL;
+      END_LENGTH : UDInt := 2;   // CR  + LF
+      QUEUE_CMD_10_ENQUEUE : Int := 10;   // Command 10: Add dato to last position
+      QUEUE_CMD_11_DEQUEUE : Int := 11;   // Command 11: Remove data from first position
+      QUEUE_STATUS_0000_DONE : Int := 16#0000;   // Status: Done
+      CR : Byte := '$R';
+      LF : Byte := '$L';
+      FORMAT_3_SERIALIZED_DAT : USInt := 3;   // Serialized date and time: yyyymmddhhmmss[000[000[000]]]
+      SUB_1_MS : USInt := 1;   // Add millis [000]
+   END_VAR
+
+
+BEGIN
+	
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-31 | cyanezf | First version |
+
+## Description
+
+This function add an evento to Log.
+
+## Message fragmentation
+
+The log buffer is 400 bytes, each log fragment contains 17 bytes of metadata, 
+and the first log fragment contains 18 bytes with the message timestamp.
+
+If the event data exceeds 365 bytes, it is fragmented into multiple parts.
+
+What does this achieve?
+
+Logging libraries are agnostic to the length of the event data because the information is
+queued in segments and then sent to the client, which is responsible for reconstructing the message.
+
+## Header in all messages
+
+| Field | Offset | Data  | Description    |
+| ----- | ------ | ----- | -------------- |
+|     1 | [0:4]  | 12345 | totalLength[5] |
+|     2 | [5:7]  |   123 | partLength[3]  |
+|     3 | [8:11] |  1234 | parts[4]       |
+|     4 | [12:15]|  1234 | index[4]       |
+|     5 | [16]   |     ; |                |
+
+## Datetime in first part
+
+| Field | Offset  | Data              | Description  |
+| ----- | ------- | ----------------- | ------------ |
+|     6 | [17:33] | yyyymmddhhmmsslll | datetime[17] |
+|     7 | [34]    |                 ; |              |
+
+--*)
+	
+	REGION Get buffer length
+	  
+	  #bufferLength := DINT_TO_UDINT(UPPER_BOUND(ARR := #bufferData, DIM := 1) - LOWER_BOUND(ARR := #bufferData, DIM := 1) + 1);
+	  
+	  IF #bufferLength < #MIN_BUFFER_LENGTH THEN
+	    ENO := false;
+	    RETURN;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Calculate #data length AND parts
+	  
+	  #totalLength := #DATETIME_LENGTH + #eventDataLength;
+	  IF #addNewLine THEN #totalLength += #END_LENGTH; END_IF;
+	  
+	  #parts := #totalLength / (#bufferLength - #METADATA_LENGTH);
+	  
+	  #rest := #totalLength MOD (#bufferLength - #METADATA_LENGTH);
+	  #withRest := #rest > 0;
+	  
+	  IF #withRest THEN #parts += 1; END_IF;
+	  
+	  // Return if no data to be sent
+	  IF #parts <= 0 THEN
+	    ENO := FALSE;
+	    RETURN;
+	  END_IF;
+	  
+	  #totalLength += #METADATA_LENGTH * #parts;
+	  
+	END_REGION
+	
+	REGION Stringify common data
+	  
+	  // Field 1: totalLength
+	  VAL_STRG(IN := #totalLength,
+	           SIZE := 5,
+	           PREC := 0,
+	           FORMAT := 0,
+	           P := 1,
+	           OUT => #stringify.totalLength);
+	  
+	  "_replaceCharInString"(find := ' ',
+	                         replace := '0',
+	                         value := #stringify.totalLength);
+	  // Field 3: parts
+	  VAL_STRG(IN := #parts,
+	           SIZE := 4,
+	           PREC := 0,
+	           FORMAT := 0,
+	           P := 1,
+	           OUT => #stringify.parts);
+	  
+	  "_replaceCharInString"(find := ' ',
+	                         replace := '0',
+	                         value := #stringify.parts);
+	  // datetime
+	  #stringify.datetime:= "_dtlToString"(dat:=#datetime,
+	                                       format:=#FORMAT_3_SERIALIZED_DAT,
+	                                       submultiples:=#SUB_1_MS);
+	  
+	END_REGION
+	
+	REGION Split event
+	  
+	  #eventDataPartOffset := 0;
+	  
+	  FOR #index := 1 TO UDINT_TO_DINT(#parts) DO
+	    
+	    // Chec first and last parts
+	    #isFirst := #index <= 1;
+	    #isLast := #index >= UDINT_TO_DINT(#parts);
+	    
+	    REGION Release a position in FIFO
+	      IF #queue.isFull THEN
+	        #status := "_queue"(command := #QUEUE_CMD_11_DEQUEUE,
+	                            instance := #queue,
+	                            data := #records,
+	                            buffer := #buffer);
+	      END_IF;
+	    END_REGION
+	    
+	    REGION Calculate
+	      // Part length
+	      IF #isLast AND #withRest THEN
+	        #partLength := #rest + #METADATA_LENGTH;
+	      ELSE
+	        #partLength := #bufferLength;
+	      END_IF;
+	      
+	      REGION Stringify
+	        // Field 2: Strinigy part length
+	        VAL_STRG(IN := #partLength,
+	                 SIZE := 3,
+	                 PREC := 0,
+	                 FORMAT := 0,
+	                 P := 1,
+	                 OUT => #stringify.partLength);
+	        
+	        "_replaceCharInString"(find := ' ',
+	                               replace := '0',
+	                               value := #stringify.partLength);
+	        
+	        // Field 4: Index
+	        VAL_STRG(IN := #index,
+	                 SIZE := 4,
+	                 PREC := 0,
+	                 FORMAT := 0,
+	                 P := 1,
+	                 OUT => #stringify.index);
+	        
+	        "_replaceCharInString"(find := ' ',
+	                               replace := '0',
+	                               value := #stringify.index);
+	      END_REGION
+	    END_REGION
+	    
+	    REGION Build metadata
+	      // Total length
+	      #buffer.data[0] := #stringify.totalLength[1];
+	      #buffer.data[1] := #stringify.totalLength[2];
+	      #buffer.data[2] := #stringify.totalLength[3];
+	      #buffer.data[3] := #stringify.totalLength[4];
+	      #buffer.data[4] := #stringify.totalLength[5];
+	      // Part length
+	      #buffer.data[5] := #stringify.partLength[1];
+	      #buffer.data[6] := #stringify.partLength[2];
+	      #buffer.data[7] := #stringify.partLength[3];
+	      // Parts
+	      #buffer.data[8] := #stringify.parts[1];
+	      #buffer.data[9] := #stringify.parts[2];
+	      #buffer.data[10] := #stringify.parts[3];
+	      #buffer.data[11] := #stringify.parts[4];
+	      // Part | Index
+	      #buffer.data[12] := #stringify.index[1];
+	      #buffer.data[13] := #stringify.index[2];
+	      #buffer.data[14] := #stringify.index[3];
+	      #buffer.data[15] := #stringify.index[4];
+	      // Separator
+	      #buffer.data[16] := ';';
+	      // Next fields
+	      #bufferOffset := 17;
+	    END_REGION
+	    
+	    REGION Build datetime
+	      IF #isFirst THEN
+	        // Datetime
+	        #buffer.data[17] := #stringify.datetime[1]; // y
+	        #buffer.data[18] := #stringify.datetime[2]; // y
+	        #buffer.data[19] := #stringify.datetime[3]; // y
+	        #buffer.data[20] := #stringify.datetime[4]; // y
+	        #buffer.data[21] := #stringify.datetime[5]; // m
+	        #buffer.data[22] := #stringify.datetime[6]; // m
+	        #buffer.data[23] := #stringify.datetime[7]; // d
+	        #buffer.data[24] := #stringify.datetime[8]; // d
+	        #buffer.data[25] := #stringify.datetime[9]; // h
+	        #buffer.data[26] := #stringify.datetime[10]; // h
+	        #buffer.data[27] := #stringify.datetime[11]; // m
+	        #buffer.data[28] := #stringify.datetime[12]; // m
+	        #buffer.data[29] := #stringify.datetime[13]; // s
+	        #buffer.data[30] := #stringify.datetime[14]; // s
+	        #buffer.data[31] := #stringify.datetime[15]; // l
+	        #buffer.data[32] := #stringify.datetime[16]; // l
+	        #buffer.data[33] := #stringify.datetime[17]; // l
+	        // Separator
+	        #buffer.data[34] := ';';
+	        // Next fields
+	        #bufferOffset := 35;
+	      END_IF;
+	    END_REGION
+	    
+	    REGION Build event data
+	      
+	      #eventDataPartLength := #partLength - #bufferOffset;
+	      
+	      IF #isLast AND #withRest THEN
+	        #eventDataPartLength := #rest;
+	        IF #isFirst THEN
+	          #eventDataPartLength -= #DATETIME_LENGTH;
+	        END_IF;
+	      END_IF;
+	      
+	      // Add new line
+	      IF #isLast AND #addNewLine THEN
+	        #eventDataPartLength -= #END_LENGTH;
+	        #buffer.data[#bufferOffset + #eventDataPartLength] := '!'; //#CR;
+	        #buffer.data[#bufferOffset + #eventDataPartLength + 1] := '?'; //#LF;
+	      END_IF;
+	      
+	      MOVE_BLK(IN := #eventData[#eventDataPartOffset],
+	               COUNT := #eventDataPartLength,
+	               OUT => #buffer.data[#bufferOffset]);
+	      
+	      // Next event data part
+	      #eventDataPartOffset += #eventDataPartLength;
+	    END_REGION
+	    
+	    REGION Add event to queue
+	      #buffer.length := #partLength;
+	      #status := "_queue"(command := #QUEUE_CMD_10_ENQUEUE, instance := #queue, data := #records, buffer := #buffer);
+	    END_REGION
+	  END_FOR;
+	    
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+	
+END_FUNCTION
+

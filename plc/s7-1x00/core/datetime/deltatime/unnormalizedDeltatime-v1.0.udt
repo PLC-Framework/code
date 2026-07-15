@@ -1,0 +1,25 @@
+﻿TYPE "unnormalizedDeltatime"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/datetime/deltatime","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-06-17 | cyanezf | First version |
+//
+//## Description
+//Unnormalized deltatime
+//--*)
+
+   STRUCT
+      weeks : UDInt;   // All range weeks
+      days : UDInt;   // All range days
+      hours : UDInt;   // All range hours
+      minutes : UDInt;   // All range minutes
+      seconds : UDInt;   // All range seconds
+      nanoseconds : UDInt;   // All range nanoseconds
+   END_STRUCT;
+
+END_TYPE
+

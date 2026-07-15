@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="36"
+   height="36"
+   viewBox="0 0 9.5249998 9.5249999"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="a2w_36x36.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="22.627417"
+     inkscape:cx="14.539883"
+     inkscape:cy="16.285553"
+     inkscape:window-width="1856"
+     inkscape:window-height="897"
+     inkscape:window-x="54"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <pattern
+       id="EMFhbasepattern"
+       patternUnits="userSpaceOnUse"
+       width="6"
+       height="6"
+       x="0"
+       y="0" />
+    <pattern
+       id="EMFhbasepattern-8"
+       patternUnits="userSpaceOnUse"
+       width="6"
+       height="6"
+       x="0"
+       y="0" />
+  </defs>
+  <g
+     inkscape:label="Capa 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-100.0125,-60.060417)">
+    <path
+       sodipodi:type="star"
+       style="fill:#ff8000;fill-opacity:1;stroke-width:0.793999"
+       id="path1"
+       inkscape:flatsided="true"
+       sodipodi:sides="3"
+       sodipodi:cx="103.94818"
+       sodipodi:cy="61.978645"
+       sodipodi:r1="3.7006214"
+       sodipodi:r2="1.8503107"
+       sodipodi:arg1="0.5036263"
+       sodipodi:arg2="1.5508238"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 107.18933,63.764583 -6.40839,0.128008 3.09334,-5.613829 z"
+       inkscape:transform-center-x="0.0008903332"
+       inkscape:transform-center-y="-1.0179893"
+       transform="matrix(0.99979083,0.02252335,-0.02045236,1.1010289,2.117128,-4.7378955)" />
+    <rect
+       style="fill:#000000;stroke-width:0.915666"
+       id="rect1"
+       width="0.89957571"
+       height="0.68626302"
+       x="104.32522"
+       y="66.410416" />
+    <rect
+       style="fill:#000000;stroke-width:1.78948"
+       id="rect1-8"
+       width="0.89957571"
+       height="2.6210287"
+       x="104.32521"
+       y="63.615753" />
+  </g>
+</svg>

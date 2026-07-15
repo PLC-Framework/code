@@ -1,0 +1,79 @@
+﻿TYPE "TO_diagStatusErrorBits"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//TO Diagnostics status error bits
+//--*)
+
+   STRUCT
+      axisStatus { ExternalWritable := 'False'} : Struct   // ?R: Axis status values
+         simulationActive { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x25 (Axis simulation)) The axis is simulated in the CPU or used as the virtual axis. Setpoints are not output to the drive
+         enabled { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x0 (Enable)) TO has been enabled. You can move the axis with motion jobs
+         positionControlledMode { ExternalWritable := 'False'} : Bool;   // ?R: (NOT TO.StatusWord.x28 (NonPositionControlled)) Axis is in position-controlled mode
+         homed { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x5 (HomingDone)) TO is homed. The relation ship between the position in the TO and the mechanical position was successfully created
+         error { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x1 (Error)) An error occurred at the TO. Detailed information about the error is available in the "Error" area and in the TO.ErrorDetail.Number and TO.ErrorDetail.Reaction tags of the TO
+         restartActive { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x2 (RestartActive)) TO is reinitialized
+         axisControlPanelEnabled { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x4 (ControlPanelActive) The axis control panel is active. The axis control panel has master control over the TO. You cannot control the axis from the user program
+         driveReady { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusDrive.InOperation) Drive ir ready to execute setpoints
+         restartRequired { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x3 (OnlineStartValuesChanged) Data relevant for the restart has been changed. The changes are applied only after a restart of the TO
+         encoderValuesValid { ExternalWritable := 'False'} : DInt;   // ?R: (TO.StatusSensor[1..4].State) The actual encoder values of encoder 1, 2, 3 or 4 are valid
+         activeEncoder { ExternalWritable := 'False'} : UDInt;   // ?R: (TO.operativeSensor) The encoder in effect operationally is encoder 1, 2, 3 or 4
+         encoderValuesHomed { ExternalWritable := 'False'} : DInt;   // ?R: (TO.StatusSensor[1..4].Adjusted) Encoder 1, 2, 3 or 4 is homed with one of the followring homing types: Active, passive, absolute encoder, incremental encoder
+      END_STRUCT;
+
+      statusLimitSwitch { ExternalWritable := 'False'} : Struct   // ?R: Software and hardware limit switches
+         SW_negative_limitSwitchApproached { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x15 (SWLimitMinActive)) The negative software limit switch has been approached
+         SW_positive_limitSwitchApproached { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x16 (SWLimitMaxActive)) The negative software limit switch has been approached
+         HW_negative_limitSwitchApproached { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x17 (HWLimitMinActive)) The negative software limit switch has been approached or overtraveled
+         HW_positive_limitSwitchApproached { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x18 (HWLimitMaxActive)) The negative software limit switch has been approached or overtraveled
+      END_STRUCT;
+
+      motionStatus { ExternalWritable := 'False'} : Struct   // ?R: MotionStatus
+         done { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x6 (Done)) No job active at TO
+         homingJob { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x11 (HomingCommand)) TO executed a homing job from MC_Home or axis control panel
+         jogJob { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x9 (JogCommand)) The axis is being moved with a job for jog mode from MC_MoveJog
+         velocityJob { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x10 (VelocityCommand)) The axis is traversed with a job with velocity specification from MC_MoveVelocity or axis control panel
+         positioningJob { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x8 (PositioningCommand)) The axis is traversed with a positioning job from MC_MoveAbsolute, MC_MoveRelative or axis control panel
+         constantVelocity { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x12 (ConstantVelocity)) The axis is moved with constant velocity or is stationary
+         standstill { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.x7 (StandStill) The axis is at a standstill
+         accelerating { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.X13 (Accelerating)) Axis is being accelerated
+         decelerating { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.X14 (Decelerating)) Axis is being decelerated
+         torqueLimitActive { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.X27 (InLimitation)) At least the threshold value (Default 90%) of the preset force/torque limitation acts on the axis
+         activeStopJob { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord2.X0 (StopCommand)) The axis is stopped and disabled by MC_Stop
+         superimposedMotion { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusWord.X23 (MoveSuperimposedCommand) OR TO.StatusWord2.X6 (MotionInSuperimposedCommand) OR TO.StatusWord2.X7 (HaltSuperimposedCommand)) The motion of the axis is superimposed by at least one overlapping MC instruction
+      END_STRUCT;
+
+      warning { ExternalWritable := 'False'} : Struct   // ?R: Warnings
+         configuration { ExternalWritable := 'False'} : Bool;   // ?R: (TO.WarningWord.x1 (ConfigWarning)) One or more configuration parameters are being internally adapted temporarily
+         jobRejected { ExternalWritable := 'False'} : Bool;   // ?R: (TO.WarningWord.x3 (CommandNotAccepted)) Job cannot be executed. You cannot execute a MC because necessary requirements are not fulfilled
+         dynamicLimitation { ExternalWritable := 'False'} : Bool;   // ?R: (TO.WarningWord.x6 (DynamicWarning)) The dynamic values are limited to the dynamic limits
+      END_STRUCT;
+      
+      error { ExternalWritable := 'False'} : Struct   // ?R: Errors
+         system { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x0 (SystemFault)) A system-internal error has occured
+         configuration { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x1 (ConfigFault)) A configuration error has occurred. One or more configuration parameters are inconsistent or invalid. TO was incorrectly configured, or editable configuration data was incorrectly modified during runtime of the user program
+         userProgram { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x2 (UserFault)) An error occured in the user program with a MC or its use
+         drive { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x4 (DriveFault)) An error occured in the drive
+         encoder { ExternalWritable := 'False'} : Bool;   // ?R: (TO.StatusSensor[1..4].Error) An error has occurred in the conder system of encoder 1, 2, 3 or 4
+         dataExchange { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x7 (CommunicationFault)) Communication with a connected device is faulty
+         io { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x13 (PeripheralError)) An error occured accessing a logical address
+         jobRejected { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x3 (CommandNotAccepted)) A job cannot be executed. You cannot execute a Motion Control instruction because necessary requirements are not fulfilled (for example, technology object not homed).
+         homing { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x10 (HomingFault)) An error occurred during a homing process
+         positioning { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.x12 (PositioningFault)) The positioning axis was not positioned correctly at the end of a positioning motion
+         dynamicLimitation { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.X6 (DynamicError)) The dynamic values are limited to the dynamic limits
+         followingError { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.X11 (FollowingErrorFault)) The maximum permitted following error has been exceeded
+         SW_limitSwitch { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.X8 (SwLimit)) A software limit switch has been reached
+         HW_limitSwitch { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.X9 (HWLimit)) A hardware limit switch has been reached or overtraveled
+         adaptation { ExternalWritable := 'False'} : Bool;   // ?R: (TO.ErrorWord.X15 (AdaptionError)) An error occurred during data adaption
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

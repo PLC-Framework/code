@@ -1,0 +1,68 @@
+﻿FUNCTION "_getWeekday" : USInt
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/util'
+NAME : _getWeekday
+VERSION : 1.0
+
+   VAR_INPUT 
+      in {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Datetime in
+   END_VAR
+
+   VAR_TEMP 
+      century : UInt;
+      centuryYear : UInt;
+      year : UInt;
+      month : USInt;
+      day : USInt;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function checks the `year` and returns the day of the week.
+
+## Return
+
+| usint | description |
+|:---:|:------------|
+| 1 | Sunday |
+| 2 | Monday |
+| 3 | Tuesday |
+| 4 | Wednesday |
+| 5 | Thursday |
+| 6 | Friday |
+| 7 | Saturday |
+
+--*)
+	
+	// Copy data
+	#year := #in.YEAR;
+	#month := #in.MONTH;
+	#day := #in.DAY;
+	
+	// Check month is january or february
+	IF #month < 3 THEN
+	  #month += 12; // 13, 14
+	  #year -= 1; // year - 1
+	END_IF;
+	
+	#century := #year / 100;
+	#centuryYear := #year MOD 100;
+	
+	#_getWeekday := UINT_TO_USINT(#day + 13 * (#month + 1) / 5 + #centuryYear + #centuryYear / 4 + #century / 4 + 5 * #century) MOD 7;
+	ENO := true;
+	
+END_FUNCTION
+

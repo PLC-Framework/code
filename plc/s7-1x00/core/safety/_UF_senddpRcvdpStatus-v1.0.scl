@@ -1,0 +1,111 @@
+﻿FUNCTION "_UF_senddpRcvdpStatus" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/safety'
+NAME : _UF_senddpRcvdpStatus
+VERSION : 1.0
+
+   VAR_INPUT 
+      enable : Bool;   // 1=Enable
+      comError : Bool;   // 1=Communication error
+      subsOn : Bool;   // 1=RCVDP outputs fail-safe values
+      sendMode : Bool;   // 1=F-CPU with SENDDP instruction in disabled safety mode
+      diag : Byte;   // Diag bits
+   END_VAR
+
+   VAR CONSTANT 
+      F_STATUS_0000_DISABLED : Int := 0;   // F-Status: 0x0000 - Disabled
+      F_STATUS_0001_OK : Int := 1;   // F-Status: 0x0001 - Ready
+      F_STATUS_7000_BYPASSED : Int := 16#7000;   // F-Status: 0x7000 - Warning - F-object bypassed
+      F_STATUS_7001_SUBSON : Int := 16#7001;   // F-Status: 0x7001 - Warning - RVCDP -  F-object is using substitutive values
+      F_STATUS_8010_COM_ERROR : Int := 16#8010;   // F-Status: 0x8010 - Error - SENDDP  - Communication error
+      F_STATUS_8011_SEND_MODE : Int := 16#8011;   // F-Status: 0x8011 - Error - SENDDP - F-CPU with SENDDP instruction in disabled safety mode
+      F_STATUS_8012_INVALID_DP_DP_ID : Int := 16#8012;   // F-Status: 0x8012 - Error - SENDDP/RCVDP-DIAG - Invalid DP_DP_ID
+      F_STATUS_8013_TIMEOUT_ERROR : Int := 16#8013;   // F-Status: 0x8013 - Error - SENDDP/RCVDP-DIAG - Timeout detected
+      F_STATUS_8014_SEQUENCE_NUMBER : Int := 16#8014;   // F-Status: 0x8014 - Error - SENDDP/RCVDP-DIAG - Sequence number error
+      F_STATUS_8015_CRC_ERROR : Int := 16#8015;   // F-Status: 0x8015 - Error - SENDDP/RCVDP-DIAG - CRC-error
+      F_STATUS_8016_PROTOCOL_ERROR : Int := 16#8016;   // F-Status: 0x8016 - Error - SENDDP/RCVDP-DIAG - Communication protocol with improved safety features is not active
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-03-24 | cyanezf | First version |
+
+## Description
+
+This function returns a processed value for a SENDDP or RCVDP function.
+
+## Diag byte
+
+| bit | description |
+|:---:|:------------|
+| x.0 | Reserved |
+| x.1 | Reserved |
+| x.2 | Reserved |
+| x.3 | Invalid DP_DP_ID |
+| x.4 | Timeout OF SENDDP/RCVDP detected |
+| x.5 | Sequence number error OF SENDDP/RCVDP detected |
+| x.6 | CRC-error OF SENDDP/RCVDP detected |
+| x.7 | Communicatino protocol with improved safety features is NOT active |
+
+## RLO and return
+
+| RLO | value | description |
+|:---:|:-----:|:------------|
+| TRUE | 0 | Disabled |
+| TRUE | 1 | Ready/ok |
+| TRUE | 0x7001 | F-object is using substitutive values |
+| TRUE | 0x8010 | SENDDP/RCVDP outputs fail-safe values |
+| TRUE | 0x8011 | F-CPU with SENDDP instruction in disabled safety mode |
+| TRUE | 0x8012 | SENDDP/RCVDP-DIAG - Invalid DP_DP_ID |
+| TRUE | 0x8013 | SENDDP/RCVDP-DIAG - Timeout detected |
+| TRUE | 0x8014 | SENDDP/RCVDP-DIAG - Sequence number error |
+| TRUE | 0x8015 | SENDDP/RCVDP-DIAG - CRC-error |
+| TRUE | 0x8016 | SENDDP/RCVDP-DIAG - Communication protocol with improved safety features is not active |
+
+--*)
+	
+	// Not enabled
+	IF NOT #enable THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_0000_DISABLED;
+	
+	ELSIF #diag.%X7 THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8016_PROTOCOL_ERROR;
+	  
+	ELSIF #diag.%X6 THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8015_CRC_ERROR;
+	  
+	ELSIF #diag.%X5 THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8014_SEQUENCE_NUMBER;
+	  
+	ELSIF #diag.%X4 THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8013_TIMEOUT_ERROR;
+	  
+	ELSIF #diag.%X3 THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8012_INVALID_DP_DP_ID;
+	  
+	ELSIF #sendMode THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8011_SEND_MODE;
+	  
+	ELSIF #comError THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_8010_COM_ERROR;
+	  
+	ELSIF #subsOn THEN
+	  #_UF_senddpRcvdpStatus := #F_STATUS_7001_SUBSON;
+	  
+	ELSE
+	  #_UF_senddpRcvdpStatus := #F_STATUS_0001_OK;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

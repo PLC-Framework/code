@@ -1,0 +1,26 @@
+﻿TYPE "TO_axisBasicData"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":["TO_positioningAxis_error-v1.0", "TO_positioningAxis_warning-v1.0", "TO_positioningAxis_status-v1.1"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//TO Axis basic data
+//--*)
+
+   STRUCT
+      actualPosition { ExternalWritable := 'False'} : LReal;   // SR: Actual position
+      actualAcceleration { ExternalWritable := 'False'} : LReal;   // SR: Actual acceleration
+      actualVelocity { ExternalWritable := 'False'} : LReal;   // SR: Actual velocity
+      actualTorque { ExternalWritable := 'False'} : LReal;   // SR: Actual Torque
+      status { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "TO_positioningAxis_status";   // SR: Status
+      warning { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "TO_positioningAxis_warning";   // SR: Warning
+      error { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "TO_positioningAxis_error";   // SR: Error
+   END_STRUCT;
+
+END_TYPE
+

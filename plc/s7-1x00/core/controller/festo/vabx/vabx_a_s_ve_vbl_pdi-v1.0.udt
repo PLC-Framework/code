@@ -1,0 +1,30 @@
+﻿TYPE "vabx_a_s_ve_vbl_pdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/festo/vabx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-01 | cyanezf | First version |
+//
+//## Description
+//This data type is used to get data from VABX-A-S-VE-VBL.
+//
+//--*)
+
+   STRUCT
+      pressureValue : Int;   // 0.0: Pressure values (vacuum) mbar=-1000 to +1000 (value/10 = bar); kPa=-100 to +100 (value/100=kPa); psi=-14503 to +14503 (value/1000=psi); %(vacuum)= 100..0 (value=%)
+      outA : Bool;   // 2.0: OUT A
+      outB : Bool;   // 2.1: OUT B
+      ejectorPulse : Bool;   // 2.2: Ejector pulse (automatic or manually triggered); 0=Default; 1=Pressure at vacuum port (2) > -0.05 bar
+      teachInRunning : Bool;   // 2.3: Teach-in running
+      savePermanentData : Bool;   // 2.4: Save permanent data; 0=Default after reset or restart; 1=Save successful
+      x5 : Bool;   // 2.5
+      x6 : Bool;   // 2.6
+      x7 : Bool;   // 2.7
+      processQuality : USInt;   // 3.0: Process quality[%] -> air saving function -> monitoring of air comsumption
+   END_STRUCT;
+
+END_TYPE
+

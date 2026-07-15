@@ -1,0 +1,52 @@
+﻿TYPE "ica8io4m4G20ioP14_extStatus"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-03-03 | cyanezf | First version |
+// 
+//## Description
+//P+F - ICA-8IO-4M4-G20-IO-P14 Extended Status
+//--*)
+
+   STRUCT
+      input1 : Bool;   // Digital input 1 signal status
+      input2 : Bool;   // Digital input 2 signal status
+      input3 : Bool;   // Digital input 3 signal status
+      input4 : Bool;   // Digital input 4 signal status
+      input5 : Bool;   // Digital input 5 signal status
+      input6 : Bool;   // Digital input 6 signal status
+      input7 : Bool;   // Digital input 7 signal status
+      input8 : Bool;   // Digital input 8 signal status
+      motor1_isStopped : Bool;   // 1=M1-RUN - Motor run status is inactive
+      motor2_isStopped : Bool;   // 1=M2-RUN - Motor run status is inactive
+      motor3_isStopped : Bool;   // 1=M3-RUN - Motor run status is inactive
+      motor4_isStopped : Bool;   // 1=M4-RUN - Motor run status is inactive
+      reserved_1_4 : Bool;   // Reserved
+      reserved_1_5 : Bool;   // Reserved
+      reserved_1_6 : Bool;   // Reserved
+      reserved_1_7 : Bool;   // Reserved
+      motor1_fuseFailure : Bool;   // 1=M1-FUSE - Motor fuse failure is active
+      motor2_fuseFailure : Bool;   // 1=M2-FUSE - Motor fuse failure is active
+      motor3_fuseFailure : Bool;   // 1=M3-FUSE - Motor fuse failure is active
+      motor4_fuseFailure : Bool;   // 1=M4-FUSE - Motor fuse failure is active
+      motor1_error : Bool;   // 1=M1-ERR - Motor error is active
+      motor2_error : Bool;   // 1=M2-ERR - Motor error is active
+      motor3_error : Bool;   // 1=M3-ERR - Motor error is active
+      motor4_error : Bool;   // 1=M4-ERR - Motor error is active
+      counter_zeroCross : Bool;   // 1=CNTZC - Counter zero-cross. Counter has changed its sign since the last reset
+      counter_overflow : Bool;   // 1=CNTOF - Counter overflow. Counter had an overflow since the last reset
+      counter_underflow : Bool;   // 1=CNTUF - Counter underflow. Counter had an underflow since the last reset
+      counter_directionChange : Bool;   // 1=CNTREV - Counter direction change. Counter has changes its direction since the last reset
+      reserved_3_4 : Bool;   // Reserved
+      reserved_3_5 : Bool;   // Reserved
+      reserved_3_6 : Bool;   // Reserved
+      motorControlReady : Bool;   // 1=MCRDY - Motor control ready. Motor control section is powered and ready
+      counter_value : DInt;   // Show the current value of counter
+   END_STRUCT;
+
+END_TYPE
+

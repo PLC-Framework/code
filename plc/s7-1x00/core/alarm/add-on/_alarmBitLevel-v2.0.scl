@@ -1,0 +1,86 @@
+﻿FUNCTION "_alarmBitLevel" : USInt
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/add-on'
+NAME : _alarmBitLevel
+VERSION : 2.0
+   VAR_INPUT 
+      a1i_triggered : UInt;   // 1=Information alarm
+      a2w_triggered : UInt;   // 2=Warning alarm
+      a3e_triggered : UInt;   // 3=Error alarm
+      a4f_triggered : UInt;   // 4=Emergency alarm
+   END_VAR
+
+   VAR CONSTANT 
+      ALARM_LEVEL_0_NIL : USInt := 0;
+      ALARM_LEVEL_1_INFO : USInt := 1;
+      ALARM_LEVEL_2_WARNING : USInt := 2;
+      ALARM_LEVEL_3_ERROR : USInt := 3;
+      ALARM_LEVEL_4_EMERGENCY : USInt := 4;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | inputs changed to UINT |
+| v1.0 | 2025-01-27 | cyanezf | First version |
+
+## Description
+
+This function codes as USINT the single bits for each alarm level.
+
+## Alarm levels
+
+| Level | Alarm |
+|:-----:|:------|
+| 0 | No alarm |
+| 1 | Information |
+| 2 | Warning |
+| 3 | Error |
+| 4 | Emergency |
+
+--*)
+	
+	
+	(*--{
+	 "Log": [
+	  {"version":"v1.0", "date" : "2025-01-27", "author": "cyanezf, "description": "First version"},
+	 ],
+	 "dependencies" : [],
+	 "description" : "
+	
+	How it works:
+	This function code as USINT the single bits for each alarm level
+	
+	 "
+	}--*)
+	
+	// Get alarm level by priority
+	IF #a4f_triggered > 0 THEN
+	  #_alarmBitLevel := #ALARM_LEVEL_4_EMERGENCY;
+	  
+	ELSIF #a3e_triggered > 0 THEN
+	  #_alarmBitLevel := #ALARM_LEVEL_3_ERROR;
+	  
+	ELSIF #a2w_triggered > 0 THEN
+	  #_alarmBitLevel := #ALARM_LEVEL_2_WARNING;
+	  
+	ELSIF #a1i_triggered > 0 THEN
+	  #_alarmBitLevel := #ALARM_LEVEL_1_INFO;
+	  
+	ELSE
+	  #_alarmBitLevel := #ALARM_LEVEL_0_NIL;
+	  
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

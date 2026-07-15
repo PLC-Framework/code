@@ -1,0 +1,55 @@
+﻿TYPE "TO_positioningAxis_warning"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//TO Positioning Axis - warning
+//--*)
+
+   STRUCT
+      triggered : Bool;   // ?R: 1=Some warning triggered
+      
+      bits : Struct   // ?R: TO.WarningWord
+         b00_systemWarning { ExternalWritable := 'False'} : Bool;   // ?R: x00 - A system-internal error has occurred
+         b01_configWarning { ExternalWritable := 'False'} : Bool;   // ?R: x01 - One or several configuration parameters are adjusted internally
+         b02_userWarning { ExternalWritable := 'False'} : Bool;   // ?R: x02 - Error in user program at a Motion Control instruction or its use
+         b03_commandNotAccepted { ExternalWritable := 'False'} : Bool;   // ?R: x03 - Job cannot be executed. A Motion Control instruction cannot be executed because the necessary conditions have not been met
+         b04_driveWarning { ExternalWritable := 'False'} : Bool;   // ?R: x04 - Warning of the drive. When a warning message is pending at the drive that does not result in a TO alarm, this bit is not set. Evaluate the drive warnings directly using the status word of the drive
+         b05_sensorWarning { ExternalWritable := 'False'} : Bool;   // ?R: x05 - Error in encoder system
+         b06_dynamicWarning { ExternalWritable := 'False'} : Bool;   // ?R: x06 - Specified dynamic values are limited to permissible values
+         b07_communicationWarning { ExternalWritable := 'False'} : Bool;   // ?R: x07 - Missing or faulty communication
+         b08_SWLimitMin { ExternalWritable := 'False'} : Bool;   // ?R: x08 - The negative software limit switch has been approached
+         b09_SWLimitMax { ExternalWritable := 'False'} : Bool;   // ?R: x09 - The positive software limit switch has been approached
+         b10_homingWarning { ExternalWritable := 'False'} : Bool;   // ?R: x10 - Error during homing operation. The homing cannot be completed
+         b11_followingErrorWarning { ExternalWritable := 'False'} : Bool;   // ?R: x11 - Warning limit of following error monitoring reached/exceeded
+         b12_positionWarning { ExternalWritable := 'False'} : Bool;   // ?R: x12 - Positioning error
+         b13_peripheralWarning { ExternalWritable := 'False'} : Bool;   // ?R: x13 - Error accessing a logical address
+         b14 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b15_adaptionWarning { ExternalWritable := 'False'} : Bool;   // ?R: x15 - Error in automatic data transfer
+         b16 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b17 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b18 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b19 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b20 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b21 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b22 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b23 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b24 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b25 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b26 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b27 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b28 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b29 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b30 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         b31 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   fill="#FFFFFF"
+   viewBox="0 0 64 64"
+   width="64px"
+   height="64px"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="menu-64x64-white.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:zoom="13.359375"
+     inkscape:cx="31.962573"
+     inkscape:cy="32"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="623"
+     inkscape:window-y="1080"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <rect
+     style="fill:#ffffff;stroke-width:2.83119;fill-opacity:1"
+     id="rect1"
+     width="64"
+     height="10"
+     x="0"
+     y="7" />
+  <rect
+     style="fill:#ffffff;stroke-width:2.83119;fill-opacity:1"
+     id="rect1-8"
+     width="64"
+     height="10"
+     x="0"
+     y="29" />
+  <rect
+     style="fill:#ffffff;stroke-width:2.83119;fill-opacity:1"
+     id="rect1-5"
+     width="64"
+     height="10"
+     x="0"
+     y="49" />
+</svg>

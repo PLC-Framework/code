@@ -1,0 +1,35 @@
+﻿TYPE "bwu3847C1ASi3flagsFaultDetector"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+//
+//## Description
+//B+W - bwu3847 C1 ASi3 flags fault detector
+//--*)
+
+   STRUCT
+      perypheralFault : Bool;   // 1=Peripheral fault
+      reserved_I0_1 : Bool;   // Reserved
+      reserved_I0_2 : Bool;   // Reserved
+      reserved_I0_3 : Bool;   // Reserved
+      groundFault : Bool;   // 1=Ground fault
+      overvoltage : Bool;   // 1=Overvoltage
+      noise : Bool;   // 1=Noise
+      duplicateAddress : Bool;   // 1=Duplicate address
+      
+      configError : Bool;   // 1=Configuration error
+      nodeWithAddessZeroDetected : Bool;   // 1=Node with address '0' detected
+      autoAddressAssignmentNotPossible : Bool;   // 1=Auto address assignment not possible
+      autoAddressASsignmentAvailable : Bool;   // 1=Auto address assignment available
+      configModeActive : Bool;   // 1=Configuration mode active
+      notInNormalOperation : Bool;   // 1=NOT in normal operation
+      ASi_powerFail : Bool;   // 1=ASi power fail
+      ASi_masterOffline : Bool;   // 1=ASi master offline
+   END_STRUCT;
+
+END_TYPE

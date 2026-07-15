@@ -1,0 +1,51 @@
+﻿TYPE "motorStarter_3RK1_308_status"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/siemens/motorStart_3RK1_308","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//Motor starter status
+//--*)
+
+   STRUCT
+      ready : Bool;   // Ready (automatic)
+      motorOn : Bool;   // Motor on
+      groupFault : Bool;   // Group fault
+      groupWarning : Bool;   // Group warning
+      input1 : Bool;   // Input 1 (with 3DI/LC module)
+      input2 : Bool;   // Input 2 (with 3DI/LC module)
+      input3 : Bool;   // Input 3 (with 3DI/LC module)
+      inputLC : Bool;   // Input LC (with 3DI/LC module)
+      currMotorCurrentBit0 : Bool;   // Current motor current Icurr [%] Bit 0
+      currMotorCurrentBit1 : Bool;   // Current motor current Icurr [%] Bit 1
+      currMotorCurrentBit2 : Bool;   // Current motor current Icurr [%] Bit 2
+      currMotorCurrentBit3 : Bool;   // Current motor current Icurr [%] Bit 3
+      currMotorCurrentBit4 : Bool;   // Current motor current Icurr [%] Bit 4
+      currMotorCurrentBit5 : Bool;   // Current motor current Icurr [%] Bit 5
+      manLocalMode : Bool;   // Manual local mode (with 3DI/LC module)
+      res17 : Bool;   // Reserved
+      readyStartMotorOn : Bool;   // Ready to start for motor on
+      motorCw : Bool;   // Motor CW
+      motorCcw : Bool;   // Motor CCW (Reversing starters only)
+      quickStopActive : Bool;   // Quick stop active
+      energySaveModeActive : Bool;   // Energy saving mode active
+      diModulePlugged : Bool;   // DI module plugged (for non safety motor starters version >= V1.1)
+      exMotorProtection : Bool;   // EX motor protection (safety motor starters only)
+      res27 : Bool;   // Reserved
+      thermMotorModelOverload : Bool;   // Thermal motor model overload
+      res31 : Bool;   // Reserved
+      currentLimitTripping : Bool;   // Ie current limit tripping
+      fdiActivated : Bool;   // Input F-DI activated (safety motor starters only)
+      residualCurrentDetected : Bool;   // Residual current detected
+      asymmetryDetected : Bool;   // Asymmetry detected
+      overTemperature : Bool;   // Overtemperature
+      res37 : Bool;   // Reserved
+   END_STRUCT;
+
+END_TYPE
+

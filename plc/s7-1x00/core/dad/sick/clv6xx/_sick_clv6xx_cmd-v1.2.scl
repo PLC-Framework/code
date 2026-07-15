@@ -1,0 +1,969 @@
+﻿FUNCTION_BLOCK "_sick_clv6xx_cmd"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["sick_clv6xx-v1.0","_sick_cola-v1.2","_sick_hexAsciiToDword-v1.0","_sick_dwordToHexAscii-v1.1","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SICKAG
+FAMILY : 'core/dad/sick/clv6xx'
+VERSION : 1.2
+//This function block is used for a communication between a SICK Lector6xx / SICK CLV6xx code reader and a Siemens S7-1200/S7-1500 PLC via  PROFINET/PROFIBUS
+   VAR_INPUT 
+      HW_INPUT_ID : HW_SUBMODULE;   // Hardware identification number of the input module
+      HW_INPUT_LENGTH : USInt := 32;   // Size of the input module (32 by default)
+      HW_OUTPUT_ID : HW_SUBMODULE;   // Hardware identification number of the output module
+      HW_OUTPUT_LENGTH : USInt := 32;   // Size of the output module (32 by default)
+      CAN_ID : USInt;   // CAN ID (0= Master / No CAN network)
+      TIMEOUT : Time := T#10S;   // Time out
+      request : Bool;   // A positive edge starts the request
+      cmd_triggerOn : Bool;   // Select: Trigger On to open the reading gate via a SW-Trigger command
+      cmd_triggerOff : Bool;   // Select: Trigger Off to close the reading gate via a SW-Trigger command
+      cmd_matchcode : Bool;   // Select: Matchcode (details at #Data)
+      cmd_savePermanent : Bool;   // Select: Save permanent
+      cmd_communicationTest : Bool;   // Select: Communication test
+      cmd_freeCommand : Bool;   // Select: Free command (details at #Data)
+   END_VAR
+
+   VAR_OUTPUT 
+      readDone { ExternalWritable := 'False'} : Bool;   // Positive edge: A reading result sent by the device was received
+      requestDone { ExternalWritable := 'False'} : Bool;   // Request done
+      requestBusy { ExternalWritable := 'False'} : Bool;   // Request in process
+      reading { ExternalWritable := 'False'} : Bool;   // OR: 1=Readig
+      error { ExternalWritable := 'False'} : Bool;   // Error detected
+      errorCode { ExternalWritable := 'False'} : DWord;   // Error code (see documentation)
+   END_VAR
+
+   VAR_IN_OUT 
+      data : "sick_clv6xx";   // Command arguments and result outputs of the FB actions
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : USInt;   // Currrent FB step
+      com { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "_sick_cola";   // Instance: CoLa communication block
+      canIsActive { ExternalWritable := 'False'} : Bool;   // CAN-Bus active flag
+      deviceState { ExternalWritable := 'False'} : Bool;   // Current device state (True= Edit-Mode | False= Run-Mode)
+      enforceLogout { ExternalWritable := 'False'} : Bool;   // Logout enforced
+      commandIndex { ExternalWritable := 'False'} : Int;   // Command index
+      commandLength { ExternalWritable := 'False'} : UInt;   // Length of the command that should be send
+      index { ExternalWritable := 'False'} : UInt;   // Index variable
+      errorCodeTriggered { ExternalWritable := 'False'} : DWord;   // Temporarily error code
+      logoutErrorCode { ExternalWritable := 'False'} : DWord;   // Temporarily error code
+      stats { ExternalWritable := 'False'} : Struct
+         read { ExternalWritable := 'False'} : Struct
+            total { ExternalWritable := 'False'} : UDInt;
+            executed { ExternalWritable := 'False'} : UDInt;
+            goods { ExternalWritable := 'False'} : UDInt;
+            rate { ExternalWritable := 'False'} : Real;
+         END_STRUCT;
+      END_STRUCT;
+      selection { ExternalWritable := 'False'} : Array[0..5] of Bool;   // input bit selection
+      command { ExternalWritable := 'False'} : Array[0..499] of Byte;   // Contains the transmitted CoLa command
+      record { ExternalWritable := 'False'} : Array[0..499] of Byte;   // Contains the received telegram
+      "timer" {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // Instance: Timer on delay (Time out)
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // Private static variables
+         request { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Rising edge detection
+         requestBusy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Backup variable
+         done { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Rising edge detection
+         error { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Rising edge detection
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      text : String;
+      subtext : String;
+      requestPulse : Bool;   // Rising edge detection
+      requestDonePulse : Bool;   // Rising edge detection
+      errorPulse : Bool;   // Rising edge detection
+      i : Int;   // Temporarily variable
+      value : DWord;   // Get/Set function value
+      status : Int;   // Get/Set function error code
+      commands : USInt;
+      commandWithCanLength : UInt;
+      count : UDInt;
+      ok : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_4_CREATE_COLA_CMD : USInt := 4;
+      STATE_6_WAIT_CMD_RESULT : USInt := 6;
+      STATE_5_SEND_COLA_CMD : USInt := 5;
+      STATE_2_ADD_CAN_ID : USInt := 2;
+      STATE_3_CHECK_PARAM_INPUT : USInt := 3;
+      STATE_8_ACTION_PERFORMED : USInt := 8;
+      STATE_0_WAIT : USInt := 0;
+      STATE_7_CHECK_CMD_RESULT : USInt := 7;
+      RECORD_SIZE : UInt := 500;   // Length of the record array
+      COMMAND_SIZE : UInt := 500;   // Length of the command array
+      READING_RESULT_SIZE : UInt := 200;   // Length of the reading result array
+      ERROR_0x00_OK : DWord := 16#0000_0000;
+      ERROR_0x10_TIMEOUT : DWord := 16#0000_0010;
+      ERROR_0X14_INVALID_CAN_ID : DWord := 16#0000_0014;
+      ERROR_0X15_NOT_SINGLE_CMD : DWord := 16#0000_0015;
+      ERROR_0X16_INVALID_DEVICE_RESPONSE : DWord := 16#0000_0016;
+      ERROR_0X20_INVALID_FREE_CMD_LEN : DWord := 16#0000_0020;
+      ERROR_0X21_FREE_RESULT_OVERFLOW : DWord := 16#0000_0021;
+      ERROR_0X22_MATCHCODE_NAME_EMPTY : DWord := 16#0000_0022;
+      ERROR_0X23_MATCHCODE_TYPE : DWord := 16#0000_0023;
+      ERROR_W0_0X11_DEVICE : Word := 16#0011;
+      ERROR_W0_0X12_ASCII_TO_DWORD : Word := 16#0012;
+      ERROR_W0_0X13_DWORD_TO_ASCII : Word := 16#0013;
+      ERROR_W0_0X17_LOGOUT : Word := 16#0017;
+      CMD_INDEX_0_TRIGGER_ON : Int := 0;
+      CMD_INDEX_1_TRIGGER_OFF : Int := 1;
+      CMD_INDEX_2_MATCHCODE : Int := 2;
+      CMD_INDEX_3_SAVE_PERMANENT : Int := 3;
+      CMD_INDEX_4_COM_TEST : Int := 4;
+      CMD_INDEX_5_FREE : Int := 5;
+      CMD_INDEX_10_LOGIN : Int := 10;
+      CMD_INDEX_11_LOGOUT : Int := 11;
+      SEL_0_CMD_TRIGGER_ON : Int := 0;
+      SEL_1_CMD_TRIGGER_OFF : Int := 1;
+      SEL_2_CMD_MATCH_CODE : Int := 2;
+      SEL_3_CMD_SAVE_PERMANENT : Int := 3;
+      SEL_4_CMD_COM_TEST : Int := 4;
+      SEL_5_CMD_FREE : Int := 5;
+      MAX_CAN_ID : USInt := 63;
+      ASCII_SPACE : Char := ' ';   // 0X20
+      ASCII_TILDE : Char := '~';   // 0X7E
+      COLA_END : Char := '}';
+      COLA_ADD_CAN_ID_LEN : UInt := 11;   // LEN('s{00 01 3F}')
+      COLA_AFTER_ADD_CAN_ID_OFFSET : DInt := 12;   // LEN('s{00 01 FF} '
+      COLA_ADD_CAN_ID : String := 's{00 01 ';
+      COLA_TRIGGER_ON : String := 'MN mTCgateon';
+      COLA_TRIGGER_OFF : String := 'MN mTCgateoff';
+      COLA_SET_MATCHCODE : String := 'MN mEVSetMatchCode 00 ';
+      COLA_SET_MATCHCODE_LEN : UInt := 20;   // LEN('MN mEVSetMatchCode ')
+      COLA_SET_MATCHCODE_WITH_00_LEN : UInt := 22;   // LEN('MN mEVSetMatchCode 00 ')
+      COLA_NAME : String := 'name="';
+      COLA_CODETYPE : String := '" codeType="';
+      COLA_DO_NOT_CARE : String := 'dontCare';
+      COLA_LENGTH : String := '" length="';
+      COLA_CONTENT : String := '" content="';
+      COLA_EE_WRITE_ALL : String := 'MN mEEwriteall';
+      COLA_TEST : String := 'RI0';
+      COLA_SET_ACCESS_MODE_03 : String := 'MN SetAccessMode 03 F4724744';
+      COLA_RUN : String := 'MN Run';
+   END_VAR
+
+
+BEGIN
+	(*===========================================================================================
+	Name:   SICK_Lector_CLV6xx_PNDP 
+	Author: SICK AG
+	=============================================================================================
+	Description: 
+	This function block is used for a communication between a SICK Lector6xx / SICK CLV6xx
+	code reader and a Siemens S7-1200/S7-1500 PLC via PROFINET/PROFIBUS.                         
+	
+	=============================================================================================
+	Features:        
+	- Receive reading results of the device, triggered by a command, fieldbus or by a hardware 
+	  switch. The content of the result can be modified in the "Output Format" option in the
+	  SOPAS engineeringtool.                                           
+	- Open and close a reading gate (software trigger via command)
+	- Set a new Matchcode evaluation condition 
+	- Save all device parameters permanent                                                  
+	- Communication test
+	- Send a free defined CoLa-A telegram and receive the result
+	- All commands can also be used in a SICK CAN-Bus network
+	                                                                                                                                                               
+	=============================================================================================
+	Version history:
+	Date       | Version | Author  | Remark
+	---------------------------------------------------------------------------------------------
+	21/02/2014 | V1.0    | SICK AG | Initial version
+	07/08/2014 | V1.1    | SICK AG | Replace R_TRIG function 
+	24/10/2017 | V1.2    | SICK AG | Avoid initialization warnings which occurs using TIA V13 or higher
+	============================================================================================*)
+	
+	(*===================================== INITIALISATION =====================================*)
+	// #RECORD_SIZE := 500;         (*Length of the arrRecord array*)
+	// #COMMAND_SIZE := 500;        (*Length of the arrCommand array*)
+	// #READING_RESULT_SIZE := 200;  (*Length of the reading result array*)
+	
+	(*Rising edge detection*)
+	#requestPulse := #request AND NOT #private.request;
+	#private.request := #request;
+	
+	#requestDonePulse := #com.requestDone AND NOT #private.done;
+	#private.done := #com.requestDone;
+	
+	#errorPulse := #com.error AND NOT #private.error;
+	#private.error := #com.error;
+	
+	(*Reset the read done flag every cycle*)
+	#readDone := false;
+	
+	(*===================================== ERROR HANDLING =====================================*)
+	(* bDeviceState  |  bEnforceLogout  |  Action
+	       FALSE     |      FALSE       |  Errorcode = Errorcode from last plc cycle
+	       FALSE     |      TRUE        |  Errorcode = Logout error
+	       TRUE      |      FALSE       |  Enforce "Logout" command
+	       TRUE      |      TRUE        |  Errorcode = Logout not possible + Reason*)
+	IF #errorCodeTriggered <> #ERROR_0x00_OK THEN
+	  
+	  (*Enforce "Logout" command*)
+	  IF #deviceState AND NOT #enforceLogout THEN
+	    #enforceLogout := true;
+	    #commandIndex := #CMD_INDEX_11_LOGOUT; (*Logout*)
+	    #logoutErrorCode := #errorCodeTriggered;     (*Save current error code*)
+	    #errorCodeTriggered := #ERROR_0x00_OK;          (*Clear currenr error variable*)
+	    #state := #STATE_4_CREATE_COLA_CMD;    (*Create command*)
+	    
+	    (*Logout can not be ensured*)
+	  ELSIF #deviceState AND #enforceLogout THEN
+	    #errorCode.%W1 := #errorCodeTriggered.%W0;
+	    #errorCode.%W0 := #ERROR_W0_0X17_LOGOUT;  (*Error: Logout can not be ensured (please check the device state)*)
+	    
+	    (*Errorcode = Errorcode from the last plc cycle or logout error*)
+	  ELSE
+	    #errorCode := #errorCodeTriggered;
+	    
+	  END_IF;
+	  
+	  // Clear reading
+	  #reading := false;
+	  
+	  (*Update FB status*)
+	  IF #errorCodeTriggered <> #ERROR_0x00_OK THEN
+	    #requestDone := false;
+	    #requestBusy := false;
+	    #private.requestBusy := false;
+	    #error := true;
+	    #errorCodeTriggered := #ERROR_0x00_OK;
+	    #logoutErrorCode := #ERROR_0x00_OK;
+	    #state := #STATE_0_WAIT;
+	    RETURN;
+	  END_IF;
+	END_IF;
+	
+	(*Time out detection*)
+	#timer(IN := #private.requestBusy,
+	       PT := #TIMEOUT);
+	
+	IF #timer.Q THEN
+	  #errorCodeTriggered := #ERROR_0x10_TIMEOUT; (*Error: Time out*)
+	END_IF;
+	
+	(*Check if a device error is detected: 'sFA XX'*)
+	// NOT  CAN -> [0] = 's' -> [1:2]   = FA -> [3]  = ' ' -> [4]  = 'ERROR'
+	// WITH CAN -> [0] = 's' -> [12:13] = FA -> [14] = ' ' -> [15] = 'ERROR'
+	IF #requestDonePulse AND
+	  ((NOT #canIsActive AND #record[0] = 's' AND #record[1]  = 'F' AND #record[2] = 'A') OR
+	  (#canIsActive      AND #record[0] = 's' AND #record[12] = 'F' AND #record[13] = 'A')) THEN
+	  
+	  (*Get the position of the error code*)
+	  IF #canIsActive THEN
+	    #index := 15;
+	  ELSE
+	    #index := 4;
+	  END_IF;
+	  
+	  #status := "_sick_hexAsciiToDword"(bufferLength := INT_TO_UINT(#com.requestLength),
+	                                    hexValueLength := 0, // Fix length to 8 chars
+	                                    hexValue => #value,
+	                                    index := #index,
+	                                    buffer := #record);
+	  
+	  IF #status = 16#0000 THEN
+	    #errorCodeTriggered.%W1 := DWORD_TO_WORD(#value);
+	    #errorCodeTriggered.%W0 := #ERROR_W0_0X11_DEVICE; (*Error: Device error*)
+	  ELSE
+	    #errorCodeTriggered.%W1 := #status;
+	    #errorCodeTriggered.%W0 := #ERROR_W0_0X12_ASCII_TO_DWORD; (*Error: SICK_GetValue error*)
+	  END_IF;
+	END_IF;
+	
+	(*Error detected*)
+	IF #errorCodeTriggered <> #ERROR_0x00_OK THEN
+	  RETURN;
+	END_IF;
+	
+	(*================================= START REQUEST (STEP 1) =================================*)
+	IF NOT #private.requestBusy AND #requestPulse THEN
+	  
+	  // Init values
+	  #private.requestBusy := true;
+	  #requestDone := false;
+	  #requestBusy := true;
+	  #error := false;
+	  #errorCode := #ERROR_0x00_OK;
+	  #deviceState := false; // 0=Run mode; 1=Edit mode
+	  #enforceLogout := false;
+	  #index := 0; // Init command index
+	  
+	  (*Save the current bit selection for the job*)
+	  #selection[#SEL_0_CMD_TRIGGER_ON] := #cmd_triggerOn;
+	  #selection[#SEL_1_CMD_TRIGGER_OFF] := #cmd_triggerOff;
+	  #selection[#SEL_2_CMD_MATCH_CODE] := #cmd_matchcode;
+	  #selection[#SEL_3_CMD_SAVE_PERMANENT] := #cmd_savePermanent;
+	  #selection[#SEL_4_CMD_COM_TEST] := #cmd_communicationTest;
+	  #selection[#SEL_5_CMD_FREE] := #cmd_freeCommand;
+	  
+	  (*Check CAN-ID*)
+	  IF #CAN_ID > #MAX_CAN_ID THEN
+	    #errorCodeTriggered := #ERROR_0X14_INVALID_CAN_ID; (*Error invalid CAN Id*)
+	    
+	  ELSIF #CAN_ID = 0 THEN
+	    #canIsActive := false;
+	    #state := #STATE_3_CHECK_PARAM_INPUT; (*Check parameter input*)
+	    
+	  ELSE
+	    #canIsActive := true;
+	    #state := #STATE_2_ADD_CAN_ID; (*Add CAN identifier*)
+	    
+	  END_IF;
+	END_IF;
+	
+	(*=============================== ADD CAN IDENTIFIER (STEP 2) ==============================*)
+	IF #state = #STATE_2_ADD_CAN_ID THEN
+	  
+	  // Command: 's{ 00 01 '
+	  Strg_TO_Chars(Strg := #COLA_ADD_CAN_ID,
+	                pChars := 0,
+	                Cnt => #index,
+	                Chars := #command);
+	  
+	  /// Can ID is from 1 to 63 (0x1 to 0x3F)
+	  // Command: 's{ 00 01 1'  // 1
+	  // Command: 's{ 00 01 3F' // 63
+	  #status:= "_sick_dwordToHexAscii"(addSpace := false,
+	                                   hexValue := #CAN_ID,
+	                                   buffer := #command,
+	                                   index := #index);
+	  
+	  IF #status <> 16#0000 THEN
+	    #errorCodeTriggered.%W1 := #status;
+	    #errorCodeTriggered.%W0 := #ERROR_W0_0X13_DWORD_TO_ASCII; (*Error: SICK_SetValue error*)
+	  ELSE
+	    #command[#index] := #COLA_END; // Command: 's{ 00 01 3F}' // 63
+	    #state := #STATE_3_CHECK_PARAM_INPUT; (*Check parameter input*)
+	  END_IF;
+	END_IF;
+	
+	(*============================= CHECK PARAMETER INPUT (STEP 3) =============================*)
+	IF #state = #STATE_3_CHECK_PARAM_INPUT THEN
+	  
+	  #commands := 0; (*Counts up the active bit selection*)
+	  
+	  (*Command: Trigger On*)
+	  IF #selection[#SEL_0_CMD_TRIGGER_ON] THEN
+	    #commands +=1;
+	    #commandIndex := #CMD_INDEX_0_TRIGGER_ON; (*Send a "Trigger On" command*)
+	  END_IF;
+	  
+	  (*Command: Trigger Off*)
+	  IF #selection[#SEL_1_CMD_TRIGGER_OFF] THEN
+	    #commands += 1;
+	    #commandIndex := #CMD_INDEX_1_TRIGGER_OFF; (*Send a "Trigger Off" command*)
+	  END_IF;
+	  
+	  (*Command: Matchcode*)
+	  IF #selection[#SEL_2_CMD_MATCH_CODE] THEN
+	    #commands += 1;
+	    
+	    IF #data.matchCode.name = '' THEN
+	      #errorCodeTriggered := #ERROR_0X22_MATCHCODE_NAME_EMPTY; (*Error: Matchcode name is empty*)
+	      
+	    ELSIF #data.matchCode.codeType <= #ASCII_SPACE OR #data.matchCode.codeType > #ASCII_TILDE THEN
+	      #errorCodeTriggered := #ERROR_0X23_MATCHCODE_TYPE; (*Error: Invalid code type*)
+	    END_IF;
+	    
+	    #commandIndex :=#CMD_INDEX_10_LOGIN; (*Send a "Login" command*)
+	  END_IF;
+	  
+	  (*Command: Save permanent*)
+	  IF #selection[#SEL_3_CMD_SAVE_PERMANENT] THEN
+	    #commands += 1;
+	    #commandIndex := #CMD_INDEX_10_LOGIN; (*Send a "Login" command*)
+	  END_IF;
+	  
+	  (*Command: Communication test*)
+	  IF #selection[#SEL_4_CMD_COM_TEST] THEN
+	    #commands += 1;
+	    #commandIndex := #CMD_INDEX_4_COM_TEST; (*Send a "Comm Test" command*)
+	  END_IF;
+	  
+	  (*Command: Free command*)
+	  IF #selection[#SEL_5_CMD_FREE] THEN
+	    #commands += 1;
+	    #commandWithCanLength := #commandLength := INT_TO_UINT(LEN(#data.freeCommand.command));
+	    
+	    IF #canIsActive THEN
+	      #commandWithCanLength += 11; // LEN('s{00 01 3F}')
+	    END_IF;
+	    
+	    IF #commandLength <= 0 OR #commandWithCanLength > #COMMAND_SIZE THEN
+	      #errorCodeTriggered := #ERROR_0X20_INVALID_FREE_CMD_LEN; (*Error: Invalid free command length*)
+	    END_IF;
+	    
+	    #commandIndex := #CMD_INDEX_5_FREE; (*Send a "Free Command" command*)
+	  END_IF;
+	  
+	  (*Check bit sum of the command selection*)
+	  IF #commands <> 1 THEN
+	    #errorCodeTriggered := #ERROR_0X15_NOT_SINGLE_CMD; (*Error: More than one or no parameter selected*)
+	  END_IF;
+	  
+	  (*Check if a error was detected*)
+	  IF #errorCodeTriggered = #ERROR_0x00_OK THEN
+	    #state := #STATE_4_CREATE_COLA_CMD; (*Create CoLa command*)
+	  END_IF;
+	  
+	END_IF;
+	
+	(*============================== CREATE COLA COMMAND (STEP 4) ==============================*)
+	IF #state = #STATE_4_CREATE_COLA_CMD THEN
+	  
+	  CASE #commandIndex OF
+	      
+	    // ########################################################################
+	    #CMD_INDEX_0_TRIGGER_ON:
+	      
+	      #text := #COLA_TRIGGER_ON; // 'MN mTCgateon'
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg:=#text,
+	                    pChars:=#commandLength,
+	                    Cnt=>#count,
+	                    Chars:=#command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      #reading := false;
+	      #stats.read.total += 1;
+	      
+	      // Next state  
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	    // ########################################################################
+	    #CMD_INDEX_1_TRIGGER_OFF:
+	      
+	      #text := #COLA_TRIGGER_OFF; // 'MN mTCgateoff'
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      
+	      // Next state  
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	      // ########################################################################
+	      (*Create "Matchcode" command*)
+	    #CMD_INDEX_2_MATCHCODE:
+	      
+	      #text := #COLA_SET_MATCHCODE; // 'MN mEVSetMatchCode 00 '
+	      #index := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #index := 0;
+	      END_IF;
+	      
+	      #text := CONCAT(IN1 := #text , IN2 := #COLA_NAME);          // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="'
+	      #text := CONCAT(IN1 := #text, IN2 := #data.matchCode.name); // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>'
+	      #text := CONCAT(IN1 := #text, IN2 := #COLA_CODETYPE);       // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="'
+	      
+	      IF #data.matchCode.codeType = '*' THEN
+	        #text := CONCAT(IN1 := #text, IN2 := #COLA_DO_NOT_CARE);        // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="dontCare'
+	      ELSE
+	        #text := CONCAT(IN1 := #text, IN2 := #data.matchCode.codeType); // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="?'
+	      END_IF;
+	      
+	      #text := CONCAT(IN1 := #text, IN2 := #COLA_LENGTH);        // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="'
+	      
+	      IF #data.matchCode.minMaxLength = 0 THEN
+	        #text := CONCAT(IN1 := #text, IN2 := #COLA_DO_NOT_CARE); // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="dontCare'
+	      ELSE
+	        #subtext := USINT_TO_STRING(#data.matchCode.minMaxLength);
+	        IF #subtext[1] = ' ' THEN
+	          #subtext[1] := '0';
+	        END_IF;
+	        IF #subtext[2] = ' ' THEN
+	          #subtext[2] := '0';
+	        END_IF;
+	        
+	        #text := CONCAT(IN1 := #text, IN2 := #subtext);    // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="999'
+	      END_IF;
+	      
+	      #text := CONCAT(IN1 := #text, IN2 := #COLA_CONTENT);           // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="<dontCare|999>" content="'
+	      #text := CONCAT(IN1 := #text, IN2 := #data.matchCode.content); // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="<dontCare|999>" content="<content>'
+	      #text := CONCAT(IN1 := #text, IN2 := '"'); // [s{ 00 01 3F}|s]MN mEVSetMatchCode 00 name="<name>" codeType="<dontCare|?" length="<dontCare|999>" content="<content>"'
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #index,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      #index += UDINT_TO_UINT(#count);
+	      
+	      #commandLength := #index;  
+	      #index -= 1; // Index of the last element of array
+	      
+	      #value := #index - #COLA_SET_MATCHCODE_WITH_00_LEN; (*Length of the #Matchcode command*)
+	      #index := #COLA_SET_MATCHCODE_LEN; (*Startindex of the matchcode length*)
+	      
+	      IF #canIsActive THEN
+	        #value -= #COLA_ADD_CAN_ID_LEN;
+	        #index += #COLA_ADD_CAN_ID_LEN;
+	      END_IF;
+	      
+	      // s{00 01 3F}MN mEVSetMatchCode 00 name="1234567891" codeType="dontCare" length="dontCare" content="123456789112345678921234567893123456789412345678951234567896123456789712345"'
+	      // s{00 01 3F}MN mEVSetMatchCode 00 name="1234567891" codeType="d" length="000" content="123456789112345678921234567893123456789412345678951234567896123456789712345"'
+	      //   COLA_SET_MATCHCODE_LEN = 20-^
+	      //                                 ^- matchcommand length ---------------------------------------------------------------------------------------------------------^
+	      #status := "_sick_dwordToHexAscii"(addSpace := false,
+	                                        hexValue := #value, // matchcommad length to  hexadecimal
+	                                        buffer := #command,
+	                                        index := #index);
+	      
+	      IF #status <> 16#0000 THEN
+	        #errorCodeTriggered.%W1 := #status;
+	        #errorCodeTriggered.%W0 := #ERROR_W0_0X13_DWORD_TO_ASCII; (*Error: SICK_SetValue error*)
+	      ELSE
+	        
+	        #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Create "Save Permanent" command*)
+	    #CMD_INDEX_3_SAVE_PERMANENT: // 3
+	      
+	      #text := #COLA_EE_WRITE_ALL; // 'MN mEEwriteall',
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	      // ########################################################################
+	      (*Create "Communication Test" command*)
+	    #CMD_INDEX_4_COM_TEST:
+	      
+	      #text := #COLA_TEST;
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	      // ########################################################################
+	      (*Create "Free Command"*)
+	    #CMD_INDEX_5_FREE:
+	      
+	      IF #canIsActive THEN
+	        #text := DELETE(IN := #data.freeCommand.command, L := 1, P := 1); // REMOVE 's'
+	        #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      ELSE
+	        #text := #data.freeCommand.command;
+	        #commandLength := 0;
+	      END_IF;
+	      
+	            
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	      // ########################################################################
+	      (*Create "Login" command*)
+	    #CMD_INDEX_10_LOGIN:
+	      
+	      #text := #COLA_SET_ACCESS_MODE_03;
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	      // ########################################################################
+	      (*Create "Logout" command*)
+	    #CMD_INDEX_11_LOGOUT:
+	      
+	      #text := #COLA_RUN;
+	      #commandLength := DINT_TO_UINT(#COLA_AFTER_ADD_CAN_ID_OFFSET);
+	      
+	      IF NOT #canIsActive THEN
+	        #text := CONCAT(IN1 := 's', IN2 := #text);
+	        #commandLength := 0;
+	      END_IF;
+	      
+	      Strg_TO_Chars(Strg := #text,
+	                    pChars := #commandLength,
+	                    Cnt => #count,
+	                    Chars := #command);
+	      
+	      #commandLength += UDINT_TO_UINT(#count);
+	      #state := #STATE_5_SEND_COLA_CMD; (*Send command*)
+	      
+	  END_CASE;
+	END_IF;
+	
+	(*=============================== SEND COLA COMMAND (STEP 5) ===============================*)
+	IF #state = #STATE_5_SEND_COLA_CMD THEN
+	  
+	  IF NOT #com.requestBusy AND NOT #requestDonePulse AND NOT #errorPulse THEN
+	    #com.request := true;
+	    #state := #STATE_6_WAIT_CMD_RESULT; (*Wait for the command answer*)
+	  END_IF;
+	END_IF;
+	
+	(*========================== WAIT FOR THE COMMAND ANSWER (STEP 6) ==========================*)
+	IF #state = #STATE_6_WAIT_CMD_RESULT THEN
+	  (*Communication error*)
+	  IF #errorPulse THEN
+	    #errorCodeTriggered := #com.errorcode; (*Error: Communication error*)
+	    
+	    (*Communication done*)
+	  ELSIF #requestDonePulse THEN
+	    #state := #STATE_7_CHECK_CMD_RESULT; (*Check the command answer*)
+	  END_IF;
+	END_IF;
+	
+	(*============================= CHECK COMMAND RESPONSE (STEP 7) ============================*)
+	IF #state = #STATE_7_CHECK_CMD_RESULT THEN
+	  
+	  CASE #commandIndex OF
+	      
+	      // ########################################################################
+	      (*Check "Trigger On" response*)
+	    #CMD_INDEX_0_TRIGGER_ON: // 0
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[22] = 'o' AND
+	      #record[23] = 'n' AND
+	      #record[24] = ' ' AND
+	      #record[25] = '1') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[11] = 'o' AND
+	      #record[12] = 'n' AND
+	      #record[13] = ' ' AND
+	      #record[14] = '1');
+	      
+	      IF #ok THEN
+	        #stats.read.executed += 1;
+	        #state := #STATE_8_ACTION_PERFORMED; (*Action performed*)
+	        
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Trigger Off" response*)
+	    #CMD_INDEX_1_TRIGGER_OFF: // 1
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[22] = 'o' AND
+	      #record[23] = 'f' AND
+	      #record[24] = 'f' AND
+	      #record[25] = ' ' AND
+	      #record[26] = '1') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[11] = 'o' AND
+	      #record[12] = 'f' AND
+	      #record[13] = 'f' AND
+	      #record[14] = ' ' AND
+	      #record[15] = '1');
+	      
+	      IF #ok  THEN
+	        #reading := false;
+	        #state := #STATE_8_ACTION_PERFORMED; (*Action performed*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Matchcode" response*)
+	    #CMD_INDEX_2_MATCHCODE: // 2 -> s     AN ode 1
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[27] = 'o' AND
+	      #record[28] = 'd' AND
+	      #record[29] = 'e' AND
+	      #record[30] = ' ' AND
+	      #record[31] = '1') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[16] = 'o' AND
+	      #record[17] = 'd' AND
+	      #record[18] = 'e' AND
+	      #record[19] = ' ' AND
+	      #record[20] = '1');
+	      
+	      IF #ok THEN
+	        #commandIndex := #CMD_INDEX_11_LOGOUT; (*Logout*)
+	        #state := #STATE_4_CREATE_COLA_CMD;    (*Create command*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Save Permanent" response*)
+	    #CMD_INDEX_3_SAVE_PERMANENT: // 3
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[23] = 'a' AND
+	      #record[24] = 'l' AND
+	      #record[25] = 'l' AND
+	      #record[26] = ' ' AND
+	      #record[27] = '1') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[12] = 'a' AND
+	      #record[13] = 'l' AND
+	      #record[14] = 'l' AND
+	      #record[15] = ' ' AND
+	      #record[16] = '1');
+	      
+	      IF #ok THEN
+	        #commandIndex := #CMD_INDEX_11_LOGOUT; // 11 (*Logout*)
+	        #state := #STATE_4_CREATE_COLA_CMD;         (*Create command*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Communication Test" response*)
+	    #CMD_INDEX_4_COM_TEST: // 4
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'R' AND
+	      #record[13] = 'A' AND
+	      #record[14] = ' ') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'R' AND
+	      #record[2] = 'A' AND
+	      #record[3] = ' ');
+	      
+	      IF #ok THEN
+	        #state := #STATE_8_ACTION_PERFORMED; (*Action performed*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Free command" response*)
+	    #CMD_INDEX_5_FREE: // 5
+	      
+	      IF #com.requestLength <= MAX_LEN(#data.freeCommand.result) THEN
+	        Chars_TO_Strg(Chars := #record,
+	                      pChars := 0,
+	                      Cnt := INT_TO_UINT(#com.requestLength),
+	                      Strg => #data.freeCommand.result);
+	        
+	        #state := #STATE_8_ACTION_PERFORMED; (*Action performed*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X21_FREE_RESULT_OVERFLOW; (*Error: Free command result > Result string*)
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Login" response*)
+	    #CMD_INDEX_10_LOGIN: // 10
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[24] = 'M' AND
+	      #record[25] = 'o' AND
+	      #record[26] = 'd' AND
+	      #record[27] = 'e' AND
+	      #record[28] = ' ' AND
+	      #record[29] = '1') OR
+	      
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[13] = 'M' AND
+	      #record[14] = 'o' AND
+	      #record[15] = 'd' AND
+	      #record[16] = 'e' AND
+	      #record[17] = ' ' AND
+	      #record[18] = '1');
+	      
+	      IF #ok THEN
+	        
+	        IF #selection[#SEL_2_CMD_MATCH_CODE] THEN
+	          #commandIndex := #CMD_INDEX_2_MATCHCODE; (*Matchcode*)
+	        ELSIF #selection[#SEL_3_CMD_SAVE_PERMANENT] THEN
+	          #commandIndex :=  #CMD_INDEX_3_SAVE_PERMANENT; (*Save permanent*)
+	        END_IF;
+	        
+	        #deviceState := true; (*Edit-Mode active*)
+	        #state := #STATE_4_CREATE_COLA_CMD;         (*Create command*)
+	        
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	        
+	      END_IF;
+	      
+	      // ########################################################################
+	      (*Check "Logout" response*)
+	    #CMD_INDEX_11_LOGOUT: // 11
+	      
+	      #ok := (#canIsActive AND
+	      #record[0] = 's' AND
+	      #record[12] = 'A' AND
+	      #record[13] = 'N' AND
+	      #record[14] = ' ' AND
+	      #record[15] = 'R' AND
+	      #record[16] = 'u' AND
+	      #record[17] = 'n' AND
+	      #record[18] = ' ' AND
+	      #record[19] = '1') OR
+	      (NOT #canIsActive AND
+	      #record[0] = 's' AND
+	      #record[1] = 'A' AND
+	      #record[2] = 'N' AND
+	      #record[3] = ' ' AND
+	      #record[4] = 'R' AND
+	      #record[5] = 'u' AND
+	      #record[6] = 'n' AND
+	      #record[7] = ' ' AND
+	      #record[8] = '1');
+	      
+	      IF #ok THEN
+	        #deviceState := false; (*Run-Mode active*)
+	        #state := #STATE_8_ACTION_PERFORMED; (*Action performed*)
+	      ELSE
+	        #errorCodeTriggered := #ERROR_0X16_INVALID_DEVICE_RESPONSE; (*Error: Invalid device answer*)
+	      END_IF;
+	      
+	  END_CASE;
+	END_IF;
+	
+	(*================================ ACTION PERFORMED (STEP 8) ===============================*)
+	IF #state = #STATE_8_ACTION_PERFORMED THEN
+	  
+	  IF #enforceLogout THEN
+	    #errorCodeTriggered := #logoutErrorCode;
+	  ELSE
+	    #requestDone := true;
+	    #requestBusy := false;
+	    #private.requestBusy := false;
+	    #state := #STATE_0_WAIT;
+	  END_IF;
+	END_IF;
+	
+	(*====================================== COMMUNICATION =====================================*)
+	#com(HW_INPUT_ID:=#HW_INPUT_ID,
+	     HW_INPUT_LENGTH:=#HW_INPUT_LENGTH,
+	     HW_OUTPUT_ID:=#HW_OUTPUT_ID,
+	     HW_OUTPUT_LENGTH:=#HW_OUTPUT_LENGTH,
+	     TIMEOUT:=#TIMEOUT + T#1s,
+	     commandLength:=#commandLength,
+	     command:=#command,
+	     record:=#record);
+	
+	#com.request := false; (*Reset the request flag every cycle*)
+	
+	// Handling read done #############################################################################
+	IF #com.readDone THEN
+	  
+	  #reading := false;
+	  
+	  // Length out of range
+	  IF #com.readLength < 0 OR #com.readLength > #READING_RESULT_SIZE THEN
+	    #data.readingResult.result := '';
+	    
+	    // Length ok
+	  ELSE
+	    Chars_TO_Strg(Chars:=#record,
+	                  pChars:=0,
+	                  Cnt:=INT_TO_UINT(#com.readLength),
+	                  Strg=>#data.readingResult.result);
+	    
+	    #stats.read.goods += 1;
+	    #data.readingResult.count += 1;
+	    #readDone := true;
+	  END_IF;
+	END_IF;
+	
+	// Reading statistics #############################################################################
+	// total -> 100 %
+	// goods -> ?%     > ?% = goods * 100 / total
+	IF #stats.read.total >= #stats.read.goods AND #stats.read.goods > 0 THEN
+	  
+	  #stats.read.rate := UDINT_TO_REAL(#stats.read.goods / #stats.read.total) * 100.0;
+	  
+	ELSIF #stats.read.total < #stats.read.goods THEN
+	  #stats.read.total := #stats.read.goods;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+	
+	
+END_FUNCTION_BLOCK
+

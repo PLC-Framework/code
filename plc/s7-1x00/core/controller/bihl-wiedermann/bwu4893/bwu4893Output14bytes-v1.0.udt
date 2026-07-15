@@ -1,0 +1,43 @@
+﻿
+TYPE "bwu4893Output14bytes"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu4893","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-06-03 | cyanezf | First version |
+//
+//## Description
+//This data type represents the output process data of the BWU4893 drive 
+//when configured with the profile 14 bytes. It contains motor speed and ramp settings.
+//
+//The profile 14 bytes is characterized by the following specifications: 
+//* Profile ID: 0x820138
+//* Process data size of the inputs: 14 byte
+//* Process data size of the outputs: 14 byte
+//* Transport channels: 1
+//* ASi-5 cycles: 10
+//This profile is compatible with all drives.
+//--*)
+
+   STRUCT
+      motor1_speed : SInt;   // BW4893-14bytes: Motor 1= -100% to 100% speed
+      motor2_speed : SInt;   // BW4893-14bytes: Motor 2= -100% to 100% speed
+      motor3_speed : SInt;   // BW4893-14bytes: Motor 3= -100% to 100% speed
+      motor4_speed : SInt;   // BW4893-14bytes: Motor 4= -100% to 100% speed
+      motor1_ramp : USInt;   // BW4893-14bytes: Motor 1 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      motor2_ramp : USInt;   // BW4893-14bytes: Motor 2 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      motor3_ramp : USInt;   // BW4893-14bytes: Motor 3 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      motor4_ramp : USInt;   // BW4893-14bytes: Motor 4 - 0=0s; 255=..25,5s, lineal ramp (e.g.: 5ms at 50% speed = 2.5 ms)
+      res_08 : Byte;   // BW4893-14bytes: Reserva byte 8
+      res_09 : Byte;   // BW4893-14bytes: Reserva byte 9
+      res_10 : Byte;   // BW4893-14bytes: Reserva byte 10
+      res_11 : Byte;   // BW4893-14bytes: Reserva byte 11
+      res_12 : Byte;   // BW4893-14bytes: Reserva byte 12
+      res_13 : Byte;   // BW4893-14bytes: Reserva byte 13
+   END_STRUCT;
+
+END_TYPE
+

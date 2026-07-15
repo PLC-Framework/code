@@ -1,0 +1,578 @@
+﻿FUNCTION_BLOCK "_esc"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2", "TP_TIME", "TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/system/esc'
+NAME : _esc
+VERSION : 5.4
+
+   VAR_INPUT 
+      F_emrgCircuitOk { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Emergency circuit Ok
+      F_emrgStopOk { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Emergency stop Ok
+      extControlOn { ExternalWritable := 'False'} : Bool := 1;   // IR: External - 0=Control off; 1=Control on
+      extOperatingMode { ExternalWritable := 'False'} : USInt := 4;   // IR: External om - 2=Stop mode; 3=Maintenance mode; 4=Manual mode; 5=Semiautomatic mode; 6=Automatic mode
+      extOperatingCycle { ExternalWritable := 'False'} : USInt := 0;   // IR: External oc - 3=Enable Maintenance movement; 4=Enable Manual movement; 5=Enable Semiautomatic step; 6=Enable Automatic cycle
+      extErrorAckn { ExternalWritable := 'False'} : Bool;   // IR: 1=External error ackn.
+      extEmrgAckn { ExternalWritable := 'False'} : Bool;   // IR: 1=External emrg. ackn.
+      extLampTest { ExternalWritable := 'False'} : Bool;   // IR: 1=External lamp test
+      hmiOk { ExternalWritable := 'False'} : Bool;   // IR: HMI panels are ok (this signal is used to enable/disable hmiCommand)
+      settings { ExternalWritable := 'False'} : Struct   // IR: Function configuration
+         WARM_RESTART { ExternalWritable := 'False'} : Time := T#5S;   // IR: 0=Disabled; >0=Warm restart time
+         DELAY_ON { ExternalWritable := 'False'} : Time;   // IR: <=0=Disabled; >0=Delay actions as ackns, control on
+         DELAY_OFF { ExternalWritable := 'False'} : Time;   // IR: <=0=Disabled; >0=Delay actions as control off
+         DELAY_EMRG_STOP_OK { ExternalWritable := 'False'} : Time := T#2s;   // IR: Delay emergency stop ok
+         useExtControlOn { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Use controlOn input (otherwise the order is done by HMI Command)
+         useExtOperatingMode { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Use operatingModeIn input (otherwise the order is done by HMI Command)
+         useExtOperatingCycle { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Use operatingCycleIn input (otherwise the order is done by HMI Command)
+         useWarmrestartAsMode { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Warmrestart before to semi/automatic mode; 1=Warmrestart before to semi/automatic cycle
+         useAutoStartCycle { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=When mode changes to maint, manual, semi, auto, ESC waits for cycle; 1=When mode changes to maint, manual, semi, auto, ESC autostarts cycle (Becareful this option can cause unexpected movements)
+      END_STRUCT;
+   END_VAR
+
+   VAR_OUTPUT 
+      o { ExternalWritable := 'False'} : "escOutput";   // OR: ESC output
+      selectedMode { ExternalWritable := 'False'} : USInt;   // OR: Show selected mode (Not the current mode)
+      selectedCycle { ExternalWritable := 'False'} : USInt;   // OR: Show selected cycle (Not the current cycle)
+      hmiDisabled { ExternalWritable := 'False'} : Bool;   // OR: 1=Hmi disabled, then disable hmiCommand variable and clear o.oc.maintMov/manualMov
+   END_VAR
+
+   VAR 
+      hmiCommand : UInt := 0;   // SW: HMI Command
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         selectedOperatingMode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt := #OM_4_MANUAL;
+         selectedOperatingCycle { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;
+         controlOn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         errorAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         errorAcknFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         emrgAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         emrgAcknFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         lampTest { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         errorAcknTimer {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+         errorAcknDelayTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         emrgAcknTimer {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+         emrgAcknDelayTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         warmRestartTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         controlOnDelayTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         controlOffDelayTimer {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
+         emrgStopOkTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      ready : Bool;
+      modeHasChanged : Bool;
+      cycleHasChanged : Bool;
+      warmRestartDone : Bool;
+      semiReq : Bool;
+      autoReq : Bool;
+      useDelayOn : Bool;
+      useDelayOff : Bool;
+      controlOn_delay : Bool;
+      emrgStopOk : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      OM_0_CONTROL_OFF : USInt := 0;   // Operating mode: 0 - Control off
+      OM_1_WARM_RESTART : USInt := 1;   // Operating mode: 1 - Warm restart
+      OM_2_STOP : USInt := 2;   // Operating mode: 2 - Stop mode
+      OM_3_MAINT : USInt := 3;   // Operating mode: 3 - Maintenance mode
+      OM_4_MANUAL : USInt := 4;   // Operating mode: 4 - Manual mode
+      OM_5_SEMIAUTO : USInt := 5;   // Operating mode: 5 - Semiautomatic mode
+      OM_6_AUTO : USInt := 6;   // Operating mode: 6 - Automatic mode
+      OM_7_EMRG_STOP_UNACKN : USInt := 7;   // Operating mode: 7 - Emergency stop unacknowledged
+      OM_8_EMRG_STOP_TRIGGERED : USInt := 8;   // Operating mode: 8 - Emergency stop triggered
+      OC_0_NIL : USInt := 0;   // Operating cycle: 0 - No cycle
+      OC_3_MAINT_MOV : USInt := 3;   // Operating cycle: 3 - Maintenance movement enabled
+      OC_4_MANUAL_MOV : USInt := 4;   // Operating cycle: 4 - Manual movement enabled
+      OC_5_SEMIAUTO_STEP : USInt := 5;   // Operating cycle: 5 - Semiautomatic step enabled
+      OC_6_AUTO_CYCLE : USInt := 6;   // Operating cycle: 6 - Automatic cycle enabled
+      HMI_CMD_00000_NIL : UInt := 0;   // HMI Command: 0000 - No action; Mode=Clear; Area=Any
+      HMI_CMD_00001_ON_OFF : UInt := 1;   // HMI Command: 0001 - On/Off; Mode=E/D-Pulse; Area=Any
+      HMI_CMD_00002_OM_STOP : UInt := 2;   // HMI Command: 0002 - Stop mode; Mode=S-Pulse; Area=Operating mode
+      HMI_CMD_00003_OM_MAINT : UInt := 3;   // HMI Command: 0003 - Maintenance mode; Mode=S-Pulse; Area=Operating mode
+      HMI_CMD_00004_OM_MANUAL : UInt := 4;   // HMI Command: 0004 - Manual mode; Mode=S-Pulse; Area=Operating mode
+      HMI_CMD_00005_OM_SEMI : UInt := 5;   // HMI Command: 0005 - Semiautomatic mode; Mode=S-Pulse; Area=Operating mode
+      HMI_CMD_00006_OM_AUTO : UInt := 6;   // HMI Command: 0006 - Automatic mode; Mode=S-Pulse; Area=Operating mode
+      HMI_CMD_00007_MAINT_MOV : UInt := 7;   // HMI Command: 0007 - Maintenance movement; Mode=E/D-Pulse; Area=Operating mode
+      HMI_CMD_00008_MANUAL_MOV : UInt := 8;   // HMI Command: 0008 - Manual movement; Mode=E/D-Pulse; Area=Operating mode
+      HMI_CMD_00009_SEMI_STEP : UInt := 9;   // HMI Command: 0009 - Semiautomatic step; Mode=E/D-Pulse; Area=Operating mode
+      HMI_CMD_00010_AUTO_CYCLE : UInt := 10;   // HMI Command: 0010 - Automatic cycle; Mode=E/D-Pulse; Area=Operating mode
+      HMI_CMD_00011_ERROR_ACKN : UInt := 11;   // HMI Command: 0011 - Error acknowledgement; Mode=S-Pulse; Area=Any
+      HMI_CMD_00012_EMRG_ACKN : UInt := 12;   // HMI Command: 0012 - Emergency acknowledgement; Mode=S-Pulse; Area=Safety
+      HMI_CMD_00013_LAMP_TEST : UInt := 13;   // HMI Command: 0013 - Lamp test; Mode=While; Area=HMI
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v5.4 | 2025-09-01 | cyanezf | Bugs fixed, error and emrg. ackn.
+| v5.3 | 2025-06-19 | cyanezf | Delay `o.om.emrgStopOk` and added `settings.DELAY_EMRG_STOP_OK` |
+| v5.2 | 2025-06-07 | cyanezf | Fixed general bugs |
+| v5.1 | 2025-06-04 | cyanezf | Fixed bugs when mode changes |
+| v5.0 | 2025-05-26 | cyanezf | Refactorized |
+| v4.6 | 2025-03-04 | cyanezf | `cofig.useAutoStartCycle` added |
+| v4.5 | 2025-02-23 | cyanezf | Selected outputs added |
+| v4.4 | 2024-07-14 | cyanezf | Warmrestart mode updated |
+| v4.3 | 2024-07-13 | cyanezf | hmiOk added (this checks if Panel is ready to enable movements) |
+| v4.2 | 2024-07-09 | cyanezf | OMC added |
+| v4.1 | 2024-01-24 | cyanezf | Add EmrgStopOk |
+| v4.0.2 | 2024-01-23 | cyanezf | Fix mayor bugs |
+| v4.0.1 | 2023-11-11 | cyanezf  | Fix bugs |
+| v4.0 | 2023-10-19 | cyanezf | Delays for multi-ESC were added |
+| v3.1 | 2023-09-06 | cyanezf | fix bugs |
+| v3.0 | 2023-08-02 | cyanezf | Io interface was updated (errorAckn, emrgAckn, lampTest) |
+| v2.0 | 2023-07-27 | cyanezf | io interface was updated |
+| v1.0 | 2023-07-13 | cyanezf | First version |
+
+## Description
+
+This function controls an Emergency Stop Circuit.
+
+## Operating modes
+
+| SEL | description |
+|:---:|:------------|
+| 0 | Control off |
+| 1 | Warm restart |
+| 2 | Stop mode |
+| 3 | Maintenance mode |
+| 4 | Manual mode |
+| 5 | Semiautomatic mode |
+| 6 | Automatic mode |
+| 7 | Emergency stop unacknowledged |
+| 8 | Emergency stop triggered |
+
+## Operating cycles
+
+| SEL | description |
+|:---:|:------------|
+| 0 | No cycle |
+| 3 | Maintenance movement |
+| 4 | Manual movement |
+| 5 | Semiautomatic step |
+| 6 | Automatic cycle |
+
+## HMI Commands
+
+| command | description |
+|:-------:|:------------|
+| 0 |  Null |
+| 1 |  On/Off pulse |
+| 2 |  Stop mode |
+| 3 |  Maintenance mode |
+| 4 |  Manual mode |
+| 5 |  Semiautomatic mode |
+| 6 |  Automatic mode |
+| 7 |  Maintenance movement |
+| 8 |  Manual movement |
+| 9 |  Semiautomatic step |
+| 10 | Automatic cycle |
+| 11 | Error acknowledgement |
+| 12 | Emergency acknowledgement |
+| 13 | Lamp test |
+
+--*)
+	
+	REGION HMI Command
+	  
+	  // Check panel
+	  IF NOT #hmiOk THEN
+	    #hmiCommand := #HMI_CMD_00000_NIL;
+	  END_IF;
+	  
+	  // Pulse commands
+	  IF #hmiCommand <> #HMI_CMD_00000_NIL THEN
+	    CASE #hmiCommand OF
+	        
+	      #HMI_CMD_00001_ON_OFF: // Toggle
+	        #private.controlOn := NOT #private.controlOn;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00002_OM_STOP: // Set
+	        #private.selectedOperatingMode := #OM_2_STOP;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00003_OM_MAINT: // Set
+	        #private.selectedOperatingMode := #OM_3_MAINT;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00004_OM_MANUAL: // Set
+	        #private.selectedOperatingMode := #OM_4_MANUAL;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00005_OM_SEMI: // Set
+	        #private.selectedOperatingMode := #OM_5_SEMIAUTO;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00006_OM_AUTO: // Set
+	        #private.selectedOperatingMode := #OM_6_AUTO;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00007_MAINT_MOV: // Toggle
+	        IF #private.selectedOperatingCycle <> #OC_3_MAINT_MOV THEN
+	          #private.selectedOperatingCycle := #OC_3_MAINT_MOV;
+	        ELSE
+	          #private.selectedOperatingCycle := #OC_0_NIL;
+	        END_IF;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00008_MANUAL_MOV: // Toggle
+	        IF #private.selectedOperatingCycle <> #OC_4_MANUAL_MOV THEN
+	          #private.selectedOperatingCycle := #OC_4_MANUAL_MOV;
+	        ELSE
+	          #private.selectedOperatingCycle := #OC_0_NIL;
+	        END_IF;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00009_SEMI_STEP: // Toggle
+	        IF #private.selectedOperatingCycle <> #OC_5_SEMIAUTO_STEP THEN
+	          #private.selectedOperatingCycle := #OC_5_SEMIAUTO_STEP;
+	        ELSE
+	          #private.selectedOperatingCycle := #OC_0_NIL;
+	        END_IF;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00010_AUTO_CYCLE: // Toggle
+	        IF #private.selectedOperatingCycle <> #OC_6_AUTO_CYCLE THEN
+	          #private.selectedOperatingCycle := #OC_6_AUTO_CYCLE;
+	        ELSE
+	          #private.selectedOperatingCycle := #OC_0_NIL;
+	        END_IF;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00011_ERROR_ACKN: // Set
+	        #private.errorAckn := NOT #private.errorAckn;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00012_EMRG_ACKN: // Set
+	        #private.emrgAckn := NOT #private.emrgAckn;
+	        #hmiCommand := #HMI_CMD_00000_NIL;
+	        
+	      #HMI_CMD_00013_LAMP_TEST: // Set
+	        #private.lampTest := true;
+	        
+	    END_CASE;
+	  END_IF;
+	  
+	  // Continuous command
+	  #private.lampTest := #hmiCommand = #HMI_CMD_00013_LAMP_TEST;
+	  
+	  
+	END_REGION
+	
+	REGION Use delays
+	  
+	  #useDelayOn := #settings.DELAY_ON > t#0s;
+	  #useDelayOff := #settings.DELAY_OFF > t#0s;
+	  
+	END_REGION
+	
+	REGION Error ackn.
+	  (*
+	  Sources:
+	  1. From HMI command, OR
+	  2. From external input (extErrorAckn)  
+	  *)
+	  
+	  IF #extErrorAckn AND NOT #private.errorAcknFp THEN
+	    #private.errorAckn := NOT #private.errorAckn;
+	  END_IF;
+	  #private.errorAcknFp := #extErrorAckn;
+	  
+	  #private.errorAcknDelayTimer(IN := #useDelayOn AND #private.errorAckn,
+	                               PT := #settings.DELAY_ON);
+	  
+	  #private.errorAcknTimer(IN := (#useDelayOn AND #private.errorAcknDelayTimer.Q) OR (NOT #useDelayOn AND #private.errorAckn),
+	                          PT := t#500ms,
+	                          Q => #o.errorAckn);
+	  
+	  IF #private.errorAcknTimer.Q THEN
+	    #private.errorAckn := 0;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Emrg. ackn.
+	  (*
+	  Sources:
+	  1. From HMI command, OR
+	  2. From external input (extEmrgAckn)
+	  *)
+	  
+	  IF #extEmrgAckn AND NOT #private.emrgAcknFp THEN
+	    #private.emrgAckn := NOT #private.emrgAckn;
+	  END_IF;
+	  #private.emrgAcknFp := #extEmrgAckn;
+	  
+	  #private.emrgAcknDelayTimer(IN := #useDelayOn AND #private.emrgAckn,
+	                              PT := #settings.DELAY_ON);
+	  
+	  #private.emrgAcknTimer(IN := (#useDelayOn AND #private.emrgAcknDelayTimer.Q) OR (NOT #useDelayOn AND #private.emrgAckn),
+	                         PT := t#500ms,
+	                         Q => #o.emrgAckn);
+	  
+	  IF #private.emrgAcknTimer.Q THEN
+	    #private.emrgAckn := 0;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Lamp test
+	  (*
+	  Sources:
+	  1. From HMI command, OR
+	  2. From external input (extLampTest)
+	  *)
+	  
+	  #o.lampTest := #private.lampTest OR #extLampTest;
+	  
+	END_REGION
+	
+	REGION Select operating mode
+	  (*
+	  Sources: 
+	  1. From HMI command, OR
+	  2. From external input (extOperatingMode)
+	  Warning!: config.useExtOperatingMode disables HMI command!
+	  *)
+	  
+	  IF #settings.useExtOperatingMode THEN
+	    #private.selectedOperatingMode := #extOperatingMode;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Select operating cycle
+	  (*
+	  Sources: 
+	  1. From HMI command, OR
+	  2. From external input (extOperatingCycle)
+	  Warning!: config.useExtOperatingCycle disables HMI command!  
+	  *)
+	  
+	  IF #settings.useExtOperatingCycle THEN
+	    #private.selectedOperatingCycle := #extOperatingCycle;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Emergency stop
+	  
+	  (*
+	  Circuit | Stop | Meaning
+	       0  |    0 | Emergency stop triggered
+	       0  |    1 | Emergency stop triggered: Inconsistent combination
+	       1  |    0 | Emergency stop unackn.
+	       1  |    1 | Emergency stop ok
+	  *)
+	  
+	  #o.om.emrgStopTriggered := (NOT #F_emrgStopOk AND NOT #F_emrgCircuitOk) OR
+	  (#F_emrgStopOk AND NOT #F_emrgCircuitOk);
+	  #o.om.emrgStopUnackn := NOT #F_emrgStopOk AND #F_emrgCircuitOk;
+	  
+	  #emrgStopOk := #F_emrgStopOk AND #F_emrgCircuitOk;
+	  
+	  #private.emrgStopOkTimer(IN:=#emrgStopOk,
+	                           PT:=#settings.DELAY_EMRG_STOP_OK,
+	                           Q=>#o.om.emrgStopOk );
+	  
+	END_REGION
+	
+	REGION Control on
+	  (*
+	    Sources: 
+	    1. From HMI command, OR
+	    2. From external input (extControlOn)
+	    Warning!: config.useExtControlOn disables HMI command!  
+	  *)
+	  
+	  IF #settings.useExtControlOn THEN
+	    #private.controlOn := #extControlOn;
+	  END_IF;
+	  
+	  #private.controlOnDelayTimer(IN := #useDelayOn AND #private.controlOn,
+	                               PT := #settings.DELAY_ON);
+	  
+	  #controlOn_delay := (#useDelayOn AND #private.controlOnDelayTimer.Q) OR (NOT #useDelayOn AND #private.controlOn);
+	  
+	  #private.controlOffDelayTimer(IN := #useDelayOff AND #controlOn_delay,
+	                                PT := #settings.DELAY_OFF);
+	  
+	  #o.om.controlOn := (#useDelayOff AND #private.controlOffDelayTimer.Q) OR (NOT #useDelayOff AND #controlOn_delay);
+	  
+	  
+	  
+	END_REGION
+	
+	REGION Ready and mode changes
+	  
+	  #ready := #o.om.controlOn AND #emrgStopOk;
+	  
+	  #modeHasChanged := #private.selectedOperatingMode <> #selectedMode;
+	  #cycleHasChanged := #private.selectedOperatingCycle <> #selectedCycle;
+	  
+	END_REGION
+	
+	REGION Stopping sequence
+	  
+	  #o.stopping := NOT #controlOn_delay AND #o.om.controlOn;
+	  
+	END_REGION
+	
+	REGION Warmrestart
+	  (*
+	    config.useWarmrestartAsMode:
+	    0: From any mode -> semi/auto mode ON -> waiting step/cycle -> step/cycle selected -> warmrestarting time -> semi step/auto cycle ON!
+	    1: From any mode -> semi/auto mode selected -> warmrestarting time -> step/cycle selected -> semi step/auto cycle ON!  
+	  *)
+	  
+	  #semiReq := #private.selectedOperatingMode = #OM_5_SEMIAUTO AND
+	  ((#ready AND #settings.useWarmrestartAsMode AND NOT #modeHasChanged) OR
+	  (#o.om.semiMode AND #private.selectedOperatingCycle = #OC_5_SEMIAUTO_STEP AND NOT #settings.useWarmrestartAsMode AND NOT #cycleHasChanged));
+	  
+	  #autoReq := #private.selectedOperatingMode = #OM_6_AUTO AND
+	  ((#ready AND #settings.useWarmrestartAsMode AND NOT #modeHasChanged) OR
+	  (#o.om.autoMode AND #private.selectedOperatingCycle = #OC_6_AUTO_CYCLE AND NOT #settings.useWarmrestartAsMode AND NOT #cycleHasChanged));
+	  
+	  #private.warmRestartTimer(IN := #semiReq OR #autoReq,
+	                            PT := #settings.WARM_RESTART,
+	                            Q => #warmRestartDone);
+	  
+	  #o.om.warmRestart :=
+	  (#settings.useWarmrestartAsMode AND ((#semiReq AND NOT #o.om.semiMode) OR (#autoReq AND NOT #o.om.autoMode))) OR
+	  (NOT #settings.useWarmrestartAsMode AND ((#semiReq AND NOT #o.oc.semiStep) OR (#autoReq AND NOT #o.oc.autoCycle)));
+	  
+	END_REGION
+	
+	REGION Stop mode
+	  
+	  #o.om.stopMode := #ready AND (#private.selectedOperatingMode < #OM_3_MAINT OR #private.selectedOperatingMode > #OM_6_AUTO);
+	  
+	END_REGION
+	
+	REGION Maintenance mode
+	  
+	  #o.om.maintMode := #ready AND #private.selectedOperatingMode = #OM_3_MAINT;
+	  
+	  IF (NOT #o.om.maintMode AND #private.selectedOperatingCycle = #OC_3_MAINT_MOV) OR NOT #hmiOk THEN
+	    #private.selectedOperatingCycle := #OC_0_NIL;
+	  ELSIF #o.om.maintMode AND #settings.useAutoStartCycle THEN
+	    #private.selectedOperatingCycle := #OC_3_MAINT_MOV;
+	  END_IF;
+	  
+	  #o.oc.maintMov := #o.om.maintMode AND #private.selectedOperatingCycle = #OC_3_MAINT_MOV;
+	  
+	END_REGION
+	
+	REGION Manual
+	  
+	  #o.om.manualMode := #ready AND #private.selectedOperatingMode = #OM_4_MANUAL;
+	  
+	  IF (NOT #o.om.manualMode AND #private.selectedOperatingCycle = #OC_4_MANUAL_MOV) OR NOT #hmiOk THEN
+	    #private.selectedOperatingCycle := #OC_0_NIL;
+	  ELSIF #o.om.manualMode AND #settings.useAutoStartCycle THEN
+	    #private.selectedOperatingCycle := #OC_4_MANUAL_MOV;
+	  END_IF;
+	  
+	  #o.oc.manualMov := #o.om.manualMode AND #private.selectedOperatingCycle = #OC_4_MANUAL_MOV;
+	  
+	END_REGION
+	
+	REGION Semi mode
+	  
+	  #o.om.semiMode := #ready AND
+	  #private.selectedOperatingMode = #OM_5_SEMIAUTO AND
+	  (#warmRestartDone OR #o.om.semiMode OR NOT #settings.useWarmrestartAsMode);
+	  
+	  IF NOT #o.om.semiMode AND #private.selectedOperatingCycle = #OC_5_SEMIAUTO_STEP THEN
+	    #private.selectedOperatingCycle := #OC_0_NIL;
+	  ELSIF #o.om.semiMode AND #settings.useAutoStartCycle THEN
+	    #private.selectedOperatingCycle := #OC_5_SEMIAUTO_STEP;
+	  END_IF;
+	  
+	  #o.oc.semiStep := #o.om.semiMode AND
+	  #private.selectedOperatingCycle = #OC_5_SEMIAUTO_STEP AND
+	  (#warmRestartDone OR #o.oc.semiStep OR #settings.useWarmrestartAsMode);
+	  
+	END_REGION
+	
+	REGION Auto mode
+	  
+	  #o.om.autoMode := #ready AND
+	  #private.selectedOperatingMode = #OM_6_AUTO AND
+	  (#warmRestartDone OR #o.om.autoMode OR NOT #settings.useWarmrestartAsMode);
+	  
+	  IF NOT #o.om.autoMode AND #private.selectedOperatingCycle = #OC_6_AUTO_CYCLE THEN
+	    #private.selectedOperatingCycle := #OC_0_NIL;
+	  ELSIF #o.om.autoMode AND #settings.useAutoStartCycle THEN
+	    #private.selectedOperatingCycle := #OC_6_AUTO_CYCLE;
+	  END_IF;
+	  
+	  #o.oc.autoCycle := #o.om.autoMode AND
+	  #private.selectedOperatingCycle = #OC_6_AUTO_CYCLE AND
+	  (#warmRestartDone OR #o.oc.autoCycle OR #settings.useWarmrestartAsMode);
+	  
+	END_REGION
+	
+	REGION Operating Mode SEL
+	  
+	  IF #o.om.emrgStopTriggered THEN
+	    #o.om.SEL := #OM_8_EMRG_STOP_TRIGGERED;
+	  ELSIF #o.om.emrgStopUnackn THEN
+	    #o.om.SEL := #OM_7_EMRG_STOP_UNACKN;
+	  ELSIF #o.om.autoMode THEN
+	    #o.om.SEL := #OM_6_AUTO;
+	  ELSIF #o.om.semiMode THEN
+	    #o.#om.SEL := #OM_5_SEMIAUTO;
+	  ELSIF #o.om.manualMode THEN
+	    #o.om.SEL := #OM_4_MANUAL;
+	  ELSIF #o.om.maintMode THEN
+	    #o.om.SEL := #OM_3_MAINT;
+	  ELSIF #o.om.stopMode THEN
+	    #o.om.SEL := #OM_2_STOP;
+	  ELSIF #o.om.warmRestart THEN
+	    #o.om.SEL := #OM_1_WARM_RESTART;
+	  ELSIF NOT #o.om.controlOn THEN
+	    #o.om.SEL := #OM_0_CONTROL_OFF;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Operating Cycle SEL
+	  
+	  IF #o.oc.autoCycle THEN
+	    #o.oc.SEL := #OM_6_AUTO;
+	  ELSIF #o.oc.semiStep THEN
+	    #o.oc.SEL := #OM_5_SEMIAUTO;
+	  ELSIF #o.oc.manualMov THEN
+	    #o.oc.SEL := #OM_4_MANUAL;
+	  ELSIF #o.oc.maintMov THEN
+	    #o.oc.SEL := #OM_3_MAINT;
+	  ELSE
+	    #o.oc.SEL := #OM_0_CONTROL_OFF;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Update selected outputs
+	  
+	  #selectedMode := #private.selectedOperatingMode;
+	  #selectedCycle := #private.selectedOperatingCycle;
+	  #hmiDisabled := NOT #hmiOk;
+	  
+	END_REGION
+	
+	REGION Save RLO
+	  
+	  ENO := true;
+	  
+	END_REGION
+	
+END_FUNCTION_BLOCK
+

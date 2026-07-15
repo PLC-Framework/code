@@ -1,0 +1,37 @@
+﻿FUNCTION "_inMaxRange" : Bool
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/control/util'
+NAME : _inMaxRange
+VERSION : 1.1
+
+   VAR_INPUT 
+      homed : Bool;   // 1=Homed and sync ok (if there are sync axis)
+      actualPosition : LReal;   // Actual position
+      position : LReal;   // Reference position
+      tolerance : LReal;   // Tolerance (Subtract this value from position)
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-06-17 | cyanezf | refactor: Change REAL to LREAL  |
+| v1.0 | 2025-01-10 | cyanezf | First version |
+
+## Description
+
+This function checks if the `actualPosition` is in `max range` with `tolerance` and is `homed`.
+
+--*)
+	  
+	// Save RLO
+	ENO := #_inMaxRange := #homed AND #actualPosition >= #position - #tolerance;
+	
+END_FUNCTION
+

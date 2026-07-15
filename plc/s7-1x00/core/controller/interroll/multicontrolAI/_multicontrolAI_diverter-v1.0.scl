@@ -1,0 +1,69 @@
+﻿FUNCTION_BLOCK "_multicontrolAI_diverter"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/interroll/multicontrolAI'
+NAME : _multicontrolAI_diverter
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      SP_angle { ExternalWritable := 'False'} : SInt;   // IR: Setpoint angle
+      AI_angle { ExternalWritable := 'False'} : SInt;   // IR: Input angle
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      homing { ExternalWritable := 'False'} : Bool;   // OR: 1=Homing
+      homingFailed { ExternalWritable := 'False'} : Bool;   // OR: 1=Homing failed
+      angle { ExternalWritable := 'False'} : SInt;   // OR: Current angle
+      AO_angle { ExternalWritable := 'False'} : SInt;   // OR: Output angle
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      MAX_ANGLE : SInt := 90;
+      MIN_ANGLE : SInt := -90;
+      STATUS_HOMING_FAILED : SInt := 126;   // Homing failed
+      STATUS_HOMING : SInt := 127;   // HPD resetting to zero position (homing straight, 0°)
+      HOMING_RETRY_AFTER_FAIL : Time := T#30S;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-16 | cyanezf | First version |
+
+## Description
+
+This function controls Interroll Multicontrol AI for diverter (-90º to 90º).
+
+--*)
+	
+	#AO_angle := #SP_angle;
+	
+	// Homing, fail and angle
+	#homing := #AI_angle = #STATUS_HOMING;
+	#homingFailed := #AI_angle = #STATUS_HOMING_FAILED;
+	#angle := #AI_angle;
+	
+	// Is running and direction
+	#isRunning := #AI_angle <> #SP_angle AND #AI_angle >= #MIN_ANGLE AND #AI_angle < #MAX_ANGLE;
+	#direction := #isRunning AND #AI_angle < 0;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

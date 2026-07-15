@@ -1,0 +1,125 @@
+﻿FUNCTION "_unixTimestampToDatetime" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["unixTimestamp-v1.0", "_isLeapYear-v1.0", "_getMonthDays-v1.0", "_checkDatetime-v1.0", "_getWeekday-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime/timestamp'
+NAME : _unixTimestampToDatetime
+VERSION : 1.0
+
+   VAR_INPUT 
+      in : "unixTimestamp";   // Input unix timestamp
+   END_VAR
+
+   VAR_OUTPUT 
+      out {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Output datetime
+   END_VAR
+
+   VAR_TEMP 
+      tmp {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;
+      yearDays : UInt;
+      monthDays : USInt;
+      days : ULInt;
+      seconds : ULInt;
+      status : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0000_DONE : Int := 0;
+      BASE_YEAR : UInt := 1970;
+      BASE_MONTH : USInt := 1;
+      BASE_DAY : USInt := 1;
+      DAYS_SECONDS : ULInt := 86400;   // 24 hours * 60 minutes * 60 seconds
+      HOUR_SECONDS : ULInt := 3600;   // 60 minutes * 60 seconds
+      MINUTE_SECONDS : ULInt := 60;   // 60 seconds
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-06-17 | cyanezf | First version |
+
+## Description
+
+This function convert an unix timestamp to datetime.
+
+## Return
+
+| RLO | int | constant | description |
+|:---:|:---:|:---------|:------------|
+| TRUE | 0x0000 | STATUS_0000_OK | Datetime is ok |
+| FALSE | 0x8000 | STATUS_8000_DATETIME_UNDERFLOW | `in` < DTL#1970-01-01-00:00:00.0 |
+| FALSE | 0x8001 | STATUS_8001_DATETIME_OVERFLOW |  `in` > DTL#2262-04-11-23:47:16.854775807 |
+| FALSE | 0x8002 | STATUS_8002_MONTH_OUT_OF_RANGE | `in.month` < 1 or > 12 |
+| FALSE | 0x8003 | STATUS_8003_DAY_OUT_OF_RANGE | `in.day` < 1 or > (28, 29, 30, 31) |
+| FALSE | 0x8004 | STATUS_8004_WEEKDAY_MISMATCH | `in.weekday` != expected weekday |
+| FALSE | 0x8005 | STATUS_8005_HOUR_OUT_OF_RANGE | `in.hour`> 23 |
+| FALSE | 0x8006 | STATUS_8006_MINUTE_OUT_OF_RANGE | `in.minute`> 59 |
+| FALSE | 0x8007 | STATUS_8007_SECOND_OUT_OF_RANGE | `in.second` > 59 |
+| FALSE | 0x8008 | STATUS_8008_NANOSECOND_OUT_OF_RANGE | `in.nanosecond` > 999_999_999 |
+
+--*)
+	
+	// Add nanos
+	#tmp.NANOSECOND := #in.nanoseconds;
+	
+	// Get all days
+	#seconds := #in.seconds;
+	#days := #seconds / #DAYS_SECONDS;
+	
+	// Add hour
+	#seconds -= #days * #DAYS_SECONDS;
+	#tmp.HOUR := ULINT_TO_USINT(#seconds / #HOUR_SECONDS);
+	
+	// Add minutes
+	#seconds -= USINT_TO_ULINT(#tmp.HOUR) * #HOUR_SECONDS;
+	#tmp.MINUTE := ULINT_TO_USINT(#seconds / #MINUTE_SECONDS);
+	
+	// Add second
+	#seconds -= USINT_TO_ULINT(#tmp.MINUTE) * #MINUTE_SECONDS;
+	#tmp.SECOND := ULINT_TO_USINT(#seconds);
+	
+	// Add year
+	#tmp.YEAR := #BASE_YEAR;
+	#yearDays := 365;
+	
+	WHILE #days >= #yearDays DO
+	  #days -= #yearDays;
+	  #tmp.YEAR += 1;
+	  
+	  IF "_isLeapYear"(#tmp.YEAR) THEN
+	    #yearDays := 366;
+	  ELSE
+	    #yearDays := 365;
+	  END_IF;
+	END_WHILE;
+	
+	// Add month
+	#tmp.MONTH := #BASE_MONTH;
+	#monthDays := 31;
+	
+	WHILE #days >= #monthDays DO
+	  #days -= #monthDays;
+	  #tmp.MONTH += 1;
+	  #monthDays := "_getMonthDays"(year:=#tmp.YEAR, month:=#tmp.MONTH);
+	END_WHILE;
+	
+	// Add day
+	#tmp.DAY := ULINT_TO_USINT(#days) + 1;
+	
+	// Add weekday
+	#tmp.WEEKDAY := "_getWeekday"(#tmp);
+	
+	// Return
+	#status := "_checkDatetime"(in := #tmp, checkWeekday:= true);
+	#out := #tmp;
+	#_unixTimestampToDatetime := #status;
+	ENO := #status = #STATUS_0000_DONE;
+	
+END_FUNCTION
+

@@ -1,0 +1,22 @@
+﻿TYPE "rxRecordReadSto"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/fieldbus/lldx","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//RX record read storage
+//--*)
+
+   STRUCT
+      recordIndex : Int;   // Indication of the data set number that can be read on the receiving side
+      recordLength : Int;   // Length of the data set that can be read on the receiving side
+      cycleCounter : Byte;   // Any modification of the value (incremental) means that a new data set can be read on the receiving side
+   END_STRUCT;
+
+END_TYPE
+

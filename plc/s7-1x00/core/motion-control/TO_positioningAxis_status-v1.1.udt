@@ -1,0 +1,60 @@
+﻿TYPE "TO_positioningAxis_status"
+TITLE = {"version":"v1.1","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.1 | 2023-10-21 | cyanezf | IsRunning and direction added |
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//TO Positioning Axis - error
+//--*)
+
+   STRUCT
+      gearIn { ExternalWritable := 'False'} : Bool;   // SR: 1=Gear in 
+      inGear { ExternalWritable := 'False'} : Bool;   // SR: 1=In gear
+      isRunning { ExternalWritable := 'False'} : Bool;   // SR: 1=Axis is running
+      isRunningForward { ExternalWritable := 'False'} : Bool;   // SR: 1=Axis is running forward
+      isRunningBackward { ExternalWritable := 'False'} : Bool;   // SR: 1=Axis is running backward
+      
+      to_bits { ExternalWritable := 'False'} : Struct   // SR: TO status bits
+         enable { ExternalWritable := 'False'} : Bool;   // SR: x00 - Enable status. The technology object has been enabled.
+         error { ExternalWritable := 'False'} : Bool;   // SR: x01 - An error is present.
+         restartActive { ExternalWritable := 'False'} : Bool;   // SR: x02 - A restart is active. The technology object will be reinitialized
+         onlineStartValuesChanged { ExternalWritable := 'False'} : Bool;   // SR: x03 - The restart tags have been changed. For the changes to be applied, the technology object must be reinitialized
+         controlPanelActive { ExternalWritable := 'False'} : Bool;   // SR: x04 - The axis control panel is active
+         homingDone { ExternalWritable := 'False'} : Bool;   // SR: x05 - The technology object is homed
+         done { ExternalWritable := 'False'} : Bool;   // SR: x06 - No motion job is in progress and the axis control panel is deactivated
+         standstill { ExternalWritable := 'False'} : Bool;   // SR: x07 - The axis is at a standstill
+         positioningCommand { ExternalWritable := 'False'} : Bool;   // SR: x08 - A positioning command is active ("MC_MoveRelative","MC_MoveAbsolute").
+         jogCommand { ExternalWritable := 'False'} : Bool;   // SR: x09 - An "MC_MoveJog" job is running
+         velocityCommand { ExternalWritable := 'False'} : Bool;   // SR: x10 - An "MC_MoveVelocity" job is running
+         homingCommand { ExternalWritable := 'False'} : Bool;   // SR: x11 - An "MC_Home" job is being processed
+         constantVelocity { ExternalWritable := 'False'} : Bool;   // SR: x12 - The velocity setpoint is reached. A constant velocity setpoint is output
+         accelerating { ExternalWritable := 'False'} : Bool;   // SR: x13 - An acceleration operation is active
+         decelerating { ExternalWritable := 'False'} : Bool;   // SR: x14 - A deceleration operation is active
+         SWLimitMinActive { ExternalWritable := 'False'} : Bool;   // SR: x15 - A negative software limit switch has been approached or exceeded
+         SWLimitMaxActive { ExternalWritable := 'False'} : Bool;   // SR: x16 - A positive software limit switch has been approached or exceeded
+         HWLimitMinActive { ExternalWritable := 'False'} : Bool;   // SR: x17 - A negative hardware limit switch has been approached or exceeded
+         HWLimitMaxActive { ExternalWritable := 'False'} : Bool;   // SR: x18 - A positive hardware limit switch has been approached or exceeded
+         r19 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         r20 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         r21 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         r22 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         moveSuperimposedCommand { ExternalWritable := 'False'} : Bool;   // SR: x23 - An "MC_MoveSuperimposed" job is running
+         r24 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         axisSimulation { ExternalWritable := 'False'} : Bool;   // SR: x25 - The technology object is in simulation
+         torqueLimitingCommand { ExternalWritable := 'False'} : Bool;   // SR: x26 - An "MC_TorqueLimiting" job is running
+         inLimitation { ExternalWritable := 'False'} : Bool;   // SR: x27 - The drive operates at least at the threshold value (default 90%) of the torque limit/force limitation
+         nonPositionControlled { ExternalWritable := 'False'} : Bool;   // SR: x28 - The axis is not in position-controlled mode
+         kinematicsMotionCommand { ExternalWritable := 'False'} : Bool;   // SR: x29 - The axis is used for a kinematics job
+         inClamping { ExternalWritable := 'False'} : Bool;   // SR: x30 - The axis is clamped at a fixed stop
+         motionInCommand { ExternalWritable := 'False'} : Bool;   // SR: x31 - A "MotionIn" job is running
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

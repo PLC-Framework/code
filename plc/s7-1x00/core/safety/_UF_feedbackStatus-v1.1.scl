@@ -1,0 +1,106 @@
+﻿FUNCTION "_UF_feedbackStatus" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/safety'
+NAME : _UF_feedbackStatus
+VERSION : 1.1
+
+   VAR_INPUT 
+      enable : Bool;   // 1=Enabled
+      error : Bool;   // 1=Feedback error
+      diag : Byte;   // FEEDBACK function diag byte
+   END_VAR
+
+   VAR CONSTANT 
+      F_STATUS_0000_DISABLED : Int := 0;   // F-Status: 0x0000 - Disabled
+      F_STATUS_0001_READY_Q_OFF : Int := 1;   // F-Status: 0x0001 - Ready - Q=off
+      F_STATUS_0003_READY_Q_ON : Int := 3;   // F-Status: 0x0001 - Ready - Q=on
+      F_STATUS_7002_ACK_REQ : Int := 16#7002;   // F-Status: 0x7002 - Warning - Ackn. required
+      F_STATUS_8001_PASSIVATION : Int := 16#8001;   // F-Status: 0x8001 - Error - Status/FEEDBACK - F-object passition
+      F_STATUS_8007_FK_ERROR : Int := 16#8007;   // F-Status: 0x8007 - Error - FEEDBACK - Feedback error
+      F_STATUS_8008_FK_TIME : Int := 16#8008;   // F-Status: 0x8008 - Error - FEEDBACK - Time setting error
+      F_STATUS_8009_FK_ALWAYS_0 : Int := 16#8009;   // F-Status: 0x8009 - Error - FEEDBACK - Feedback input is always false
+      F_STATUS_800A_FK_ACKN_1 : Int := 16#800A;   // F-Status: 0x800A - Error - FEEDBACK - Ackn. input is always true
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2025-08-01 | cyanezf | Status 3 added |
+| v1.0 | 2023-10-17 | cyanezf | First version |
+
+## Description
+
+This function returns a processed value for an output feedback signal.
+
+## Diag byte
+
+| bit | description |
+|:---:|:------------|
+| x.0 | Feedback time error |
+| x.1 | Passivation |
+| x.2 | Feedback input is always false |
+| x.3 | Reserved |
+| x.4 | Reserved |
+| x.5 | Ack. input is always true |
+| x.6 | Ack. required |
+| x.7 | State of output Q |
+
+## RLO and return
+
+| RLO | value | description |
+|:---:|:-----:|:------------|
+| TRUE | 0 | Disabled |
+| TRUE | 1 | Ready/ok - Q = 0 |
+| TRUE | 3 | Ready/ok - Q = 1 |
+| TRUE | 0x7002 | Ackn. required |
+| TRUE | 0x8001 | Channel Passivation |
+| TRUE | 0x8007 | Feedback error |
+| TRUE | 0x8008 | Feedback timeout setting error |
+| TRUE | 0x8009 | Feedback input is always false |
+| TRUE | 0x800A | Feedback ackn. input is always true |
+
+--*)
+	
+	// Check conditions
+	IF NOT #enable THEN
+	  #_UF_feedbackStatus := #F_STATUS_0000_DISABLED;
+	  
+	ELSIF #diag.%X1 THEN
+	  #_UF_feedbackStatus := #F_STATUS_8001_PASSIVATION;
+	  
+	ELSIF #diag.%X0 THEN
+	  #_UF_feedbackStatus := #F_STATUS_8008_FK_TIME;
+	  
+	ELSIF #diag.%X2 THEN
+	  #_UF_feedbackStatus := #F_STATUS_8009_FK_ALWAYS_0;
+	  
+	ELSIF #diag.%X5 THEN
+	  #_UF_feedbackStatus := #F_STATUS_800A_FK_ACKN_1;
+	  
+	ELSIF #error THEN
+	  #_UF_feedbackStatus := #F_STATUS_8007_FK_ERROR;
+	  
+	ELSIF #diag.%X6 THEN
+	  #_UF_feedbackStatus := #F_STATUS_7002_ACK_REQ;
+	  
+	ELSIF #diag.%X7 THEN
+	  #_UF_feedbackStatus := #F_STATUS_0003_READY_Q_ON;
+	  
+	ELSE
+	  #_UF_feedbackStatus := #F_STATUS_0001_READY_Q_OFF;
+	  
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

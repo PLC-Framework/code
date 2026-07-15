@@ -1,0 +1,59 @@
+﻿FUNCTION "_tcpCommunicationTx" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TSEND"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/tcp'
+NAME : _tcpCommunicationTx
+VERSION : 1.0
+
+   VAR_IN_OUT 
+      sender {InstructionName := 'TSEND'; LibVersion := '4.0'} : TSEND;   // IOX: Sender method
+      TX_control : "tcpCommunicationControl";   // IOX: Sender control
+      TX_buffer : Array[*] of Byte;   // IOX: Sender buffer
+   END_VAR
+
+   VAR CONSTANT 
+      COM_CONTROL_0_NIL : Int := 0;   // Communication control: 0 - Null
+      COM_CONTROL_1_REQ : Int := 1;   // Communication control: 1 - Sending Request
+      COM_CONTROL_2_BUSY : Int := 2;   // Communication control: 2 - Busy (sending/receiving)
+      COM_CONTROL_3_DONE : Int := 3;   // Communication control: 3 - Done (data sent or new data received)
+      COM_CONTROL_8000_ERROR : Int := 16#8000;   // Communication control: 0x8000- Error (sending/receiving)
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2024-11-28 | cyanezf | First version |
+
+## Description
+
+This function sends data to a remote partner as TCP server or client.
+
+--*)
+
+	// Sender
+	#sender(REQ:=#TX_control.command = #COM_CONTROL_1_REQ,
+	        LEN:=#TX_control.length,
+	        DATA:=#TX_buffer);
+	
+	// Sender control
+	IF #sender.BUSY THEN
+	  #TX_control.command := #COM_CONTROL_2_BUSY;
+	ELSIF #sender.DONE THEN
+	  #TX_control.command := #COM_CONTROL_3_DONE;
+	ELSIF #sender.ERROR THEN
+	  #TX_control.command := #COM_CONTROL_8000_ERROR;
+	ELSE
+	  #TX_control.command := #COM_CONTROL_0_NIL;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

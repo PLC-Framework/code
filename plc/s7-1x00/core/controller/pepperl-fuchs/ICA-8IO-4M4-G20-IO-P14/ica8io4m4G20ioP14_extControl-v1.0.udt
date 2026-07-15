@@ -1,0 +1,79 @@
+﻿TYPE "ica8io4m4G20ioP14_extControl"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-03-03 | cyanezf | First version |
+// 
+//## Description
+//P+F - ICA-8IO-4M4-G20-IO-P14 Extended Control
+//--*)
+
+   STRUCT
+      output1 : Bool;   // 1=Output control 1 active
+      output2 : Bool;   // 1=Output control 2 active
+      output3 : Bool;   // 1=Output control 3 active
+      output4 : Bool;   // 1=Output control 4 active
+      output5 : Bool;   // 1=Output control 5 active
+      output6 : Bool;   // 1=Output control 6 active
+      output7 : Bool;   // 1=Output control 7 active
+      output8 : Bool;   // 1=Output control 8 active
+      counter_reset : Bool;   // 1=CNTRES - Reset counter
+      counter_enable : Bool;   // 1=CNTEN - Counter enable. Relaease the counter operation
+      counter_direction : Bool;   // CNTDIR - Counter direction. Sets the counter direction. 0=Up; 1=Down
+      counter_resetZeroCross : Bool;   // 1=CNTRZC - Reset counter zero cross flag
+      counter_resetOverflow : Bool;   // 1=CNTROF - Reset counter overflow flag
+      counter_resetUnderflow : Bool;   // 1=CNTRUF - Reset counter underflow flag
+      counter_resetDirectionChange : Bool;   // 1=CNTRREV - Reset counter reverted flag
+      counter_preset : Bool;   // 1=CNTPRE - Preset counter value
+      motor1_run : Bool;   // 1=M1-RUNC - Motor run control
+      motor1_direction : Bool;   // M1-DIRC - Motor direction. 0=Left; 1=Right
+      motor1_brake : Bool;   // 1=M1-BRKC - Motor brake control ON
+      motor1_res_0_3 : Bool;   // Reserved
+      motor1_res_0_4 : Bool;   // Reserved
+      motor1_res_0_5 : Bool;   // Reserved
+      motor1_res_0_6 : Bool;   // Reserved
+      motor1_res_0_7 : Bool;   // Reserved
+      motor1_speed : USInt;   // 0..100%=M1-SPDC - Motor speed value
+      motor1_decelerationRamp : USInt;   // 0..255 -> 0..5100ms=M1-RMPDN motor ramp down value (20 ms steps)
+      motor1_accelerationRamp : USInt;   // 0..255 -> 0..5100ms=M1-RMPUP motor ramp up value (20 ms steps)
+      motor2_run : Bool;   // 1=M2-RUNC - Motor run control
+      motor2_direction : Bool;   // M2-DIRC - Motor direction. 0=Left; 1=Right
+      motor2_brake : Bool;   // 1=M2-BRKC - Motor brake control ON
+      motor2_res_0_3 : Bool;   // Reserved
+      motor2_res_0_4 : Bool;   // Reserved
+      motor2_res_0_5 : Bool;   // Reserved
+      motor2_res_0_6 : Bool;   // Reserved
+      motor2_res_0_7 : Bool;   // Reserved
+      motor2_speed : USInt;   // 0..100%=M2-SPDC - Motor speed value
+      motor2_decelerationRamp : USInt;   // 0..255 -> 0..5100ms=M2-RMPDN motor ramp down value (20 ms steps)
+      motor2_accelerationRamp : USInt;   // 0..255 -> 0..5100ms=M2-RMPUP motor ramp up value (20 ms steps)
+      motor3_run : Bool;   // 1=M3-RUNC - Motor run control
+      motor3_direction : Bool;   // M3-DIRC - Motor direction. 0=Left; 1=Right
+      motor3_brake : Bool;   // 1=M3-BRKC - Motor brake control ON
+      motor3_res_0_3 : Bool;   // Reserved
+      motor3_res_0_4 : Bool;   // Reserved
+      motor3_res_0_5 : Bool;   // Reserved
+      motor3_res_0_6 : Bool;   // Reserved
+      motor3_res_0_7 : Bool;   // Reserved
+      motor3_speed : USInt;   // 0..100%=M3-SPDC - Motor speed value
+      motor3_decelerationRamp : USInt;   // 0..255 -> 0..5100ms=M3-RMPDN motor ramp down value (20 ms steps)
+      motor3_accelerationRamp : USInt;   // 0..255 -> 0..5100ms=M3-RMPUP motor ramp up value (20 ms steps)
+      motor4_run : Bool;   // 1=M4-RUNC - Motor run control
+      motor4_direction : Bool;   // M4-DIRC - Motor direction. 0=Left; 1=Right
+      motor4_brake : Bool;   // 1=M4-BRKC - Motor brake control ON
+      motor4_res_0_3 : Bool;   // Reserved
+      motor4_res_0_4 : Bool;   // Reserved
+      motor4_res_0_5 : Bool;   // Reserved
+      motor4_res_0_6 : Bool;   // Reserved
+      motor4_res_0_7 : Bool;   // Reserved
+      motor4_speed : USInt;   // 0..100%=M4-SPDC - Motor speed value
+      motor4_decelerationRamp : USInt;   // 0..255 -> 0..5100ms=M4-RMPDN motor ramp down value (20 ms steps)
+      motor4_accelerationRamp : USInt;   // 0..255 -> 0..5100ms=M4-RMPUP motor ramp up value (20 ms steps)
+   END_STRUCT;
+
+END_TYPE
+

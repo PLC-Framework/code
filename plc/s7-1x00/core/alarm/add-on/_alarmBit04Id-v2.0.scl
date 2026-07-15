@@ -1,0 +1,110 @@
+﻿FUNCTION "_alarmBit04Id" : Void
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/add-on'
+NAME : _alarmBit04Id
+VERSION : 2.0
+   VAR_INPUT 
+      triggered : UInt;   // N=Some alarm in controller alarm group
+      a00 : Bool;   // 1=Alarm
+      a00_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a01 : Bool;   // 1=Alarm
+      a01_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a02 : Bool;   // 1=Alarm
+      a02_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+      a03 : Bool;   // 1=Alarm
+      a03_id : Int;   // 0=No ID; 0xHHHH=Some alarm ID
+   END_VAR
+
+   VAR_IN_OUT 
+      id : Int;   // Alarm id variable in controller alarm group
+   END_VAR
+
+   VAR CONSTANT 
+      NO_ALARM : Int := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | triggered changes to UINT |
+| v1.0 | 2025-01-27 | cyanezf | First version |
+
+## Description
+
+This function updates alarm ID, check 4 bits.
+Alarm `id` is set with `aXX_id` when `a00` is true and `id` is equal to `NO_ALARM`.
+Alarm `id` is set with `NO_ALARM` when `triggered` is false;
+
+--*)
+	
+	// Clear if not triggered
+	IF #triggered = 0 THEN
+	  #id := #NO_ALARM;
+	  ENO := true;
+	  RETURN;
+	END_IF;
+	
+	// Check alarm 0
+	IF #a00 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a00_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a00_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 1
+	IF #a01 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a01_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a01_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 2
+	IF #a02 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a02_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a02_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Check alarm 3
+	IF #a03 THEN
+	  IF #id = #NO_ALARM THEN
+	    #id := #a03_id;
+	    ENO := true;
+	    RETURN;
+	  END_IF;
+	ELSE
+	  IF #id = #a03_id THEN
+	    #id := #NO_ALARM;
+	  END_IF;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

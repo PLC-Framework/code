@@ -1,0 +1,28 @@
+﻿TYPE "al2401Status"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/ifm/al2401","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-03-03 | cyanezf | First version |
+// 
+//## Description
+//IFM AL2401 status
+//--*)
+
+   STRUCT
+      x1_0_shortcurcuit : Bool;   // Short circuit X1.0
+      x1_1_shortcurcuit : Bool;   // Short circuit X1.1
+      x1_2_shortcurcuit : Bool;   // Short circuit X1.2
+      x1_3_shortcurcuit : Bool;   // Short circuit X1.3
+      x1_4_shortcurcuit : Bool;   // Short circuit X1.4
+      x1_5_shortcurcuit : Bool;   // Short circuit X1.5
+      x1_6_shortcurcuit : Bool;   // Short circuit X1.6
+      x1_7_shortcurcuit : Bool;   // Short circuit X1.7
+      deviceId : Byte;   // Device ID
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,315 @@
+TYPE "bwu3847C1ASi3output32BytesDIO_0_31B"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/bihl-wiedermann/bwu3847","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-03-03 | cyanezf | First version |
+//
+//## Description
+//B+W - bwu3847 C1 ASi3 output 32 bytes DIO 0-31B
+//--*)
+
+   STRUCT
+      node01A_DO0 : Bool;   // Node 1A - DO0
+      node01A_DO1 : Bool;   // Node 1A - DO1
+      node01A_DO2 : Bool;   // Node 1A - DO2
+      node01A_DO3 : Bool;   // Node 1A - DO3
+      offline : Bool;   // 1=Offline
+      LOS_masterBit : Bool;   // 1=Offline by config error activated
+      protectedMode : Bool;   // 1=Protected mode
+      configurationMode : Bool;   // 1=Configuration mode
+
+      node03A_DO0 : Bool;   // Node 3A - DO0
+      node03A_DO1 : Bool;   // Node 3A - DO1
+      node03A_DO2 : Bool;   // Node 3A - DO2
+      node03A_DO3 : Bool;   // Node 3A - DO3
+
+      node02A_DO0 : Bool;   // Node 2A - DO0
+      node02A_DO1 : Bool;   // Node 2A - DO1
+      node02A_DO2 : Bool;   // Node 2A - DO2
+      node02A_DO3 : Bool;   // Node 2A - DO3
+
+      node05A_DO0 : Bool;   // Node 5A - DO0
+      node05A_DO1 : Bool;   // Node 5A - DO1
+      node05A_DO2 : Bool;   // Node 5A - DO2
+      node05A_DO3 : Bool;   // Node 5A - DO3
+
+      node04A_DO0 : Bool;   // Node 4A - DO0
+      node04A_DO1 : Bool;   // Node 4A - DO1
+      node04A_DO2 : Bool;   // Node 4A - DO2
+      node04A_DO3 : Bool;   // Node 4A - DO3
+
+      node07A_DO0 : Bool;   // Node 7A - DO0
+      node07A_DO1 : Bool;   // Node 7A - DO1
+      node07A_DO2 : Bool;   // Node 7A - DO2
+      node07A_DO3 : Bool;   // Node 7A - DO3
+
+      node06A_DO0 : Bool;   // Node 6A - DO0
+      node06A_DO1 : Bool;   // Node 6A - DO1
+      node06A_DO2 : Bool;   // Node 6A - DO2
+      node06A_DO3 : Bool;   // Node 6A - DO3
+
+      node09A_DO0 : Bool;   // Node 9A - DO0
+      node09A_DO1 : Bool;   // Node 9A - DO1
+      node09A_DO2 : Bool;   // Node 9A - DO2
+      node09A_DO3 : Bool;   // Node 9A - DO3
+
+      node08A_DO0 : Bool;   // Node 8A - DO0
+      node08A_DO1 : Bool;   // Node 8A - DO1
+      node08A_DO2 : Bool;   // Node 8A - DO2
+      node08A_DO3 : Bool;   // Node 8A - DO3
+
+      node11A_DO0 : Bool;   // Node 11A - DO0
+      node11A_DO1 : Bool;   // Node 11A - DO1
+      node11A_DO2 : Bool;   // Node 11A - DO2
+      node11A_DO3 : Bool;   // Node 11A - DO3
+
+      node10A_DO0 : Bool;   // Node 10A - DO0
+      node10A_DO1 : Bool;   // Node 10A - DO1
+      node10A_DO2 : Bool;   // Node 10A - DO2
+      node10A_DO3 : Bool;   // Node 10A - DO3
+
+      node13A_DO0 : Bool;   // Node 13A - DO0
+      node13A_DO1 : Bool;   // Node 13A - DO1
+      node13A_DO2 : Bool;   // Node 13A - DO2
+      node13A_DO3 : Bool;   // Node 13A - DO3
+
+      node12A_DO0 : Bool;   // Node 12A - DO0
+      node12A_DO1 : Bool;   // Node 12A - DO1
+      node12A_DO2 : Bool;   // Node 12A - DO2
+      node12A_DO3 : Bool;   // Node 12A - DO3
+
+      node15A_DO0 : Bool;   // Node 15A - DO0
+      node15A_DO1 : Bool;   // Node 15A - DO1
+      node15A_DO2 : Bool;   // Node 15A - DO2
+      node15A_DO3 : Bool;   // Node 15A - DO3
+
+      node14A_DO0 : Bool;   // Node 14A - DO0
+      node14A_DO1 : Bool;   // Node 14A - DO1
+      node14A_DO2 : Bool;   // Node 14A - DO2
+      node14A_DO3 : Bool;   // Node 14A - DO3
+
+      node17A_DO0 : Bool;   // Node 17A - DO0
+      node17A_DO1 : Bool;   // Node 17A - DO1
+      node17A_DO2 : Bool;   // Node 17A - DO2
+      node17A_DO3 : Bool;   // Node 17A - DO3
+
+      node16A_DO0 : Bool;   // Node 16A - DO0
+      node16A_DO1 : Bool;   // Node 16A - DO1
+      node16A_DO2 : Bool;   // Node 16A - DO2
+      node16A_DO3 : Bool;   // Node 16A - DO3
+
+      node19A_DO0 : Bool;   // Node 19A - DO0
+      node19A_DO1 : Bool;   // Node 19A - DO1
+      node19A_DO2 : Bool;   // Node 19A - DO2
+      node19A_DO3 : Bool;   // Node 19A - DO3
+
+      node18A_DO0 : Bool;   // Node 18A - DO0
+      node18A_DO1 : Bool;   // Node 18A - DO1
+      node18A_DO2 : Bool;   // Node 18A - DO2
+      node18A_DO3 : Bool;   // Node 18A - DO3
+
+      node21A_DO0 : Bool;   // Node 21A - DO0
+      node21A_DO1 : Bool;   // Node 21A - DO1
+      node21A_DO2 : Bool;   // Node 21A - DO2
+      node21A_DO3 : Bool;   // Node 21A - DO3
+
+      node20A_DO0 : Bool;   // Node 20A - DO0
+      node20A_DO1 : Bool;   // Node 20A - DO1
+      node20A_DO2 : Bool;   // Node 20A - DO2
+      node20A_DO3 : Bool;   // Node 20A - DO3
+
+      node23A_DO0 : Bool;   // Node 23A - DO0
+      node23A_DO1 : Bool;   // Node 23A - DO1
+      node23A_DO2 : Bool;   // Node 23A - DO2
+      node23A_DO3 : Bool;   // Node 23A - DO3
+
+      node22A_DO0 : Bool;   // Node 22A - DO0
+      node22A_DO1 : Bool;   // Node 22A - DO1
+      node22A_DO2 : Bool;   // Node 22A - DO2
+      node22A_DO3 : Bool;   // Node 22A - DO3
+
+      node25A_DO0 : Bool;   // Node 25A - DO0
+      node25A_DO1 : Bool;   // Node 25A - DO1
+      node25A_DO2 : Bool;   // Node 25A - DO2
+      node25A_DO3 : Bool;   // Node 25A - DO3
+
+      node24A_DO0 : Bool;   // Node 24A - DO0
+      node24A_DO1 : Bool;   // Node 24A - DO1
+      node24A_DO2 : Bool;   // Node 24A - DO2
+      node24A_DO3 : Bool;   // Node 24A - DO3
+
+      node27A_DO0 : Bool;   // Node 27A - DO0
+      node27A_DO1 : Bool;   // Node 27A - DO1
+      node27A_DO2 : Bool;   // Node 27A - DO2
+      node27A_DO3 : Bool;   // Node 27A - DO3
+
+      node26A_DO0 : Bool;   // Node 26A - DO0
+      node26A_DO1 : Bool;   // Node 26A - DO1
+      node26A_DO2 : Bool;   // Node 26A - DO2
+      node26A_DO3 : Bool;   // Node 26A - DO3
+
+      node29A_DO0 : Bool;   // Node 29A - DO0
+      node29A_DO1 : Bool;   // Node 29A - DO1
+      node29A_DO2 : Bool;   // Node 29A - DO2
+      node29A_DO3 : Bool;   // Node 29A - DO3
+
+      node28A_DO0 : Bool;   // Node 28A - DO0
+      node28A_DO1 : Bool;   // Node 28A - DO1
+      node28A_DO2 : Bool;   // Node 28A - DO2
+      node28A_DO3 : Bool;   // Node 28A - DO3
+
+      node31A_DO0 : Bool;   // Node 31A - DO0
+      node31A_DO1 : Bool;   // Node 31A - DO1
+      node31A_DO2 : Bool;   // Node 31A - DO2
+      node31A_DO3 : Bool;   // Node 31A - DO3
+
+      node30A_DO0 : Bool;   // Node 30A - DO0
+      node30A_DO1 : Bool;   // Node 30A - DO1
+      node30A_DO2 : Bool;   // Node 30A - DO2
+      node30A_DO3 : Bool;   // Node 30A - DO3
+
+      node01B_DO0 : Bool;   // Node 1B - DO0
+      node01B_DO1 : Bool;   // Node 1B - DO1
+      node01B_DO2 : Bool;   // Node 1B - DO2
+      node01B_DO3 : Bool;   // Node 1B - DO3
+
+      reserved_I16_4 : Bool;   // Reserved
+      reserved_I16_5 : Bool;   // Reserved
+      reserved_I16_6 : Bool;   // Reserved
+      reserved_I16_7 : Bool;   // Reserved
+
+      node03B_DO0 : Bool;   // Node 3B - DO0
+      node03B_DO1 : Bool;   // Node 3B - DO1
+      node03B_DO2 : Bool;   // Node 3B - DO2
+      node03B_DO3 : Bool;   // Node 3B - DO3
+
+      node02B_DO0 : Bool;   // Node 2B - DO0
+      node02B_DO1 : Bool;   // Node 2B - DO1
+      node02B_DO2 : Bool;   // Node 2B - DO2
+      node02B_DO3 : Bool;   // Node 2B - DO3
+
+      node05B_DO0 : Bool;   // Node 5B - DO0
+      node05B_DO1 : Bool;   // Node 5B - DO1
+      node05B_DO2 : Bool;   // Node 5B - DO2
+      node05B_DO3 : Bool;   // Node 5B - DO3
+
+      node04B_DO0 : Bool;   // Node 4B - DO0
+      node04B_DO1 : Bool;   // Node 4B - DO1
+      node04B_DO2 : Bool;   // Node 4B - DO2
+      node04B_DO3 : Bool;   // Node 4B - DO3
+
+      node07B_DO0 : Bool;   // Node 7B - DO0
+      node07B_DO1 : Bool;   // Node 7B - DO1
+      node07B_DO2 : Bool;   // Node 7B - DO2
+      node07B_DO3 : Bool;   // Node 7B - DO3
+
+      node06B_DO0 : Bool;   // Node 6B - DO0
+      node06B_DO1 : Bool;   // Node 6B - DO1
+      node06B_DO2 : Bool;   // Node 6B - DO2
+      node06B_DO3 : Bool;   // Node 6B - DO3
+
+      node09B_DO0 : Bool;   // Node 9B - DO0
+      node09B_DO1 : Bool;   // Node 9B - DO1
+      node09B_DO2 : Bool;   // Node 9B - DO2
+      node09B_DO3 : Bool;   // Node 9B - DO3
+
+      node08B_DO0 : Bool;   // Node 8B - DO0
+      node08B_DO1 : Bool;   // Node 8B - DO1
+      node08B_DO2 : Bool;   // Node 8B - DO2
+      node08B_DO3 : Bool;   // Node 8B - DO3
+      
+      node11B_DO0 : Bool;   // Node 11B - DO0
+      node11B_DO1 : Bool;   // Node 11B - DO1
+      node11B_DO2 : Bool;   // Node 11B - DO2
+      node11B_DO3 : Bool;   // Node 11B - DO3
+      node10B_DO0 : Bool;   // Node 10B - DO0
+      node10B_DO1 : Bool;   // Node 10B - DO1
+      node10B_DO2 : Bool;   // Node 10B - DO2
+      node10B_DO3 : Bool;   // Node 10B - DO3
+      node13B_DO0 : Bool;   // Node 13B - DO0
+      node13B_DO1 : Bool;   // Node 13B - DO1
+      node13B_DO2 : Bool;   // Node 13B - DO2
+      node13B_DO3 : Bool;   // Node 13B - DO3
+      node12B_DO0 : Bool;   // Node 12B - DO0
+      node12B_DO1 : Bool;   // Node 12B - DO1
+      node12B_DO2 : Bool;   // Node 12B - DO2
+      node12B_DO3 : Bool;   // Node 12B - DO3
+      node15B_DO0 : Bool;   // Node 15B - DO0
+      node15B_DO1 : Bool;   // Node 15B - DO1
+      node15B_DO2 : Bool;   // Node 15B - DO2
+      node15B_DO3 : Bool;   // Node 15B - DO3
+      node14B_DO0 : Bool;   // Node 14B - DO0
+      node14B_DO1 : Bool;   // Node 14B - DO1
+      node14B_DO2 : Bool;   // Node 14B - DO2
+      node14B_DO3 : Bool;   // Node 14B - DO3
+      node17B_DO0 : Bool;   // Node 17B - DO0
+      node17B_DO1 : Bool;   // Node 17B - DO1
+      node17B_DO2 : Bool;   // Node 17B - DO2
+      node17B_DO3 : Bool;   // Node 17B - DO3
+      node16B_DO0 : Bool;   // Node 16B - DO0
+      node16B_DO1 : Bool;   // Node 16B - DO1
+      node16B_DO2 : Bool;   // Node 16B - DO2
+      node16B_DO3 : Bool;   // Node 16B - DO3
+      node19B_DO0 : Bool;   // Node 19B - DO0
+      node19B_DO1 : Bool;   // Node 19B - DO1
+      node19B_DO2 : Bool;   // Node 19B - DO2
+      node19B_DO3 : Bool;   // Node 19B - DO3
+      node18B_DO0 : Bool;   // Node 18B - DO0
+      node18B_DO1 : Bool;   // Node 18B - DO1
+      node18B_DO2 : Bool;   // Node 18B - DO2
+      node18B_DO3 : Bool;   // Node 18B - DO3
+      node21B_DO0 : Bool;   // Node 21B - DO0
+      node21B_DO1 : Bool;   // Node 21B - DO1
+      node21B_DO2 : Bool;   // Node 21B - DO2
+      node21B_DO3 : Bool;   // Node 21B - DO3
+      node20B_DO0 : Bool;   // Node 20B - DO0
+      node20B_DO1 : Bool;   // Node 20B - DO1
+      node20B_DO2 : Bool;   // Node 20B - DO2
+      node20B_DO3 : Bool;   // Node 20B - DO3
+      node23B_DO0 : Bool;   // Node 23B - DO0
+      node23B_DO1 : Bool;   // Node 23B - DO1
+      node23B_DO2 : Bool;   // Node 23B - DO2
+      node23B_DO3 : Bool;   // Node 23B - DO3
+      node22B_DO0 : Bool;   // Node 22B - DO0
+      node22B_DO1 : Bool;   // Node 22B - DO1
+      node22B_DO2 : Bool;   // Node 22B - DO2
+      node22B_DO3 : Bool;   // Node 22B - DO3
+      node25B_DO0 : Bool;   // Node 25B - DO0
+      node25B_DO1 : Bool;   // Node 25B - DO1
+      node25B_DO2 : Bool;   // Node 25B - DO2
+      node25B_DO3 : Bool;   // Node 25B - DO3
+      node24B_DO0 : Bool;   // Node 24B - DO0
+      node24B_DO1 : Bool;   // Node 24B - DO1
+      node24B_DO2 : Bool;   // Node 24B - DO2
+      node24B_DO3 : Bool;   // Node 24B - DO3
+      node27B_DO0 : Bool;   // Node 27B - DO0
+      node27B_DO1 : Bool;   // Node 27B - DO1
+      node27B_DO2 : Bool;   // Node 27B - DO2
+      node27B_DO3 : Bool;   // Node 27B - DO3
+      node26B_DO0 : Bool;   // Node 26B - DO0
+      node26B_DO1 : Bool;   // Node 26B - DO1
+      node26B_DO2 : Bool;   // Node 26B - DO2
+      node26B_DO3 : Bool;   // Node 26B - DO3
+      node29B_DO0 : Bool;   // Node 29B - DO0
+      node29B_DO1 : Bool;   // Node 29B - DO1
+      node29B_DO2 : Bool;   // Node 29B - DO2
+      node29B_DO3 : Bool;   // Node 29B - DO3
+      node28B_DO0 : Bool;   // Node 28B - DO0
+      node28B_DO1 : Bool;   // Node 28B - DO1
+      node28B_DO2 : Bool;   // Node 28B - DO2
+      node28B_DO3 : Bool;   // Node 28B - DO3
+      node31B_DO0 : Bool;   // Node 31B - DO0
+      node31B_DO1 : Bool;   // Node 31B - DO1
+      node31B_DO2 : Bool;   // Node 31B - DO2
+      node31B_DO3 : Bool;   // Node 31B - DO3
+      node30B_DO0 : Bool;   // Node 30B - DO0
+      node30B_DO1 : Bool;   // Node 30B - DO1
+      node30B_DO2 : Bool;   // Node 30B - DO2
+      node30B_DO3 : Bool;   // Node 30B - DO3
+   END_STRUCT;
+
+END_TYPE

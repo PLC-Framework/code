@@ -1,0 +1,231 @@
+﻿FUNCTION_BLOCK "_i550Motec"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["i550Motec_customStatus-v1.0", "i550Motec_customControl-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/lenze/i550-motec'
+NAME : _i550Motec
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency Stop Ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      homePulse { ExternalWritable := 'False'} : Bool;   // IR: 1=Home (Reset counter position)
+      ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Clockwise direction; 1=Counter-clockwise direction (invert)
+      errorAckn { ExternalWritable := 'False'} : Bool;   // IR: Error ackn.
+      speed { ExternalWritable := 'False'} : Real;   // IR: Setpoint speed in user value
+      maxSpeed { ExternalWritable := 'False'} : Real;   // IR: Max. speed in user value (conversion factor)
+      maxFrequency { ExternalWritable := 'False'} : Real;   // IR: Max frequency in Hz
+      accelerationRamp { ExternalWritable := 'False'} : Time := T#500ms;   // IR: Acceleration ramp
+      decelerationRamp { ExternalWritable := 'False'} : Time := T#500ms;   // IR: Deceleration ramp
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      speedReached { ExternalWritable := 'False'} : Bool;   // OR: 1=Setpoint speed reached
+      speedISZero { ExternalWritable := 'False'} : Bool;   // OR: 1=Current speed is zero
+      actualSpeed { ExternalWritable := 'False'} : Real;   // OR: Actual speed in user value
+      actualCurrent { ExternalWritable := 'False'} : Real;   // OR: Actual current in A
+      actualPosition { ExternalWritable := 'False'} : Real;   // OR: Actual position in pulse units
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "i550Motec_customStatus";   // IOX: Process data input
+      pdo : "i550Motec_customControl";   // IOX: Process data output
+   END_VAR
+
+   VAR_TEMP 
+      frequency : Real;
+      ramp : Time;
+      ok : Bool;
+      run : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      IN_FREQUENCY_FACTOR : Real := 100.0;
+      IN_CURRENT_FACTOR : Real := 10.0;
+      OUT_FREQUENCY_FACTOR : UInt := 100;
+      OUT_RAMP_FACTOR : UInt := 10;   // Factor is 100, but Time is in milliseconds, so, 1000ms / 1000 * 100 is 1000 / 10
+      OUT_MAX_RAMP : UInt := 65535;
+      MAX_RAMP : Time := T#655S350ms;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v0.1 | 2026-03-25 | cyanezf | First beta version |
+
+## Description
+
+This function block implements the control of a Lenze i550 Motec frequency inverter.
+It takes user inputs for controlling the motor and processes the status information 
+received from the drive. The function block handles the conversion of speed and 
+current values between user-friendly formats and the formats required by the drive. 
+It also manages the control signals for starting, stopping, and changing the direction 
+of the motor, as well as handling acceleration and deceleration ramps.
+
+## References
+
+- i550/650 motec frequency inverters (Commissioning Inverter)
+- Puesta_en_servicio_Convertidor_de_frecuencia_i550_motec_Frequenzumrichter_i550_i650_motec_EN.pdf
+
+--*)	
+	
+	// Received data
+	// Function outputs #################################################
+	// is Running
+	#isRunning := #pdi.status.isRunning;
+	#direction := #ccw XOR #pdi.status.rotationalDirectionReversed; // !TODO: Check logic online!
+	#speedReached := #pdi.status.setpointSpeedReached;
+	#speedISZero := #pdi.status.speedIsZero;
+	
+	// Actual speed
+	// maxFrequency  -> maxSpeed
+	// pdi.frequency -> actualSpeed ?
+	// actualSpeed = pdi.frequency * maxSpeed / maxFrequency
+	
+	#frequency := UINT_TO_REAL(#pdi.frequency) / #IN_FREQUENCY_FACTOR; // Factor from drive
+	#actualSpeed := #frequency * #maxSpeed / #maxFrequency;
+	
+	// Actual current
+	#actualCurrent := INT_TO_REAL(#pdi.current) / #IN_CURRENT_FACTOR;
+	
+	// Actual position
+	#actualPosition := UDINT_TO_REAL(#pdi.position);
+	
+	// Process ##########################################################
+	#run := #runForward XOR #runBackward;
+	
+	// Send data ########################################################
+	// Control
+	#pdo.control.opt1_disableInverter := NOT #controlOn;
+	#pdo.control.opt2_stop := NOT #run;
+	#pdo.control.quickStop := NOT #emrgStopOk;
+	#pdo.control.runForward := #run;
+	#pdo.control.resetError := #errorAckn;
+	#pdo.control.reverseRotationalDirection := (NOT #ccw AND #runBackward) OR (#ccw AND #runForward);
+	
+	
+	#pdo.control.opt15_posCountReset := #homePulse;
+	
+	// Not used (see comments below)
+	#pdo.control.activatePresetBit0 := 
+	#pdo.control.activatePresetBit1 := 
+	#pdo.control.activateDCbraking := 0;
+	
+	// Spare
+	#pdo.control.opt3 := 
+	#pdo.control.opt10 := 
+	#pdo.control.opt11 := 
+	#pdo.control.opt13 := 
+	#pdo.control.opt14 := 0;
+	
+	// Frequency
+	// maxSpeed -> maxFrequency
+	// speed    -> pdo.frequency ?
+	// pdo.frequency = speed * maxFrequency / maxSpeed
+	IF #speed <= 0.0 THEN
+	  #pdo.frequency := 0;
+	ELSIF #speed >= #maxSpeed THEN
+	  #pdo.frequency := REAL_TO_UINT(#maxFrequency) * #OUT_FREQUENCY_FACTOR;
+	ELSE
+	  #frequency := #speed * #maxFrequency / #maxSpeed;
+	  #pdo.frequency := REAL_TO_UINT(#frequency) * #OUT_FREQUENCY_FACTOR;
+	END_IF;
+	
+	// Acceleration
+	IF #accelerationRamp >= #MAX_RAMP THEN
+	  #pdo.acceleration := #OUT_MAX_RAMP;
+	ELSIF #accelerationRamp <= t#0s THEN
+	  #pdo.acceleration := 0;
+	ELSE
+	  #pdo.acceleration := TIME_TO_UINT(#accelerationRamp) / #OUT_RAMP_FACTOR;
+	END_IF;
+	
+	// Deceleration
+	IF #decelerationRamp >= #MAX_RAMP THEN
+	  #pdo.deceleration := #OUT_MAX_RAMP;
+	ELSIF #decelerationRamp <= t#0s THEN
+	  #pdo.deceleration := 0;
+	ELSE
+	  #pdo.deceleration := TIME_TO_UINT(#decelerationRamp) / #OUT_RAMP_FACTOR;
+	END_IF;
+	
+	// Save RLO
+	ENO := true;
+	
+	(*
+	14.2 Parameter change-over
+	
+	FOR up TO 32 freely selectable parameters, this function provides a change-over between four
+	sets with different parameter values.
+	
+	DANGER!
+	
+	Unexpected response OF the motor shaft WHILE the inverter is enabled.
+	Changed Parameter settings can become effective immediately depending on the activating
+	method set in 0x4046.
+	
+	Possible consequences: Death, severe injuries OR damage TO property
+	
+	- If possible, only carry out parameter changes WHILE the inverter is disabled.
+	- Certain device commands OR settings which might cause a critical state OF the drive
+	  behaviour can generally only be carried out when the inverter is inhibited.
+	  
+	Details
+	
+	The Parameter list is compiled in the same way as that OF the "Favorites" via
+	configuration. »EASY Starter« provides a user-friendly parameterisation dialog FOR this
+	purpose.
+	
+	Change-over TO another value set can optionally be effected via corresponding device
+	commands AND/OR special functions/triggers:
+	
+	- 4Device commands FOR Parameter change-over ^ 441
+	- 4Functions FOR Parameter change-over ^ 443
+	*)
+	
+	(*
+	10.6.2 DC braking
+	The "DC braking" function generates a braking torque BY injecting a DC current into The motor.
+	
+	The function can be used TO shorten The braking OF a load with high mass inertia. Another
+	application is holding The motor shaft before starting OR WHILE stopping.
+	
+	NOTICE
+	
+	Avoid long-time activation OF The "DC braking" function with a high braking current OR a high
+	braking voltage!
+	
+	Possible consequences: thermal motor overload
+	
+	- Only use the "DC braking" function with applications in which the load is only occasionally
+	stopped.
+	
+	- Do NOT activate the "DC braking" function longer than necessary.
+	
+	Preconditions
+	
+	- The "DC braking" function can only be activated IF The inverter is enabled.
+	- The "DC braking" function is NOT available FOR sensorless control.
+	
+	Details
+	
+	The function can be used as follows:
+	1. Automatically when the motor is started.
+	2. Automatically when the motor is stopped.
+	3. Manually (via the flexible I/O configuration).
+	The three options can also be combined, FOR INSTANCE automatic DC braking when starting AND
+	stopping the motor.
+	
+	*)
+	
+END_FUNCTION_BLOCK
+

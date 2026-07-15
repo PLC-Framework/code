@@ -1,0 +1,20 @@
+﻿TYPE "ifm_ogd250_control"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/ifm/ogd250","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+//
+//## Description
+//IFM - OGD250 control
+//--*)
+
+   STRUCT
+      laser : Int;   // Current object distance [mm]= 30 to 2200 mm; 0x8008=Underload; 0x7FF8=Overload; 0x7FFC=No data
+   END_STRUCT;
+
+END_TYPE
+

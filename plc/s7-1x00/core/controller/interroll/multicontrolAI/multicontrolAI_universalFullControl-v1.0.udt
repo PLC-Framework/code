@@ -1,0 +1,57 @@
+﻿TYPE "multicontrolAI_universalFullControl"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/interroll/multicontrolAI","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+// 
+//## Description
+//Multicontrol AI - universal full control
+//--*)
+
+   STRUCT
+      output1 : Bool;   // SW: 0.0 - 1=I/O output
+      output2 : Bool;   // SW: 0.1 - 1=I/O output
+      output3 : Bool;   // SW: 0.2 - 1=I/O output
+      output4 : Bool;   // SW: 0.3 - 1=I/O output
+      spare_0_4 : Bool;   // SW: 0.4 - Spare
+      spare_0_5 : Bool;   // SW: 0.5 - Spare
+      spare_0_6 : Bool;   // SW: 0.6 - Spare
+      spare_0_7 : Bool;   // SW: 0.7 - Spare
+      motor1_speed : SInt;   // SW: 1.0 - Motor 1 setpoint speed [%]
+      motor2_speed : SInt;   // SW: 2.0 - Motor 2 setpoint speed [%]
+      motor3_speed : SInt;   // SW: 3.0 - Motor 3 setpoint speed [%]
+      motor4_speed : SInt;   // SW: 4.0 - Motor 4 setpoint speed [%]
+      controlInput1 : Bool;   // SW: 5.0 - 1=Control input
+      controlInput2 : Bool;   // SW: 5.1 - 1=Control input
+      controlInput3 : Bool;   // SW: 5.2 - 1=Control input
+      controlInput4 : Bool;   // SW: 5.3 - 1=Control input
+      controlInput5 : Bool;   // SW: 5.4 - 1=Control input
+      controlInput6 : Bool;   // SW: 5.5 - 1=Control input
+      controlInput7 : Bool;   // SW: 5.6 - 1=Control input
+      controlInput8 : Bool;   // SW: 5.7 - 1=Control input
+      spare : Byte;   // SW: 6.0 - Spare
+      controlOutput1 : Bool;   // SW: 7.0 - 1=Control output
+      controlOutput2 : Bool;   // SW: 7.1 - 1=Control output
+      controlOutput3 : Bool;   // SW: 7.2 - 1=Control output
+      controlOutput4 : Bool;   // SW: 7.3 - 1=Control output
+      controlOutput5 : Bool;   // SW: 7.4 - 1=Control output
+      controlOutput6 : Bool;   // SW: 7.5 - 1=Control output
+      controlOutput7 : Bool;   // SW: 7.6 - 1=Control output
+      controlOutput8 : Bool;   // SW: 7.7 - 1=Control output
+      handshake_inUp : Bool;   // SW: 8.0
+      handshake_inDown : Bool;   // SW: 8.1
+      handshake_inLeft : Bool;   // SW: 8.2
+      handshake_inRight : Bool;   // SW: 8.3
+      handshake_outUp : Bool;   // SW: 8.4
+      handshake_outDown : Bool;   // SW: 8.5
+      handshake_outLeft : Bool;   // SW: 8.6
+      handshake_outRight : Bool;   // SW: 8.7
+      spare_9_0 : Byte;   // SW: 9.0 - Spare
+   END_STRUCT;
+
+END_TYPE
+

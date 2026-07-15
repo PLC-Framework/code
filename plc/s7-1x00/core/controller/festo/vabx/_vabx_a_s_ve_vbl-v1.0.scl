@@ -1,0 +1,78 @@
+﻿FUNCTION_BLOCK "_vabx_a_s_ve_vbl"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["vabx_a_s_ve_vbl_pdi","vabx_a_s_ve_vbl_pdo","TP_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/festo/vabx'
+NAME : _vabx_a_s_ve_vbl
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runVacuum { ExternalWritable := 'False'} : Bool;   // IR: 1=Run vacuum
+      ejectTime { ExternalWritable := 'False'} : Time := T#1s;   // IR: Eject time
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      actualPressure { ExternalWritable := 'False'} : LReal;   // OR: Actual pressure
+      actualQuality { ExternalWritable := 'False'} : USInt;   // OR: Actual quality
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "vabx_a_s_ve_vbl_pdi";   // IOX: PDI
+      pdo : "vabx_a_s_ve_vbl_pdo";   // IOX: PDO
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         ejectTp {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+      END_STRUCT;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-01 | cyanezf | First version |
+
+## Description
+
+This function controls the vacuum output and get the vacuum pressure.
+
+--*)
+		
+	// PDO
+	#pdo.vacuumGeneration := #controlOn AND #emrgStopOk AND #runVacuum;
+	
+	#private.ejectTp(IN:=NOT #pdo.vacuumGeneration,
+	                 PT:=#ejectTime,
+	                 Q=>#pdo.ejectorPulse );
+	
+	#pdo.saveData := 0;
+	
+	// Teach in
+	#pdo.startTeachIn := 0;
+	#pdo.selectChannel := 0;
+	#pdo.teachInMode0 := 0;
+	#pdo.teachInmode1 := 0;
+	
+	#pdo.selectOutput := 0; // out A or out B
+	#pdo.teachInForTP1 := 0;
+	#pdo.teachinForTP2 := 0;
+	#pdo.saveTeachIn := 0;
+	
+	// Function outputs
+	#isRunning := #pdo.vacuumGeneration;
+	
+	#actualPressure := INT_TO_LREAL(#pdi.pressureValue);
+	#actualQuality := #pdi.processQuality;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK

@@ -1,0 +1,65 @@
+﻿FUNCTION "_generateChars" : String
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/string'
+NAME : _generateChars
+VERSION : 1.0
+
+   VAR_INPUT 
+      character : Char;   // Character to be generated
+      count : Int;   // Count number to add (0 to 254) if 0 returns ''; if >254 returns character * 254 times
+   END_VAR
+
+   VAR_TEMP 
+      maxChars : Int;
+      i : Int;
+      tmp : String;
+   END_VAR
+
+   VAR CONSTANT 
+      MIN_CHARS : Int := 0;
+      MAX_CHARS : Int := 254;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-07 | cyanezf | First version |
+
+## Description
+
+This function creates an string with the same `character` repeated `count` times.
+
+--*)
+
+	// Return ''
+	IF #count < #MIN_CHARS THEN
+	  #_generateChars := '';
+	  ENO := true;
+	END_IF;
+	
+	// Get upper limit
+	IF #count > #MAX_CHARS THEN
+	  #maxChars := #MAX_CHARS;
+	ELSE
+	  #maxChars := #count;
+	END_IF;
+	
+	#tmp := '';
+	FOR #i := 1 TO #count DO
+	  #tmp := CONCAT(IN1 := #tmp, IN2 := #character);
+	END_FOR;
+	
+	// Return
+	#_generateChars := #tmp;
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

@@ -1,0 +1,161 @@
+﻿FUNCTION "_pnioDiag" : Void
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["DeviceStates"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/fieldbus/pnio-diag'
+NAME : _pnioDiag
+VERSION : 2.0
+
+   VAR_INPUT 
+      PNIO_SYSTEM : HW_IOSYSTEM;   // PNIO SYSTEM HW SYSTEM
+   END_VAR
+
+   VAR_IN_OUT 
+      subnet : "pnioSubnetStatus";   // Subnet structure
+   END_VAR
+
+   VAR_TEMP 
+      state : Array[#MIN_DEVICE..#MAX_DEVICE] of Bool;
+      i : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      MIN_DEVICE : Int := 0;
+      MAX_DEVICE : Int := 1023;
+      STATE_0_GET_CONFIG : Int := 0;
+      STATE_1_GET_FAULTY : Int := 1;
+      STATE_2_GET_DISABLED : Int := 2;
+      STATE_3_GET_EXIST : Int := 3;
+      STATE_4_GET_PROBLEM : Int := 4;
+      STATE_5_UPDATE_DEVICE_STATUS : Int := 5;
+      DEVICE_STATE_0_OK : Int := 0;
+      MODE_1_IO_CONFIGURED : UInt := 1;
+      MODE_2_IO_FAULTY : UInt := 2;
+      MODE_3_IO_DISABLED : UInt := 3;
+      MODE_4_IO_EXIST : UInt := 4;
+      MODE_5_PROBLEM : UInt := 5;   // Example: Maintenance demanded or recommmended, not accessible, not available, error occurred
+      DEVICE_STATUS_0_NOT_CONFIGURED : Int := 0;
+      DEVICE_STATUS_1_READY : Int := 1;
+      DEVICE_STATUS_7000_DISABLED : Int := 16#7000;
+      DEVICE_STATUS_7001_PROBLEM : Int := 16#7001;
+      DEVICE_STATUS_7002_NOT_EXIST : Int := 16#7002;
+      DEVICE_STATUS_8000_ERROR : Int := 16#8000;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-02-15 | cyanezf | Converted to FC and UDT were created |
+| v1.1 | 2020-05-25 | cyanezf | Status added |
+| v1.0 | 2020-05-15 | cyanezf | First version |
+
+## Description
+
+This function updates PNIO devices status.
+
+--*)
+
+	CASE #subnet.state OF
+	    // ####################################################
+	  #STATE_0_GET_CONFIG:
+	    // Get state
+	    #subnet.error := DeviceStates(LADDR := #PNIO_SYSTEM, MODE := #MODE_1_IO_CONFIGURED, STATE := #state);
+	    
+	    // Update configured
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      #subnet.device[#i].configured := #state[#i];
+	    END_FOR;
+	    // Next status
+	    #subnet.state := #STATE_1_GET_FAULTY;
+	    
+	    // ####################################################
+	  #STATE_1_GET_FAULTY:
+	    // Get state
+	    #subnet.error := DeviceStates(LADDR := #PNIO_SYSTEM, MODE := #MODE_2_IO_FAULTY, STATE := #state);
+	    
+	    // Update faulty
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      #subnet.device[#i].faulty := #state[#i];
+	    END_FOR;
+	    // Next status
+	    #subnet.state := #STATE_2_GET_DISABLED;
+	    
+	    // ####################################################
+	  #STATE_2_GET_DISABLED:
+	    // Get state
+	    #subnet.error := DeviceStates(LADDR := #PNIO_SYSTEM, MODE := #MODE_3_IO_DISABLED, STATE := #state);
+	    
+	    // Update disabled
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      #subnet.device[#i].disabled := #state[#i];
+	    END_FOR;
+	    // Next status
+	    #subnet.state := #STATE_3_GET_EXIST;
+	    
+	    // ####################################################
+	  #STATE_3_GET_EXIST:
+	    // Get state
+	    #subnet.error := DeviceStates(LADDR := #PNIO_SYSTEM, MODE := #MODE_4_IO_EXIST, STATE := #state);
+	    
+	    // Update exist
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      #subnet.device[#i].exist := #state[#i];
+	    END_FOR;
+	    // Next status
+	    #subnet.state := #STATE_4_GET_PROBLEM;
+	    
+	    // ####################################################
+	  #STATE_4_GET_PROBLEM:
+	    // Get state
+	    #subnet.error := DeviceStates(LADDR := #PNIO_SYSTEM, MODE := #MODE_5_PROBLEM, STATE := #state);
+	    // Update problem
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      #subnet.device[#i].problem := #state[#i];
+	    END_FOR;
+	    // Next status
+	    #subnet.state := #STATE_5_UPDATE_DEVICE_STATUS;
+	    
+	    // ####################################################
+	  #STATE_5_UPDATE_DEVICE_STATUS:
+	    //Update status for each device
+	    FOR #i := #MIN_DEVICE TO #MAX_DEVICE DO
+	      
+	      IF #subnet.device[#i].configured THEN
+	        
+	        IF #subnet.device[#i].faulty THEN
+	          #subnet.device[#i].status := #DEVICE_STATUS_8000_ERROR;
+	        ELSIF #subnet.device[#i].problem THEN
+	          #subnet.device[#i].status := #DEVICE_STATUS_7001_PROBLEM;
+	        ELSIF #subnet.device[#i].disabled THEN
+	          #subnet.device[#i].status := #DEVICE_STATUS_7000_DISABLED;
+	        ELSIF NOT #subnet.device[#i].exist THEN
+	          #subnet.device[#i].status := #DEVICE_STATUS_7002_NOT_EXIST;
+	        ELSE
+	          #subnet.device[#i].status := #DEVICE_STATUS_1_READY;
+	        END_IF;
+	        
+	      ELSE
+	        #subnet.device[#i].status := #DEVICE_STATUS_0_NOT_CONFIGURED;
+	      END_IF;
+	      
+	    END_FOR;
+	    
+	    // Next status
+	    #subnet.state := #STATE_0_GET_CONFIG;
+	    
+	    // ####################################################
+	  ELSE
+	    #subnet.state := #STATE_0_GET_CONFIG;
+	    
+	END_CASE;
+		
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

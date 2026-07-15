@@ -1,0 +1,176 @@
+﻿FUNCTION "_alarmTraceRemoteSuperCollector" : Void
+TITLE = {"status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceSuperData-v2.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/trace/super'
+NAME : _alarmTraceRemoteSuperCollector
+VERSION : 1.0
+
+   VAR_INPUT 
+      groupId : UInt;   // 0=No group; 1..N=Group ID
+      objectId : UInt;   // 0=No object; 1..N=Object ID
+      alarmId : Int;   // 0=No alarm; X=Some alarm
+   END_VAR
+
+   VAR_IN_OUT 
+      super : "alarmTraceSuperData";   // Alarm trace super
+   END_VAR
+
+   VAR_TEMP 
+      group_a1i_triggered : UInt;
+      group_a2w_triggered : UInt;
+      group_a3e_triggered : UInt;
+      group_a4f_triggered : UInt;
+   END_VAR
+
+   VAR CONSTANT 
+      NO_ALARM : Int := 16#0000;
+      NO_OBJECT : UInt := 0;
+      NO_GROUP : UInt := 0;
+      ALARM_1I_LOWER_LIMIT : Int := 16#0001;
+      ALARM_1I_UPPER_LIMIT : Int := 16#6FFF;
+      ALARM_2W_LOWER_LIMIT : Int := 16#7000;
+      ALARM_2W_UPPER_LIMIT : Int := 16#7FFF;
+      ALARM_3E_LOWER_LIMIT : Int := 16#8000;
+      ALARM_3E_UPPER_LIMIT : Int := 16#8FFF;
+      ALARM_4F_LOWER_LIMIT : Int := 16#F000;
+      ALARM_4F_UPPER_LIMIT : Int := 16#FFFF;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-08-06 | cyanezf | First version |
+
+## Description
+
+This function updates super variables according to inputs.
+
+--*)
+	
+	// Virtual triggers
+	IF #alarmId >= #ALARM_1I_LOWER_LIMIT AND #alarmId <= #ALARM_1I_UPPER_LIMIT THEN
+	  #group_a1i_triggered := 1;
+	ELSE
+	  #group_a1i_triggered := 0;
+	END_IF;
+	
+	IF #alarmId >= #ALARM_2W_LOWER_LIMIT AND #alarmId <= #ALARM_2W_UPPER_LIMIT THEN
+	  #group_a2w_triggered := 1;
+	ELSE
+	  #group_a2w_triggered := 0;
+	END_IF;
+	
+	IF #alarmId >= #ALARM_3E_LOWER_LIMIT AND #alarmId <= #ALARM_3E_UPPER_LIMIT THEN
+	  #group_a3e_triggered := 1;
+	ELSE
+	  #group_a3e_triggered := 0;
+	END_IF;
+	
+	IF #alarmId >= #ALARM_4F_LOWER_LIMIT AND #alarmId <= #ALARM_4F_UPPER_LIMIT THEN
+	  #group_a4f_triggered := 1;
+	ELSE
+	  #group_a4f_triggered := 0;
+	END_IF;
+	
+	
+	
+	// Info alarms
+	IF  #group_a1i_triggered > 0  THEN
+	  
+	  // Update id, object
+	  IF #super.a1i.id = #NO_ALARM AND #super.a1i.object = #NO_OBJECT AND #super.a1i.group = #NO_GROUP THEN
+	    #super.a1i.id := #alarmId;
+	    #super.a1i.object := #objectId;
+	    #super.a1i.group := #groupId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #super.a1i.collector += #group_a1i_triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #super.a1i.id = #alarmId AND #super.a1i.object = #objectId AND #super.a1i.group = #groupId THEN
+	    #super.a1i.id := #NO_ALARM;
+	    #super.a1i.object := #NO_OBJECT;
+	    #super.a1i.group := #NO_GROUP;
+	  END_IF;
+	END_IF;
+	
+	// Warning alarms
+	IF #group_a2w_triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #super.a2w.id = #NO_ALARM AND #super.a2w.object = #NO_OBJECT AND #super.a2w.group = #NO_GROUP THEN
+	    #super.a2w.id := #alarmId;
+	    #super.a2w.object := #objectId;
+	    #super.a2w.group := #groupId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #super.a2w.collector += #group_a2w_triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #super.a2w.id = #alarmId AND #super.a2w.object = #objectId AND #super.a2w.group = #groupId THEN
+	    #super.a2w.id := #NO_ALARM;
+	    #super.a2w.object := #NO_OBJECT;
+	    #super.a2w.group := #NO_GROUP;
+	  END_IF;
+	END_IF;
+	
+	// Error alarms
+	IF #group_a3e_triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #super.a3e.id = #NO_ALARM AND #super.a3e.object = #NO_OBJECT AND #super.a3e.group = #NO_GROUP THEN
+	    #super.a3e.id := #alarmId;
+	    #super.a3e.object := #objectId;
+	    #super.a3e.group := #groupId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #super.a3e.collector += #group_a3e_triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #super.a3e.id = #alarmId AND #super.a3e.object = #objectId AND #super.a3e.group = #groupId THEN
+	    #super.a3e.id := #NO_ALARM;
+	    #super.a3e.object := #NO_OBJECT;
+	    #super.a3e.group := #NO_GROUP;
+	  END_IF;
+	END_IF;
+	
+	// Emergency alarms
+	IF #group_a4f_triggered > 0 THEN
+	  
+	  // Update id, object
+	  IF #super.a4f.id = #NO_ALARM AND #super.a4f.object = #NO_OBJECT AND #super.a4f.group = #NO_GROUP THEN
+	    #super.a4f.id := #alarmId;
+	    #super.a4f.object := #objectId;
+	    #super.a4f.group := #groupId;
+	  END_IF;
+	  
+	  // Update triggered  
+	  #super.a4f.collector += #group_a4f_triggered;
+	  
+	ELSE
+	  // Clear id, object
+	  IF #super.a4f.id = #alarmId AND #super.a4f.object = #objectId AND #super.a4f.group = #groupId THEN
+	    #super.a4f.id := #NO_ALARM;
+	    #super.a4f.object := #NO_OBJECT;
+	    #super.a4f.group := #NO_GROUP;
+	  END_IF;
+	END_IF;
+	
+	// Save RLO
+	ENO := 1;
+	
+END_FUNCTION
+

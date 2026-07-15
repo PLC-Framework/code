@@ -1,0 +1,601 @@
+﻿FUNCTION_BLOCK "_mc_positioning1Axis"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TO_axisBasicData-v1.0", "TO_PositioningAxis", "MC_POWER", "MC_RESET", "MC_STOP", "MC_HALT", "MC_HOME",	"MC_MOVEJOG", "MC_MOVEVELOCITY", "MC_MOVEABSOLUTE", "MC_MOVERELATIVE", "MC_TORQUERANGE", "MC_TORQUELIMITING", "TON_TIME", "TOF_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/motion-control'
+NAME : _mc_positioning1Axis
+VERSION : 1.1
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control On
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency stop ok
+      enable { ExternalWritable := 'False'} : Bool;   // IR: 1=Enable drive
+      position { ExternalWritable := 'False'} : LReal;   // IR: Setpoint position
+      velocity { ExternalWritable := 'False'} : LReal;   // IR: Setpoint velocity
+      acceleration { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint acceleration
+      deceleration { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint deceleration
+      jerk { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint jerk
+      torqueMode { ExternalWritable := 'False'} : Int := 0;   // IR: Torque mode, 0=Disabled; 10=Torque range; 20=Torque/force limiting; 21=Fixed stop limiting
+      torqueUpperLimit { ExternalWritable := 'False'} : LReal := 0.0;   // IR: Torque upper limit in mode 1, Torque limit in mode 2
+      torqueLowerLimit { ExternalWritable := 'False'} : LReal := 0.0;   // IR: Torque lower limit in mode 1
+      isPositionControlled { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Not position-controlled, 1=Position-controlled
+      homingMode { ExternalWritable := 'False'} : Int := #MC_HOME_MODE_5_ACTIVE_NO_POS;   // IR: Home mode (use STATIC homing.POSITION)
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: FP=Ackn.
+      restart { ExternalWritable := 'False'} : Bool;   // IR: FP=Restart
+   END_VAR
+
+   VAR_OUTPUT 
+      driveEnabled { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis enabled
+      driveRestarted { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis restarted (last restarted)
+      actualCommand { ExternalWritable := 'False'} : Int;   // OR: Actual command (See constants)
+      targetPosition { ExternalWritable := 'False'} : LReal;   // OR: Target position
+      actualPosition { ExternalWritable := 'False'} : LReal;   // OR: Current position (It's calculated, if it's not homed or not syncOk, this value must not be used)
+      actualAcceleration { ExternalWritable := 'False'} : LReal;   // OR: Current acceleration (It's calculated, if it's not homed or not syncOk, this value must not be used)
+      actualVelocity { ExternalWritable := 'False'} : LReal;   // OR: Current velocity (It's calculated, if it's not homed or not syncOk, this value must not be used)
+      actualTorque { ExternalWritable := 'False'} : LReal;   // OR: Current torque (it's calculated, if it's not homed or not syncOk, this value must not be used)
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running
+      isRunningForward { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running forward
+      isRunningBackward { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running backward
+      homed { ExternalWritable := 'False'} : Bool;   // OR: 1=All axis are homed (To see individual bits, addess to FB.axis2.homed, axis2.homed, axisV.homes
+      inVelocity { ExternalWritable := 'False'} : Bool;   // OR: 1=MC_MOVEVELOCITY current velocity reached SP
+      inClamping { ExternalWritable := 'False'} : Bool;   // OR: 1=Torque - some axis in clamping
+      inLimitation { ExternalWritable := 'False'} : Bool;   // OR: 1=Torque - some axis in limitation
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Some axis error
+      warning { ExternalWritable := 'False'} : Bool;   // OR: 1=Some axis warning
+   END_VAR
+
+   VAR_IN_OUT 
+      command { ExternalWritable := 'False'} : Int;   // IOR: Command to be executed (See constants)
+      TO_axis {InstructionName := 'TO_PositioningAxis'; LibVersion := '9.0'} : TO_PositioningAxis;   // IOX: TO Axis
+   END_VAR
+
+   VAR 
+      homing : Struct   // SW: Homing control
+         status { ExternalWritable := 'False'} : Int;   // SR: Step code (See constants)
+         busy { ExternalWritable := 'False'} : Bool;   // SR: 1=Busy
+         error { ExternalWritable := 'False'} : Bool;   // SR: 1=Error
+         POSITION : LReal := 0.0;   // SW: Default position for homing
+         WATCHDOG_TIME : Time := T#30S;   // SW: Default watchdog time
+         watchdogTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SR: Timer
+      END_STRUCT;
+      restarting : Struct   // SW: Restarting control
+         status { ExternalWritable := 'False'} : Int;   // SR: Status
+         busy { ExternalWritable := 'False'} : Bool;   // SR: 1=Restaring
+         error { ExternalWritable := 'False'} : Bool;   // SR: 1=Error
+         WATCHDOG_TIME : Time := T#15S;   // SW: Default watchdog time
+         watchdogTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // SR: Timer
+      END_STRUCT;
+      axis { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "TO_axisBasicData";   // SR: Axis V status
+      axis_power {InstructionName := 'MC_POWER'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_POWER;   // SR: Axis V mc power
+      axis_reset {InstructionName := 'MC_RESET'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_RESET;   // SR: Axis V mc reset
+      axis_stop {InstructionName := 'MC_STOP'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_STOP;   // SR: Axis V mc stop
+      axis_halt {InstructionName := 'MC_HALT'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_HALT;   // SR: Axis V mc halt
+      axis_home {InstructionName := 'MC_HOME'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_HOME;   // SR: Axis V mc home
+      axis_jog {InstructionName := 'MC_MOVEJOG'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_MOVEJOG;   // SR: Axis V mc move jog
+      axis_velocity {InstructionName := 'MC_MOVEVELOCITY'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_MOVEVELOCITY;   // SR: Axis V mc move velocity
+      axis_absolute {InstructionName := 'MC_MOVEABSOLUTE'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_MOVEABSOLUTE;   // SR: Axis V mc move absolute
+      axis_relative {InstructionName := 'MC_MOVERELATIVE'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_MOVERELATIVE;   // SR: Axis V mc move relative
+      axis_torqueRange {InstructionName := 'MC_TORQUERANGE'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_TORQUERANGE;   // SR: Axis 1 mc torque range
+      axis_torqueLimiting {InstructionName := 'MC_TORQUELIMITING'; LibVersion := '9.0'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : MC_TORQUELIMITING;   // SR: Axis 1 mc torque limiting
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         command { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // SX: Previous command
+         axis_absFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         axis_relFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      enableDrive : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      CMD_0_NIL : Int := 0;
+      CMD_1_STOP : Int := 1;
+      CMD_2_HALT : Int := 2;
+      CMD_3_HOMING : Int := 3;
+      CMD_4_JOG_FWD : Int := 4;
+      CMD_5_JOG_BWD : Int := 5;
+      CMD_6_VELOCITY : Int := 6;
+      CMD_7_RELATIVE_POS : Int := 7;
+      CMD_8_ABSOLUTE_POS : Int := 8;
+      MC_START_0_NOT_POS_CONTROLLED : DInt := 0;
+      MC_START_1_POS_CONTROLLED : DInt := 1;
+      MC_STOP_0_EMRG_STOP : Int := 0;
+      MC_STOP_1_QUICK_STOP : Int := 1;
+      MC_STOP_3_USE_DEC_AND_JERK : DInt := 3;
+      MC_SENSOR_0_OPERATIVE_ENCODER : DInt := 0;
+      MC_HOME_MODE_5_ACTIVE_NO_POS : Int := 5;
+      MC_DIRECTION_0_DYNAMIC : Int := 0;
+      MC_TORQUELIMITING_MODE_0_FORCE : DInt := 0;
+      MC_TORQUELIMITING_MODE_1_FIXED_STOP : DInt := 1;
+      HOMING_STATUS_0_WAIT : Int := 0;
+      HOMING_STATUS_1_REAL_AXIS : Int := 1;
+      HOMING_STATUS_3_DONE : Int := 3;
+      HOMING_STATUS_8000_TIMEOUT_ERROR : Int := 16#8000;
+      HOMING_STATUS_8001_V_ERROR : Int := 16#8001;
+      HOMING_STATUS_8002_V_ABORTED : Int := 16#8002;
+      HOMING_STATUS_8003_1_ERROR : Int := 16#8003;
+      HOMING_STATUS_8004_1_ABORTED : Int := 16#8004;
+      HOMING_STATUS_8005_2_ERROR : Int := 16#8005;
+      HOMING_STATUS_8006_2_ABORTED : Int := 16#8006;
+      RESTART_STATUS_0_WAIT : Int := 0;
+      RESTART_STATUS_1_BUSY : Int := 1;
+      RESTART_STATUS_3_DONE : Int := 3;
+      RESTART_STATUS_8000_TIMEOUT_ERROR : Int := 16#8000;
+      RESTART_STATUS_8001_V_ERROR : Int := 16#8001;
+      RESTART_STATUS_8002_V_ABORTED : Int := 16#8002;
+      RESTART_STATUS_8003_1_ERROR : Int := 16#8003;
+      RESTART_STATUS_8004_1_ABORTED : Int := 16#8004;
+      RESTART_STATUS_8005_2_ERROR : Int := 16#8005;
+      RESTART_STATUS_8006_2_ABORTED : Int := 16#8006;
+      TORQUE_MODE_0_DISABLED : Int := 0;
+      TORQUE_MODE_10_RANGE : Int := 10;
+      TORQUE_MODE_20_LIMITING : Int := 20;
+      TORQUE_MODE_21_FIXED_STOP : Int := 21;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.1 | 2026-03-25 | cyanezf | feat: Ackn of restart and homing status |
+| v1.0 | 2024-05-12 | cyanezf | First version |
+  
+## Description
+Motion control for 1 Axis positioning
+
+--*)
+	
+	REGION Axis
+	  
+	  // Update status
+	  #axis.status.to_bits.enable := #TO_axis.StatusWord.%X0;
+	  #axis.status.to_bits.error := #TO_axis.StatusWord.%X1;
+	  #axis.status.to_bits.restartActive := #TO_axis.StatusWord.%X2;
+	  #axis.status.to_bits.onlineStartValuesChanged := #TO_axis.StatusWord.%X3;
+	  #axis.status.to_bits.controlPanelActive := #TO_axis.StatusWord.%X4;
+	  #axis.status.to_bits.homingDone := #TO_axis.StatusWord.%X5;
+	  #axis.status.to_bits.done := #TO_axis.StatusWord.%X6;
+	  #axis.status.to_bits.standstill := #TO_axis.StatusWord.%X7;
+	  #axis.status.to_bits.positioningCommand := #TO_axis.StatusWord.%X8;
+	  #axis.status.to_bits.jogCommand := #TO_axis.StatusWord.%X9;
+	  #axis.status.to_bits.velocityCommand := #TO_axis.StatusWord.%X10;
+	  #axis.status.to_bits.homingCommand := #TO_axis.StatusWord.%X11;
+	  #axis.status.to_bits.constantVelocity := #TO_axis.StatusWord.%X12;
+	  #axis.status.to_bits.accelerating := #TO_axis.StatusWord.%X13;
+	  #axis.status.to_bits.decelerating := #TO_axis.StatusWord.%X14;
+	  #axis.status.to_bits.SWLimitMinActive := #TO_axis.StatusWord.%X15;
+	  #axis.status.to_bits.SWLimitMaxActive := #TO_axis.StatusWord.%X16;
+	  #axis.status.to_bits.HWLimitMinActive := #TO_axis.StatusWord.%X17;
+	  #axis.status.to_bits.HWLimitMaxActive := #TO_axis.StatusWord.%X18;
+	  #axis.status.to_bits.moveSuperimposedCommand := #TO_axis.StatusWord.%X23;
+	  #axis.status.to_bits.axisSimulation := #TO_axis.StatusWord.%X25;
+	  #axis.status.to_bits.torqueLimitingCommand := #TO_axis.StatusWord.%X26;
+	  #axis.status.to_bits.inLimitation := #TO_axis.StatusWord.%X27;
+	  #axis.status.to_bits.nonPositionControlled := #TO_axis.StatusWord.%X28;
+	  #axis.status.to_bits.kinematicsMotionCommand := #TO_axis.StatusWord.%X29;
+	  #axis.status.to_bits.inClamping := #TO_axis.StatusWord.%X30;
+	  #axis.status.to_bits.motionInCommand := #TO_axis.StatusWord.%X31;
+	  
+	  // Update error
+	  #axis.error.triggered := #axis.status.to_bits.error OR #TO_axis.ErrorWord <> 0 OR #TO_axis.ErrorDetail.Number <> 0;
+	  
+	  IF #axis.error.triggered THEN
+	    
+	    #axis.error.number := #TO_axis.ErrorDetail.Number;
+	    #axis.error.reaction := #TO_axis.ErrorDetail.Reaction;
+	    
+	    #axis.error.bits.systemFault := #TO_axis.ErrorWord.%X0;
+	    #axis.error.bits.configFault := #TO_axis.ErrorWord.%X1;
+	    #axis.error.bits.userFault := #TO_axis.ErrorWord.%X2;
+	    #axis.error.bits.commandNotAccepted := #TO_axis.ErrorWord.%X3;
+	    #axis.error.bits.driveFault := #TO_axis.ErrorWord.%X4;
+	    #axis.error.bits.sensorFault := #TO_axis.ErrorWord.%X5;
+	    #axis.error.bits.dynamicError := #TO_axis.ErrorWord.%X6;
+	    #axis.error.bits.communicationFault := #TO_axis.ErrorWord.%X7;
+	    #axis.error.bits.SWLimit := #TO_axis.ErrorWord.%X8;
+	    #axis.error.bits.HWLimit := #TO_axis.ErrorWord.%X9;
+	    #axis.error.bits.homingError := #TO_axis.ErrorWord.%X10;
+	    #axis.error.bits.followingErrorFault := #TO_axis.ErrorWord.%X11;
+	    #axis.error.bits.positioningFault := #TO_axis.ErrorWord.%X12;
+	    #axis.error.bits.peripheralError := #TO_axis.ErrorWord.%X13;
+	    #axis.error.bits.adaptionError := #TO_axis.ErrorWord.%X15;
+	    
+	  END_IF;
+	  
+	  // Update warning
+	  #axis.warning.triggered := #TO_axis.WarningWord <> 0;
+	  IF #axis.warning.triggered THEN
+	    
+	    #axis.warning.bits.b00_systemWarning := #TO_axis.WarningWord.%X0;
+	    #axis.warning.bits.b01_configWarning := #TO_axis.WarningWord.%X1;
+	    #axis.warning.bits.b02_userWarning := #TO_axis.WarningWord.%X2;
+	    #axis.warning.bits.b03_commandNotAccepted := #TO_axis.WarningWord.%X3;
+	    #axis.warning.bits.b04_driveWarning := #TO_axis.WarningWord.%X4;
+	    #axis.warning.bits.b05_sensorWarning := #TO_axis.WarningWord.%X5;
+	    #axis.warning.bits.b06_dynamicWarning := #TO_axis.WarningWord.%X6;
+	    #axis.warning.bits.b07_communicationWarning := #TO_axis.WarningWord.%X7;
+	    #axis.warning.bits.b08_SWLimitMin := #TO_axis.WarningWord.%X8;
+	    #axis.warning.bits.b09_SWLimitMax := #TO_axis.WarningWord.%X9;
+	    #axis.warning.bits.b10_homingWarning := #TO_axis.WarningWord.%X10;
+	    #axis.warning.bits.b11_followingErrorWarning := #TO_axis.WarningWord.%X11;
+	    #axis.warning.bits.b12_positionWarning := #TO_axis.WarningWord.%X12;
+	    #axis.warning.bits.b13_peripheralWarning := #TO_axis.WarningWord.%X13;
+	    #axis.warning.bits.b15_adaptionWarning := #TO_axis.WarningWord.%X15;
+	    
+	  END_IF;
+	  
+	  #axis.actualAcceleration := #TO_axis.ActualAcceleration;
+	  #axis.actualPosition := #TO_axis.ActualPosition;
+	  #axis.actualVelocity := #TO_axis.ActualVelocity;
+	  #axis.actualTorque := #TO_axis.StatusTorqueData.ActualTorque;
+	  
+	  #axis.status.isRunning := NOT #axis.status.to_bits.standstill;
+	  #axis.status.isRunningBackward := #axis.status.isRunning AND #axis.actualVelocity < 0.0;
+	  #axis.status.isRunningForward := #axis.status.isRunning AND #axis.actualVelocity > 0.0;
+	  
+	END_REGION
+	
+	REGION All axis are homed
+	  
+	  #homed := #axis.status.to_bits.homingDone;
+	  
+	END_REGION
+	
+	REGION Some error
+	  
+	  #error := #axis.error.triggered;
+	  
+	END_REGION
+	
+	REGION Some warning
+	  
+	  #warning := #axis.warning.triggered;
+	  
+	END_REGION
+	
+	REGION Enable drive
+	  
+	  #enableDrive := #controlOn AND #emrgStopOk AND #enable AND NOT #axis_absolute.Error;
+	  
+	END_REGION
+	
+	REGION Power on
+	  
+	  // Set stop mode
+	  IF #emrgStopOk THEN
+	    #axis_power.StopMode := #MC_STOP_1_QUICK_STOP;
+	  ELSE
+	    #axis_power.StopMode := #MC_STOP_0_EMRG_STOP;
+	  END_IF;
+	  
+	  // Set start mode
+	  IF #isPositionControlled THEN
+	    #axis_power.StartMode := #MC_START_1_POS_CONTROLLED;
+	  ELSE
+	    #axis_power.StartMode := #MC_START_0_NOT_POS_CONTROLLED;
+	  END_IF;
+	  
+	  // Power
+	  #axis_power(Axis := #TO_axis,
+	              Enable := #enableDrive);
+	  
+	END_REGION
+	
+	REGION Drive is enabled
+	  
+	  #driveEnabled := #enableDrive AND #axis.status.to_bits.enable;
+	  
+	END_REGION
+	
+	REGION Error ackn or restart
+	  
+	  // Ackn
+	  IF #ackn AND #restarting.error THEN
+	    #restarting.status := #RESTART_STATUS_0_WAIT;
+	  END_IF;
+	
+	  // Restart busy
+	  IF #restart AND
+	    (#restarting.status = #RESTART_STATUS_0_WAIT OR
+	    #restarting.status = #RESTART_STATUS_3_DONE OR
+	    (#restarting.status >= #RESTART_STATUS_8000_TIMEOUT_ERROR AND #restarting.status <= #RESTART_STATUS_8006_2_ABORTED)) THEN
+	    
+	    #restarting.status := #RESTART_STATUS_1_BUSY;
+	    
+	  END_IF;
+	  
+	  #restarting.busy := #restarting.status = #RESTART_STATUS_1_BUSY;
+	  
+	  // Clear command
+	  IF #restarting.busy THEN
+	    #command := #CMD_0_NIL;
+	  END_IF;
+	  
+	  // Reset/restart
+	  #axis_reset(Axis := #TO_axis,
+	              Execute := (#ackn AND NOT #restarting.busy) OR #restarting.busy,
+	              Restart := #restarting.busy);
+	  
+	  // Watchdog
+	  #restarting.watchdogTon(IN := #restarting.busy,
+	                          PT := #restarting.WATCHDOG_TIME);
+	  
+	  // Result
+	  IF #restarting.busy THEN
+	    
+	    IF #axis_reset.Error THEN
+	      #restarting.status := #RESTART_STATUS_8003_1_ERROR;
+	      
+	    ELSIF #axis_reset.CommandAborted THEN
+	      #restarting.status := #RESTART_STATUS_8004_1_ABORTED;
+	      
+	    ELSIF #restarting.watchdogTon.Q THEN
+	      #restarting.status := #RESTART_STATUS_8000_TIMEOUT_ERROR;
+	      
+	    ELSIF #axis_reset.Done THEN
+	      #restarting.status := #RESTART_STATUS_3_DONE;
+	    END_IF;
+	  END_IF;
+	  
+	  #driveRestarted := #restarting.status = #RESTART_STATUS_3_DONE;
+	  #restarting.error := #restarting.status >= #RESTART_STATUS_8000_TIMEOUT_ERROR AND #restarting.status <= #RESTART_STATUS_8006_2_ABORTED;
+	  
+	END_REGION
+	
+	REGION Init. actual command and axis
+	  #actualCommand := #CMD_0_NIL;
+	  
+	END_REGION
+	
+	REGION Stops ###################################################
+	  REGION Stop
+	    
+	    #axis_stop(Axis := #TO_axis,
+	               Execute := #driveEnabled AND #command = #CMD_1_STOP,
+	               Mode := #MC_STOP_3_USE_DEC_AND_JERK,
+	               Deceleration := #deceleration,
+	               Jerk := #jerk);
+	    
+	    IF #axis_stop.Done THEN
+	      #actualCommand := #CMD_1_STOP;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	  REGION Halt
+	    
+	    #axis_halt.Execute := #driveEnabled AND NOT #axis_halt.Busy AND (
+	    (#command <> #CMD_6_VELOCITY AND #private.command = #CMD_6_VELOCITY AND #axis_velocity.Busy) OR
+	    (#command <> #CMD_7_RELATIVE_POS AND #private.command = #CMD_7_RELATIVE_POS AND #axis_relative.Busy) OR
+	    (#command <> #CMD_8_ABSOLUTE_POS AND #private.command = #CMD_8_ABSOLUTE_POS AND #axis_absolute.Busy) OR
+	    #command = #CMD_2_HALT);
+	    
+	    #axis_halt(Axis := #TO_axis,
+	               Deceleration := #deceleration,
+	               Jerk := #jerk);
+	    
+	    // Clear command
+	    IF #command = #CMD_2_HALT AND (#axis_halt.Done OR #axis_halt.Error OR #axis_halt.CommandAborted) THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	    // Set actual command
+	    IF #axis_halt.Busy THEN
+	      #actualCommand := #CMD_2_HALT;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	END_REGION
+	
+	REGION Movements ###############################################
+	  
+	  REGION Homing
+	    // Ackn
+	    IF #ackn AND #homing.error THEN
+	      #homing.status := #HOMING_STATUS_0_WAIT;
+	    END_IF;
+	    
+	    // Start homing
+	    IF #driveEnabled AND #command = #CMD_3_HOMING AND (
+	      #homing.status = #HOMING_STATUS_0_WAIT OR
+	      #homing.status = #HOMING_STATUS_3_DONE OR
+	      #homing.error) THEN
+	      
+	      #homing.status := #HOMING_STATUS_1_REAL_AXIS;
+	    END_IF;
+	    
+	    #homing.busy := #homing.status = #HOMING_STATUS_1_REAL_AXIS;
+	    
+	    // Execute
+	    #axis_home(Axis := #TO_axis,
+	               Execute := #driveEnabled AND #homing.busy,
+	               Position := #homing.POSITION,
+	               Mode := #homingMode,
+	               Sensor := #MC_SENSOR_0_OPERATIVE_ENCODER);
+	    
+	    IF #axis_home.Busy THEN
+	      #actualCommand := #CMD_3_HOMING;
+	    END_IF;
+	    
+	    // Watchdog
+	    #homing.watchdogTon(IN := #homing.busy,
+	                        PT := #homing.WATCHDOG_TIME);
+	    
+	    // Result
+	    IF #homing.busy THEN
+	      
+	      IF #axis_home.Error THEN
+	        #command := #CMD_0_NIL;
+	        #homing.status := #HOMING_STATUS_8003_1_ERROR;
+	        
+	      ELSIF #axis_home.CommandAborted THEN
+	        #command := #CMD_0_NIL;
+	        #homing.status := #HOMING_STATUS_8004_1_ABORTED;
+	        
+	      ELSIF #homing.watchdogTon.Q THEN
+	        #command := #CMD_0_NIL;
+	        #homing.status := #HOMING_STATUS_8000_TIMEOUT_ERROR;
+	        
+	      ELSIF #axis_home.Done THEN
+	        #command := #CMD_0_NIL;
+	        #homing.status := #HOMING_STATUS_3_DONE;
+	        
+	      END_IF;
+	      
+	    END_IF;
+	    
+	    // Flags
+	    #homing.error := #homing.status >= #HOMING_STATUS_8000_TIMEOUT_ERROR AND #homing.status <= #HOMING_STATUS_8006_2_ABORTED;
+	    
+	  END_REGION
+	  
+	  REGION Jog
+	    
+	    #axis_jog(Axis := #TO_axis,
+	              JogForward := #driveEnabled AND #command = #CMD_4_JOG_FWD,
+	              JogBackward := #driveEnabled AND #command = #CMD_5_JOG_BWD,
+	              Velocity := #velocity,
+	              Acceleration := #acceleration,
+	              Deceleration := #deceleration,
+	              Jerk := #jerk,
+	              PositionControlled := #isPositionControlled);
+	    
+	    IF #axis_jog.Busy THEN
+	      IF #axis_jog.JogForward THEN
+	        #actualCommand := #CMD_4_JOG_FWD;
+	        
+	      ELSIF #axis_jog.JogBackward THEN
+	        #actualCommand := #CMD_5_JOG_BWD;
+	      END_IF;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	  REGION Velocity movement
+	    
+	    #axis_velocity(Axis := #TO_axis,
+	                   Execute := #driveEnabled AND NOT #axis_velocity.Busy AND #command = #CMD_6_VELOCITY,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk,
+	                   Direction := #MC_DIRECTION_0_DYNAMIC,
+	                   Current := 0,
+	                   PositionControlled := #isPositionControlled);
+	    
+	    IF #axis_velocity.Busy THEN
+	      #actualCommand := #CMD_6_VELOCITY;
+	      
+	    ELSIF (#axis_velocity.Error OR #axis_velocity.CommandAborted) AND #command = #CMD_6_VELOCITY THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	  REGION Relative positioning movement
+	    
+	    #axis_relative(Axis := #TO_axis,
+	                   Execute := #driveEnabled AND NOT #axis_relative.Busy AND #command = #CMD_7_RELATIVE_POS,
+	                   Distance := #position,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk,
+	                   BufferMode := 0);
+	    
+	    IF #axis_relative.Busy AND NOT #private.axis_relFp THEN
+	      #targetPosition := #axis.actualPosition + #position;
+	    END_IF;
+	    #private.axis_relFp := #axis_relative.Busy;
+	    
+	    IF #axis_relative.Busy THEN
+	      #actualCommand := #CMD_7_RELATIVE_POS;
+	      
+	    ELSIF (#axis_relative.Done OR #axis_relative.Error OR #axis_relative.CommandAborted) AND #command = #CMD_7_RELATIVE_POS THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	  REGION Absolute positioning movement
+	    
+	    #axis_absolute(Axis := #TO_axis,
+	                   Execute := #driveEnabled AND NOT #axis_absolute.Busy AND #command = #CMD_8_ABSOLUTE_POS,
+	                   Position := #position,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk);
+	    
+	    IF #axis_absolute.Busy AND NOT #private.axis_absFp THEN
+	      #targetPosition := #position;
+	    END_IF;
+	    #private.axis_absFp := #axis_absolute.Busy;
+	    
+	    IF #axis_absolute.Busy THEN
+	      #actualCommand := #CMD_8_ABSOLUTE_POS;
+	      
+	    ELSIF (#axis_absolute.Done OR #axis_absolute.Error OR #axis_absolute.CommandAborted) AND #command = #CMD_8_ABSOLUTE_POS THEN
+	      #command := #CMD_0_NIL;
+	    END_IF;
+	    
+	  END_REGION
+	  
+	END_REGION
+	
+	REGION Torque ##################################################
+	  
+	  REGION Axis 1 - Range
+	    #axis_torqueRange(Axis := #TO_axis,
+	                      Enable := #torqueMode = #TORQUE_MODE_10_RANGE,
+	                      UpperLimit := #torqueUpperLimit,
+	                      LowerLimit := #torqueLowerLimit);
+	    
+	  END_REGION
+	  
+	  REGION Axis 1 - Limiting
+	    
+	    IF #torqueMode = #TORQUE_MODE_21_FIXED_STOP THEN
+	      #axis_torqueLimiting.Mode := #MC_TORQUELIMITING_MODE_1_FIXED_STOP;
+	    ELSE
+	      #axis_torqueLimiting.Mode := #MC_TORQUELIMITING_MODE_0_FORCE;
+	    END_IF;
+	    
+	    #axis_torqueLimiting(Axis := #TO_axis,
+	                         Enable := #torqueMode = #TORQUE_MODE_20_LIMITING OR #torqueMode = #TORQUE_MODE_21_FIXED_STOP,
+	                         Limit := #torqueUpperLimit,
+	                         InClamping => #inClamping,
+	                         InLimitation => #inLimitation);
+	    
+	  END_REGION
+	  
+	END_REGION
+	
+	REGION Collect data after movement #############################
+	  
+	  // The position ans velocity average are calculate with virtual axis because the virtual axis is the master of movement
+	  #actualPosition := #axis.actualPosition;
+	  #actualVelocity := #axis.actualVelocity;
+	  
+	  // The acceleration and torque average are calculated without virtual axis because there are not dynamics values
+	  #actualAcceleration := #axis.actualAcceleration;
+	  #actualTorque := #axis.actualTorque;
+	  
+	  #isRunning := #axis.status.isRunning;
+	  #isRunningBackward := #axis.status.isRunningBackward;
+	  #isRunningForward := #axis.status.isRunningForward;
+	  
+	  #private.command := #command;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

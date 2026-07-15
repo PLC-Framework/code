@@ -1,0 +1,98 @@
+﻿FUNCTION_BLOCK "_monitorPhysicalPulseButton2Q"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME", "TP_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/hmi'
+NAME : _monitorPhysicalPulseButton2Q
+VERSION : 1.0
+   VAR_INPUT 
+      button : Bool;   // IW: 1=Button is pressed
+      ACTION_1_TIME { ExternalWritable := 'False'} : Time := T#2s;   // IR: Action 1 time (must be less than ACTION_2_TIME)
+      ACTION_2_TIME { ExternalWritable := 'False'} : Time := T#5S;   // IR: Action 2 time (must be less than WATHDOG_TIME)
+   END_VAR
+   VAR_INPUT RETAIN
+      WATCHDOG_TIME { ExternalWritable := 'False'} : Time := T#10S;   // IR: 0=Disable watch dog; >0=Enable and monitor watchdog
+      PULSE_TIME { ExternalWritable := 'False'} : Time := T#500ms;   // IR: Pulse time
+   END_VAR
+
+   VAR_OUTPUT 
+      Q1 { ExternalWritable := 'False'} : Bool;   // OR: 1=FN pulse before ACTION_1_TIME
+      Q2 { ExternalWritable := 'False'} : Bool;   // OR: 1=FN pulse after ACTION_2_TIME
+      ET { ExternalWritable := 'False'} : Time;   // OR: Elapsed time while button is pressed
+      a2w_1_watchdog { ExternalWritable := 'False'} : Bool;   // OR: 1=Alarm warning - Watchdog
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         button { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         pulse1Tp {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+         pulse2Tp {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      pulseOn : Bool;
+      pulseOff : Bool;
+      start : Bool;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-15 | cyanezf | First version |
+
+## Description
+
+This function monitors any pulse `button` and
+return a processed pulse when negative edge of
+button was evaluted.
+
+## Outputs
+
+| output | description |
+|:------:|:------------|
+| Q1 | button is pressed > 0s and < ACTION_1_TIME |
+| Q2 | button is pressed > ACTION_2_TIME < WATCHDOG_TIME |
+| a2w_1_watchdog | alarm when button is pressed > WATCHDOG_TIME |
+
+--*)
+	
+	// Positive edge from button
+	#pulseOn := #button AND NOT #private.button;
+	#pulseOff := NOT #button AND #private.button;
+	#private.button := #button;
+	
+	// Activate Q1
+	#start := #pulseOff AND #ET > t#0s AND #ET < #ACTION_1_TIME; // AND NOT #private.pulse1Tp.Q;
+	
+	#private.pulse1Tp(IN := #start,
+	                  PT := #PULSE_TIME,
+	                  Q => #Q1);
+	
+	// Activate Q2
+	#start := #pulseOff AND #ET > #ACTION_2_TIME AND #ET < #WATCHDOG_TIME; // AND NOT #private.pulse2Tp.Q;
+	
+	#private.pulse2Tp(IN := #start,
+	                  PT := #PULSE_TIME,
+	                  Q => #Q2);
+	
+	
+	// Watchdog monitoring
+	// Warning! Must be after Q1 and Q2 to use ET!
+	#private.watchdogTimer(IN := #button,
+	                       PT := #WATCHDOG_TIME,
+	                       Q => #a2w_1_watchdog,
+	                       ET => #ET);
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

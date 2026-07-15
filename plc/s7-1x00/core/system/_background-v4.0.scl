@@ -1,0 +1,249 @@
+﻿FUNCTION_BLOCK "_background"
+TITLE = {"status":"deprecated","deprecatedBy":"_background-v4.1","dependencies" : ["TON_TIME", "RUNTIME", "RD_LOC_T"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/system'
+NAME : _background
+VERSION : 4.0
+
+   VAR_INPUT 
+      OB_initial_call { ExternalWritable := 'False'} : Bool;   // IR: Map the initial call from OB1
+      OB_remanence { ExternalWritable := 'False'} : Bool;   // IR: Map remanence from OB1
+      HW_firstScan { ExternalWritable := 'False'} : Bool;   // IR: Map the first scan from memory bit.
+      HW_diagStatusUpdate { ExternalWritable := 'False'} : Bool;   // IR: Map the diagnostic status update from Memory bit.
+      clockSource { ExternalWritable := 'False'} : Bool := 0;   // IR: 0=From Hw if confured, 1=This function generates it.
+      cycleDividerBits { ExternalWritable := 'False'} : USInt := 32;   // IR: 2..32=Cycle divider bits
+      TMP_EMRG_BYPASS_TIMEOUT { ExternalWritable := 'False'} : Time := T#0MS;   // IR: 0=Forever; >0=Timeout
+   END_VAR
+
+   VAR_OUTPUT 
+      pulse { ExternalWritable := 'False'} : Byte;   // OR: Get positive edges from clock.
+      toggleCycle { ExternalWritable := 'False'} : Bool;   // OR: Toggle cycle
+      cycleTime { ExternalWritable := 'False'} : Time;   // OR: Cycle time in milliseconds.
+      cycleDivider { ExternalWritable := 'False'} : UDInt := 2#1;   // OR: Cycle divider bits
+      cycleCounter { ExternalWritable := 'False'} : UDInt;   // OR: Cycle coutner
+      localNow {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalWritable := 'False'} : DTL;   // OR: Current Local date and time
+      utcNow {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalWritable := 'False'} : DTL;   // OR: Current UTC date and time
+      localWeekday { ExternalWritable := 'False'} : Struct   // OR: Current Local weekday in bits
+         d1_sunday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 1 - sunday
+         d2_monday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 2 - monday
+         d3_tuesday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 3 - tuesday
+         d4_wednesday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 4 - wednesday
+         d5_thursday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 5 - thursday
+         d6_friday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 6 - friday
+         d7_saturday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 7 - saturday
+      END_STRUCT;
+      utcWeekday { ExternalWritable := 'False'} : Struct   // OR: Current UTC weekday in bits
+         d1_sunday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 1 - sunday
+         d2_monday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 2 - monday
+         d3_tuesday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 3 - tuesday
+         d4_wednesday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 4 - wednesday
+         d5_thursday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 5 - thursday
+         d6_friday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 6 - friday
+         d7_saturday { ExternalWritable := 'False'} : Bool;   // OR: 1=Day 7 - saturday
+      END_STRUCT;
+   END_VAR
+
+   VAR_IN_OUT 
+      HW_clock { ExternalWritable := 'False'} : Byte;   // IOX: Map the clock byte from Memory byte.
+      tmp_errorAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Error ackn.
+      tmp_emrgAckn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Emrg. ackn.
+      tmp_emrgBypass { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Emrg. bypass
+      tmp_loadFactory { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Temporal - Load factory
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         cycleTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;
+         clock { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;
+         errorAcknTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         emrgAcknTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         emrgBypassTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle0750Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle1600Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         cycle2000Timer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         laodFactoryTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      result : Int;
+      clockByte : Byte;
+      tCycleTime : LReal;
+      vCycleTime : DInt;
+      exponent : USInt;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v4.0 | 2026-03-05 | cyanezf | feat: Clean unused variables, Add cycleDivider, cycleCounter, toggleCycle |
+| v3.1 | 2025-05-29 | cyanezf | tmp_loadFactory added |
+| v3.0 | 2025-05-06 | cyanezf | Refactored |
+| v2.0 | 2025-04-30 | cyanezf | Tmp variables control added |
+| v1.1 | 2023-11-12 | cyanezf | Fix bugs |
+| v1.0 | 2020-09-06 | cyanezf | First version |
+
+## Description
+
+This function generates datetime, cycle time and rest of useful and global flags.
+
+--*)
+	
+	 (*
+	   SW Clock or HW Clock
+	   100 ms > 50 x 2
+	   200 ms > 50 x 4
+	   400 ms > 50 x 8
+	   500 ms > 50 x 10
+	   750 ms > 50 x 15
+	  1000 ms > 50 x 20
+	  1600 ms > 50 x 32
+	  2000 ms > 50 x 40
+	  *)
+	 IF #clockSource THEN
+	   
+	   // Run timer
+	   #private.cycle0750Timer(IN := true,
+	                           PT := t#750ms,
+	                           ET => #vCycleTime);
+	   
+	   #clockByte.%X4 := (#vCycleTime / 375) MOD 2 > 0;
+	   
+	   #private.cycle1600Timer(IN := true,
+	                           PT := t#1600ms,
+	                           ET => #vCycleTime);
+	   
+	   #clockByte.%X6 := (#vCycleTime / 800) MOD 2 > 0;
+	   
+	   #private.cycle2000Timer(IN := true,
+	                           PT := t#2s,
+	                           ET => #vCycleTime);
+	   
+	   #clockByte.%X0 := (#vCycleTime / 50) MOD 2 > 0;
+	   #clockByte.%X1 := (#vCycleTime / 100) MOD 2 > 0;
+	   #clockByte.%X2 := (#vCycleTime / 200) MOD 2 > 0;
+	   #clockByte.%X3 := (#vCycleTime / 250) MOD 2 > 0;
+	   #clockByte.%X5 := (#vCycleTime / 500) MOD 2 > 0;
+	   #clockByte.%X7 := (#vCycleTime / 1000) MOD 2 > 0;
+	   
+	   #HW_clock := #clockByte;
+	  
+	   // Reset timer
+	   IF #private.cycle0750Timer.Q THEN
+	     RESET_TIMER(#private.cycle0750Timer);
+	   END_IF;
+	   
+	   IF #private.cycle1600Timer.Q THEN
+	     RESET_TIMER(#private.cycle1600Timer);
+	   END_IF;
+	   
+	   IF #private.cycle2000Timer.Q THEN
+	     RESET_TIMER(#private.cycle2000Timer);
+	   END_IF;
+	   
+	 // Use OS generated clock  
+	 //ELSE
+	 //  #HW_clock := #HW_clock;
+	   
+	 END_IF;
+	 
+	 // Pulses
+	 // XOR
+	 // C F - X - P
+	 // 0 0 - 0 - 0
+	 // 0 1 - 1 - 0
+	 // 1 0 - 1 - 1
+	 // 1 1 - 0 - 0
+	 
+	 //#pulse := (#clock XOR #private.clock) AND #private.clock; // option a
+	 #pulse := #HW_clock AND NOT #private.clock; // option b
+	 #private.clock := #HW_clock;
+	
+	 // Cycle Time
+	 #tCycleTime := RUNTIME(#private.cycleTime);
+	 #cycleTime := LREAL_TO_DINT(#tCycleTime * 1000.0);
+	 
+	 // Cycle divider and counter
+	 IF #HW_firstScan THEN
+	   #cycleDivider := 0;
+	   #cycleCounter := 0;
+	 END_IF;
+	 
+	 IF #cycleDividerBits < 2 THEN
+	   #exponent := 2;
+	 ELSIF #cycleDividerBits > 32 THEN
+	   #exponent := 32;
+	 ELSE
+	   #exponent := #cycleDividerBits;
+	 END_IF;
+	 
+	 #cycleDivider := SHL(IN := #cycleDivider, N := 1);
+	 
+	 IF #cycleDivider = 0 THEN
+	   #cycleDivider.%X0 := TRUE;
+	 ELSIF #cycleDivider >= REAL_TO_UDINT(EXP(#exponent * LN(2))) THEN
+	   #cycleDivider := 1;
+	 END_IF;
+	 
+	 #cycleCounter += 1;
+	 #toggleCycle := NOT #toggleCycle;
+	 
+	 // Now
+	 #result := RD_LOC_T(#localNow);
+	 #result := RD_SYS_T(#utcNow);
+	 
+	 // Weekday
+	 #localWeekday.d1_sunday := #localNow.WEEKDAY = 1;
+	 #localWeekday.d2_monday := #localNow.WEEKDAY = 2;
+	 #localWeekday.d3_tuesday := #localNow.WEEKDAY = 3;
+	 #localWeekday.d4_wednesday := #localNow.WEEKDAY = 4;
+	 #localWeekday.d5_thursday := #localNow.WEEKDAY = 5;
+	 #localWeekday.d6_friday := #localNow.WEEKDAY = 6;
+	 #localWeekday.d7_saturday := #localNow.WEEKDAY = 7;
+	 
+	 #utcWeekday.d1_sunday := #utcNow.WEEKDAY = 1;
+	 #utcWeekday.d2_monday := #utcNow.WEEKDAY = 2;
+	 #utcWeekday.d3_tuesday := #utcNow.WEEKDAY = 3;
+	 #utcWeekday.d4_wednesday := #utcNow.WEEKDAY = 4;
+	 #utcWeekday.d5_thursday := #utcNow.WEEKDAY = 5;
+	 #utcWeekday.d6_friday := #utcNow.WEEKDAY = 6;
+	 #utcWeekday.d7_saturday := #utcNow.WEEKDAY = 7;
+	 
+	 // Temporal
+	 #private.errorAcknTimer(IN := #tmp_errorAckn,
+	                         PT := t#500ms);
+	 IF #private.errorAcknTimer.Q THEN
+	   #tmp_errorAckn := false;
+	 END_IF;
+	 
+	 #private.emrgAcknTimer(IN := #tmp_emrgAckn,
+	                         PT := t#500ms);
+	  IF #private.emrgAcknTimer.Q THEN
+	    #tmp_emrgAckn := false;
+	  END_IF;
+	  
+	  #private.emrgBypassTimer(IN := #tmp_emrgBypass AND #TMP_EMRG_BYPASS_TIMEOUT > t#0s,
+	                           PT := #TMP_EMRG_BYPASS_TIMEOUT);
+	  IF #private.emrgBypassTimer.Q AND #TMP_EMRG_BYPASS_TIMEOUT > t#0s THEN
+	    #tmp_emrgBypass := false;
+	  END_IF;
+	  
+	  // Load factory
+	  #private.laodFactoryTimer(IN:=#tmp_loadFactory,
+	                            PT:=t#2s);
+	  IF #private.laodFactoryTimer.Q THEN
+	    #tmp_loadFactory := false;
+	  END_IF;
+	  
+	 // Save RLO
+	 ENO := true;
+	 
+	
+END_FUNCTION_BLOCK
+

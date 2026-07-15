@@ -1,0 +1,128 @@
+﻿FUNCTION "_alarmTraceGlobalUpdater" : Void
+TITLE = {"status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceGlobalData-v2.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm/trace/global'
+NAME : _alarmTraceGlobalUpdater
+VERSION : 2.0
+
+   VAR_IN_OUT 
+      global : "alarmTraceGlobalData";   // Alarm trace global
+   END_VAR
+
+   VAR CONSTANT 
+      ALARM_0_NIL : USInt := 0;
+      ALARM_1_INFO : USInt := 1;
+      ALARM_2_WARNING : USInt := 2;
+      ALARM_3_ERROR : USInt := 3;
+      ALARM_4_EMERGENCY : USInt := 4;
+      NO_ALARM : Int := 0;
+      NO_OBJECT : UInt := 0;
+      NO_GROUP : UInt := 0;
+      NO_SUPER : UInt := 0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | UDT updated |
+| v1.1 | 2025-06-12 | cyanezf | Alarm level constants added |
+| v1.0 | 2025-03-24 | cyanezf | First version |
+
+## Description
+
+This function updates `global.aXX.triggered` and clears the rest of variables.
+
+--*)
+	
+	// #######################################################
+	// Clear #################################################
+	// #######################################################
+	// Info
+	IF #global.a1i.collector = 0 THEN
+	  #global.a1i.id := #NO_ALARM;
+	  #global.a1i.object := #NO_OBJECT;
+	  #global.a1i.group := #NO_GROUP;
+	  #global.a1i.super := #NO_SUPER;
+	END_IF;
+	#global.a1i.triggered := #global.a1i.collector;
+	#global.a1i.collector := 0;
+	
+	// Warning
+	IF #global.a2w.collector = 0 THEN
+	  #global.a2w.id := #NO_ALARM;
+	  #global.a2w.object := #NO_OBJECT;
+	  #global.a2w.group := #NO_GROUP;
+	  #global.a2w.super := #NO_SUPER;
+	END_IF;
+	#global.a2w.triggered := #global.a2w.collector;
+	#global.a2w.collector := 0;
+	
+	// Error
+	IF #global.a3e.collector  = 0 THEN
+	  #global.a3e.id := #NO_ALARM;
+	  #global.a3e.object := #NO_OBJECT;
+	  #global.a3e.group := #NO_GROUP;
+	  #global.a3e.super := #NO_SUPER;
+	END_IF;
+	#global.a3e.triggered := #global.a3e.collector;
+	#global.a3e.collector := 0;
+	
+	// Emergency
+	IF  #global.a4f.collector = 0 THEN
+	  #global.a4f.id := #NO_ALARM;
+	  #global.a4f.object := #NO_OBJECT;
+	  #global.a4f.group := #NO_GROUP;
+	  #global.a4f.super := #NO_SUPER;
+	END_IF;
+	#global.a4f.triggered := #global.a4f.collector;
+	#global.a4f.collector := 0;
+	
+	// #######################################################
+	// Update level ##########################################
+	// #######################################################
+	IF #global.a4f.triggered > 0 THEN
+	  #global.level := #ALARM_4_EMERGENCY;
+	  #global.id := #global.a4f.id;
+	  #global.object := #global.a4f.object;
+	  #global.group := #global.a4f.group;
+	  #global.super := #global.a4f.super;
+	  
+	ELSIF #global.a3e.triggered > 0 THEN
+	  #global.level := #ALARM_3_ERROR;
+	  #global.id := #global.a3e.id;
+	  #global.object := #global.a3e.object;
+	  #global.group := #global.a3e.group;
+	  #global.super := #global.a3e.super;
+	  
+	ELSIF #global.a2w.triggered > 0 THEN
+	  #global.level := #ALARM_2_WARNING;
+	  #global.id := #global.a2w.id;
+	  #global.object := #global.a2w.object;
+	  #global.group := #global.a2w.group;
+	  #global.super := #global.a2w.super;
+	  
+	ELSIF #global.a1i.triggered > 0 THEN
+	  #global.level := #ALARM_1_INFO;
+	  #global.id := #global.a1i.id;
+	  #global.object := #global.a1i.object;
+	  #global.group := #global.a1i.group;
+	  #global.super := #global.a1i.super;
+	  
+	ELSE
+	  #global.level := #ALARM_0_NIL;
+	  #global.id := #NO_ALARM;
+	  #global.object := #NO_OBJECT;
+	  #global.group := #NO_GROUP;
+	  #global.super := #NO_SUPER;
+	END_IF;
+	
+	// Save RLO
+	ENO := TRUE;
+	
+END_FUNCTION

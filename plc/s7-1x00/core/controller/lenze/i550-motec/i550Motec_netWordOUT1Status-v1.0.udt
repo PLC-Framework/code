@@ -1,0 +1,35 @@
+﻿TYPE "i550Motec_netWordOUT1Status"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/lenze/i550-motec","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2022-10-12 | cyanezf | First version |
+//
+//## Description
+//i550 Motec - netWord OUT1 status
+//--*)
+
+   STRUCT
+      opt8 : Bool;   // x1.0 - 0x2634;018: Configurable (Default 0)
+      opt9 : Bool;   // x1.1 - 0x2634;019: Configurable (Default 0)
+      setpointSpeedReached : Bool;   // x1.2 - 0x2634;020: 1=Setpoint speed reached
+      currentLimitReached : Bool;   // x1.3 - 0x2634;021: 1=Actual motor current >= maximum current
+      speedIsZero : Bool;   // x1.4 - 0x2634;022: 1=Actual speed is 0
+      rotationalDirectionReversed : Bool;   // x1.5 - 0x2634;023: 1=Output frequency is negative
+      opt14 : Bool;   // x1.6 - 0x2634;024: Configurable (Default 0)
+      sto : Bool;   // x1.7 - 0x2634;025: 1=The integrated Safety system has inhibited the inverter
+      ready : Bool;   // x0.0 - 0x2634;010: Configurable (Default 0) Ready for operation
+      opt1 : Bool;   // x0.1 - 0x2634;011: Configurable (Default 0)
+      operationEnabled : Bool;   // x0.2 - 0x2634;012: 1=Operation enabled
+      error : Bool;   // x0.3 - 0x2634;013: 1=Fault active
+      opt4 : Bool;   // x0.4 - 0x2634;014: Configurable (Default 0)
+      quickStopActive : Bool;   // x0.5 - 0x2634;015: 1=Quck stop is active
+      isRunning : Bool;   // x0.6 - 0x2634;016: 1=Inverter and start are ready and output frequency > 0
+      warning : Bool;   // x0.7 - 0x2634;017: 1=Warning is active
+   END_STRUCT;
+
+END_TYPE
+

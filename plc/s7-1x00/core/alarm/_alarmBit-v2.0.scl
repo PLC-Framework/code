@@ -1,0 +1,58 @@
+﻿FUNCTION "_alarmBit" : Void
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : []}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm'
+NAME : _alarmBit
+VERSION : 2.0
+
+   VAR_INPUT 
+      incoming : Bool;   // 1=Alarm triggered
+      outcoming : Bool;   // 1=No alarm
+      acknNeeded : Bool;   // 0=Auto ackn; 1=Use ackn
+      ackn : Bool;   // 1=Ackn
+   END_VAR
+
+   VAR_IN_OUT 
+      alarm : Bool;   // 1=Alarm triggered bit
+      triggered : UInt;   // Set local alarm
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v2.0 | 2025-07-24 | cyanezf | s_localAlarm changes to UINT |
+| v1.1 | 2025-02-15 | cyanezf | u_mapAlarm was removed |
+| v1.0 | 2023-10-27 | cyanezf | First version |
+
+## Description
+
+Alarm bit #u_thisAlarm is triggered when #incoming is true.
+Alarm bit #u_thisAlarm is reset when #incoming is false, #outcoming is true and #ackn is true or #acknNeeded is false.
+`s_localAlarm` is set when #u_thisAlarm is true.
+
+--*)
+	
+	// Set/Reset alarm
+	IF #incoming THEN
+	  #alarm := true;
+	  
+	ELSIF #outcoming AND (NOT #acknNeeded OR #ackn) THEN
+	  #alarm := false;
+	END_IF;
+	
+	// Set/Reset Flags
+	IF #alarm THEN
+	  #triggered += 1;
+	END_IF;
+	
+	// Save RLO
+	ENO := NOT #alarm;
+	
+END_FUNCTION
+

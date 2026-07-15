@@ -1,0 +1,137 @@
+﻿FUNCTION "_stringToIPv4Address" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["IP_V4", "STRG_VAL"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication'
+NAME : _stringToIPv4Address
+VERSION : 1.0
+
+   VAR_INPUT 
+      in : String;   // Some IPv4 Address as string
+   END_VAR
+
+   VAR_OUTPUT 
+      out {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IPv4
+   END_VAR
+
+   VAR_TEMP 
+      i : Int;
+      tmp : Int;
+      octet : Int;
+      firstCharIndex : Int;
+      length : Int;
+      maxChars : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      SEPARATOR : Char := '.';
+      MIN_LENGTH : Int := 7;   // 0.0.0.0
+      MIN_RANGE : Int := 0;
+      MAX_RANGE : Int := 255;
+      STATUS_0_DONE : Int := 0;   // Done
+      STATUS_8000_MIN_LENGTH : Int := 16#8000; // Input string is too short
+      STATUS_8001_OCTET_OUT_OF_RANGE : Int := 16#8001; // Octet value is out of range (0-255)
+      STATUS_8002_MANY_SEPARATORS : Int := 16#8002; // Too many separators (more than 3)
+      STATUS_8003_FEW_SEPARATOS : Int := 16#8003; // Too few separators (less than 3)
+      STATUS_8004_LEADING_ZEROS : Int := 16#8004; // Leading zeros are not allowed
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-03-13 | cyanezf | First version |
+
+## Description
+
+This function parses a string to an IPv4 address. It checks the format and 
+value of the input string and returns an error code if the input is invalid.
+
+## Error Codes
+
+| Code | Description |
+|:----:|:-----------:|
+| 0 | Done |
+| 16#8000 | Input string is too short |
+| 16#8001 | Octet value is out of range (0-255) |
+| 16#8002 | Too many separators (more than 3) |
+| 16#8003 | Too few separators (less than 3) |
+| 16#8004 | Leading zeros are not allowed |
+
+--*)
+
+	#length := LEN(#in);
+	
+	// Check min length
+	IF #length < #MIN_LENGTH THEN
+	  #_isIpV4Address := #STATUS_8001_OCTECT_OUT_OF_RANGE;
+	  ENO := false;
+	  RETURN;
+	END_IF;
+	
+	#octet := 1;
+	#firstCharIndex := 1;
+	
+	FOR #i := 1 TO #length DO
+	  
+	  // Next character
+	  IF #in[#i] <> #SEPARATOR AND #i <> #length THEN
+	    CONTINUE;
+	  END_IF;
+	  
+	  // Check octets
+	  IF #octet > 4 THEN
+	    #_isIpV4Address := #STATUS_8002_MANY_SEPARATORS;
+	    ENO := FALSE;
+	    RETURN;
+	  END_IF;
+	  
+	  IF #i = #length THEN
+	    #maxChars := #i + 1;
+	  ELSE
+	    #maxChars := #i;
+	  END_IF;
+	  
+	  // Get substring and parse to int
+	  STRG_VAL(IN:=MID(IN := #in, L := #maxChars - #firstCharIndex, P := #firstCharIndex),
+	           FORMAT:=0,
+	           P:=1,
+	           OUT=>#tmp);
+	  
+	  // Check value
+	  IF #tmp < #MIN_RANGE OR #tmp > #MAX_RANGE THEN
+	    #_isIpV4Address := #STATUS_8001_OCTET_OUT_OF_RANGE;
+	    ENO := FALSE;
+	    RETURN;
+	  END_IF;
+	  
+	  // Check leading zeros
+	  IF #octet = 1 AND #tmp = #MIN_RANGE THEN
+	    #_isIpV4Address := #STATUS_8004_LEADING_ZEROS;
+	    ENO := FALSE;
+	    RETURN;
+	  END_IF;
+	  
+	  // Save octet
+	  #out.ADDR[#octet] := INT_TO_BYTE(#tmp);
+	  // Next octet
+	  #octet += 1;
+	  #firstCharIndex := #i + 1;
+	END_FOR;
+	
+	// Check octets
+	IF #octet <> 5 THEN
+	  #_isIpV4Address := #STATUS_8003_FEW_SEPARATOS;
+	  ENO := FALSE;
+	  RETURN;
+	END_IF;
+	
+	// Done
+	#_isIpV4Address := #STATUS_0_DONE;
+	ENO := true;
+	
+END_FUNCTION

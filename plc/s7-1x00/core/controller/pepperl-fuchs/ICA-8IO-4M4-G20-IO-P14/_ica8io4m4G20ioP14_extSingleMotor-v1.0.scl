@@ -1,0 +1,178 @@
+﻿FUNCTION_BLOCK "_ica8io4m4G20ioP14_extSingleMotor"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["ica8io4m4G20ioP14_extStatus-v1.0", "ica8io4m4G20ioP14_extControl-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14'
+NAME : _ica8io4m4G20ioP14_extSingleMotor
+VERSION : 1.0
+
+   VAR_INPUT 
+      motorNr { ExternalWritable := 'False'} : USInt;   // IR: 2=Motor 2, 3=Motor 3; 4=Motor 4, N=Motor 1
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Forward is Clockwise; 1=Forward is Coutner clockwise
+      speed { ExternalWritable := 'False'} : Real;   // IR: User speed
+      maxSpeed { ExternalWritable := 'False'} : Real := 100.0;   // IR: User max. speed
+      accelerationRamp { ExternalWritable := 'False'} : Time := T#500mS;   // IR: 0..5100ms=Acceleration ramp
+      decelerationRamp { ExternalWritable := 'False'} : Time := T#500MS;   // IR: 0..5100ns=Deceleration ramp
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "ica8io4m4G20ioP14_extStatus";   // IOX: Process data input
+      pdo : "ica8io4m4G20ioP14_extControl";   // IOX: Process data output
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      motor : Struct
+         run : Bool;
+         direction : Bool;
+         brake : Bool;
+         speed : USInt;
+         accelerationRamp : USInt;
+         decelerationRamp : USInt;
+      END_STRUCT;
+   END_VAR
+
+   VAR CONSTANT 
+      MOTOR_2 : USInt := 2;
+      MOTOR_3 : USInt := 3;
+      MOTOR_4 : USInt := 4;
+      NO_MOTOR_SPEED : USInt := 0;   // 0 %
+      MAX_MOTOR_SPEED : USInt := 100;   // 100 %
+      MAX_USER_RAMP : Time := T#5100ms;
+      MAX_MOTOR_RAMP : USInt := 255;
+      RAMP_STEP : Time := T#20ms;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-02-10 | cyanezf | First version |
+
+## Description
+
+This function block controls a single motor of the ICA-8IO-4M4-G20-IO-P14. 
+The motor is selected by the input variable `motorNr`.
+The function block calculates the control signals for the selected motor 
+based on the input variables and writes them to the process data output. 
+It also reads the status of the selected motor from the process data input 
+and sets the output variables accordingly.
+
+--*)
+	
+	// Acceleration ramp
+	IF #accelerationRamp < #RAMP_STEP THEN
+	  #motor.accelerationRamp := 0;
+	ELSIF #accelerationRamp >= #MAX_USER_RAMP THEN
+	  #motor.accelerationRamp := #MAX_MOTOR_RAMP;
+	ELSE
+	  #motor.accelerationRamp := DINT_TO_USINT(TIME_TO_DINT(#accelerationRamp) / TIME_TO_DINT(#RAMP_STEP));
+	END_IF;
+	
+	// Deceleration ramp
+	IF #decelerationRamp < #RAMP_STEP THEN
+	  #motor.decelerationRamp := 0;
+	ELSIF #decelerationRamp >= #MAX_USER_RAMP THEN
+	  #motor.decelerationRamp := #MAX_MOTOR_RAMP;
+	ELSE
+	  #motor.decelerationRamp := DINT_TO_USINT(TIME_TO_DINT(#decelerationRamp) / TIME_TO_DINT(#RAMP_STEP));
+	END_IF;
+	
+	// Speed to %
+	// maxSpeed -> 100%
+	// speed    -> ?
+	// 
+	IF #speed <= 0.0 THEN
+	  #motor.speed := #NO_MOTOR_SPEED;
+	ELSIF #speed >= #maxSpeed THEN
+	  #motor.speed := #MAX_MOTOR_SPEED;
+	ELSE
+	  #motor.speed := REAL_TO_USINT(#speed * USINT_TO_REAL(#MAX_MOTOR_SPEED) / #maxSpeed);
+	END_IF;
+	
+	// Ok
+	#ok := #controlOn AND #emrgStopOk AND #motor.speed > #NO_MOTOR_SPEED;
+	#motor.run := (#runForward XOR #runBackward) AND #ok;
+	
+	// | runForward | runBackward | ccw || Direction | Description |
+	// | :--------- | :---------- | :-- || :-------- | :---------- |
+	// | 1          | 0           | 0   || 0         | Forward is clock wise |
+	// | 1          | 0           | 1   || 1         | Forward is counter clock wise |
+	// | 0          | 1           | 0   || 0         | Backward is counter clock wise |
+	// | 0          | 1           | 1   || 1         | Backward is clock wise |
+	
+	#motor.direction := #motor.run AND ((#runBackward AND NOT #ccw) OR (#runForward AND #ccw)) ; // 0=cw; 1=ccw
+	#motor.brake := NOT #motor.run;
+	
+	IF NOT #motor.run THEN
+	  #motor.speed := #NO_MOTOR_SPEED;
+	END_IF;
+	
+	#direction := #motor.run AND #runBackward;
+	
+	// Select output motor
+	CASE #motorNr OF
+	  #MOTOR_2:
+	    
+	    #pdo.motor2_run := #motor.run;
+	    #pdo.motor2_direction := #motor.direction;
+	    #pdo.motor2_brake := #motor.brake;
+	    #pdo.motor2_speed := #motor.speed;
+	    #pdo.motor2_accelerationRamp := #motor.accelerationRamp;
+	    #pdo.motor2_decelerationRamp := #motor.decelerationRamp;
+	    
+	    #isRunning := NOT #pdi.motor2_isStopped;
+	    
+	  #MOTOR_3:
+	    
+	    #pdo.motor3_run := #motor.run;
+	    #pdo.motor3_direction := #motor.direction;
+	    #pdo.motor3_brake := #motor.brake;
+	    #pdo.motor3_speed := #motor.speed;
+	    #pdo.motor3_accelerationRamp := #motor.accelerationRamp;
+	    #pdo.motor3_decelerationRamp := #motor.decelerationRamp;
+	    
+	    #isRunning := NOT #pdi.motor3_isStopped;
+	    
+	  #MOTOR_4:
+	    
+	    #pdo.motor4_run := #motor.run;
+	    #pdo.motor4_direction := #motor.direction;
+	    #pdo.motor4_brake := #motor.brake;
+	    #pdo.motor4_speed := #motor.speed;
+	    #pdo.motor4_accelerationRamp := #motor.accelerationRamp;
+	    #pdo.motor4_decelerationRamp := #motor.decelerationRamp;
+	    
+	    #isRunning := NOT #pdi.motor4_isStopped;
+	    
+	  ELSE  // Motor 1
+	    #pdo.motor1_run := #motor.run;
+	    #pdo.motor1_direction := #motor.direction;
+	    #pdo.motor1_brake := #motor.brake;
+	    #pdo.motor1_speed := #motor.speed;
+	    #pdo.motor1_accelerationRamp := #motor.accelerationRamp;
+	    #pdo.motor1_decelerationRamp := #motor.decelerationRamp;
+	    
+	    #isRunning := NOT #pdi.motor1_isStopped;
+	    
+	END_CASE;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,113 @@
+﻿FUNCTION "_sick_dwordToHexAscii" : Int
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["Strg_TO_Chars"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SICKAG
+FAMILY : 'core/dad/sick/clv6xx'
+VERSION : 1.1
+//This function is needs to set a value to a SICK CoLa command.
+   VAR_INPUT 
+      addSpace : Bool;   // Add blank after value
+      hexValue : DWord;   // Value that should be written
+   END_VAR
+
+   VAR_IN_OUT 
+      buffer : Array[*] of Byte;   // Destination telegram
+      index : UInt;   // Position offset of the value before and after (starting from 0)
+   END_VAR
+
+   VAR_TEMP 
+      valueLength : USInt;   // Byte length of the value that shuld be written
+      tmpHexValue : DWord;   // Temporarily variable
+      status : Word;   // Return value of the convert function
+      ascii : String[8];   // Converted value
+      length : UInt;   // Temporarily variable
+   END_VAR
+
+   VAR CONSTANT 
+      ERROR_0X0000_OK : Int := 16#0000;
+      ERROR_0X0001_INVALID_POSITION : Int := 16#0001;
+      MAX_BUFFER : Int := 500;
+   END_VAR
+
+
+BEGIN
+	(*===========================================================================================
+	Name:   SICK_SetValue
+	Author: SICK AG
+	=============================================================================================
+	Description: 
+	This function is for internal use only.
+	The function converts a hexadecimal value into a hexadecimal string and add it 
+	automatically to the command array.     
+	
+	=============================================================================================
+	Error codes:
+	16#0000 = No error
+	16#0001 = Invalid position index   
+	16#8xxx = Conversion error (HTA-Function) see help system for more information
+	                    
+	=============================================================================================
+	Version history:
+	Date       | Version | created under               | Author  | Remark
+	---------------------------------------------------------------------------------------------
+	30/01/2014 | V1.0    | TIA Portal V12 SP1 Update 2 | SICK AG | Initial version
+	22/04/2014 | V1.1    | TIA Portal V12 SP1 Update 4 | SICK AG | Avoid warnings that occur with 
+	                                                               TIA V13
+	============================================================================================*)
+	
+	(*======================================= WRITE VALUE ======================================*)
+	(*Check current position of the value*)
+	IF #index > #MAX_BUFFER - 1 THEN // 499
+	  #_sick_dwordToHexAscii := #ERROR_0X0001_INVALID_POSITION; (*Error: Invalid position index*)
+	  RETURN;
+	END_IF;
+	
+	(*Get byte length of the value that should be written*)
+	#valueLength := 0;
+	
+	IF #hexValue <= 16#FF THEN
+	  #tmpHexValue := SHL(IN := #hexValue, N := 24);
+	  #valueLength := 1;
+	  
+	ELSIF #hexValue <= 16#FFFF THEN
+	  #tmpHexValue := SHL(IN := #hexValue, N := 16);
+	  #valueLength := 2;
+	  
+	ELSIF #hexValue <= 16#00FF_FFFF THEN
+	  #tmpHexValue := SHL(IN := #hexValue, N := 8);
+	  #valueLength := 3;
+	  
+	ELSIF #hexValue <= 16#FFFF_FFFF THEN
+	  #tmpHexValue := #hexValue;
+	  #valueLength := 4;
+	  
+	END_IF;
+	
+	(*Convert hexadecimal number into a ASCII string*)
+	#status := HTA(IN := #tmpHexValue, N := #valueLength, OUT => #ascii);
+	
+	IF #status <> #ERROR_0X0000_OK THEN
+	  #_sick_dwordToHexAscii := WORD_TO_INT(#status); (*Error: Conversion error (HTA-Function)*)
+	  RETURN;
+	END_IF;
+	
+	(*Add the string value to the destination telegram*)
+	//#buffer[#index] := 0; // Avoid warnings under TIA V13
+	Strg_TO_Chars(Strg := #ascii,
+	              pChars := #index,
+	              Cnt => #length,
+	              Chars := #buffer);
+	
+	#index += #length;
+	
+	(*Add blank to the destination telegram and calculate the position of the next element*)
+	IF #addSpace THEN
+	  #buffer[#index] := ' ';
+	  #index += 1;
+	END_IF;
+	
+	// Done
+	#_sick_dwordToHexAscii := #ERROR_0X0000_OK;
+	
+END_FUNCTION
+

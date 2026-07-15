@@ -1,0 +1,28 @@
+﻿TYPE "priorityQueueMetadata"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue", "current", "deprecatedBy": null, "dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2025-12-26 | cyanezf | First version |
+//
+//## Description
+//Priority Queue metadata
+//--*)
+
+   STRUCT
+      heap : Struct   // Heap data
+         dataIndex : DInt := -1;   // Data index
+      END_STRUCT;
+      data : Struct   // Node data
+         priority : DInt := 0;   // Priority
+      END_STRUCT;
+      freeSlot : Struct   // Free slot data
+         dataIndex : DInt := 0;   // Data index
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

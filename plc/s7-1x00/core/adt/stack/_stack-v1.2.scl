@@ -1,0 +1,252 @@
+﻿FUNCTION "_stack" : Int
+TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : ["stackInstanceAttributes-v1.1", "MOVE_BLK_VARIANT"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/adt/sack'
+NAME : _stack
+VERSION : 1.2
+   VAR_INPUT 
+      method : Int;   // 1=Init; 10=Push (Add); 11=Pop (Remove); 12=Peek (Read top)
+   END_VAR
+
+   VAR_IN_OUT 
+      instance : "stackInstanceAttributes";   // Stack instance
+      data : Variant;   // Data array of type <E>
+      buffer : Variant;   // Buffer data of type <E>
+   END_VAR
+
+   VAR_TEMP 
+      result : Int;
+      length : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      METHOD_01_INIT : Int := 1;   // Method 01: Initialize
+      METHOD_10_PUSH : Int := 10;   // Method 10: Push (Add) data in top of stack
+      METHOD_11_POP : Int := 11;   // Method 11: Pop (Remove) data from top of stack
+      METHOD_12_PEEK : Int := 12;   // Method 12: Peek (Read) data from top of stack
+      STATUS_0000_DONE : Int := 16#0000;   // Status: Done
+      STATUS_8002_DATA_IS_NOT_ARRAY : Int := 16#8002;   // Status: Error - Data array is not array
+      STATUS_8003_DATA_IS_NOT_VALID_ARRAY : Int := 16#8003;   // Status: Error - Data array is not valid array
+      STATUS_8005_DATA_ARRAY_LESS_THAN_TWO : Int := 16#8005;   // Status: Error - Data array is less than two elements
+      STATUS_8010_IS_EMPTY : Int := 16#8010;   // Status: Error - ADT is empty
+      STATUS_8011_IS_FULL : Int := 16#8011;   // Status: Error - ADT is full
+      STATUS_8020_ERROR_MOVE_BUFFER_TO_DATA : Int := 16#8020;   // Status: Error - Movement from buffer to data
+      STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER : Int := 16#8021;   // Status: Error - Movement from data to buffer
+			STATUS_8FFF_UNKNOWN_METHOD : Int := 16#8FFF;   // Status: Error - Unknown method
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.2 | 2025-12-01 | cyanezf | Changed max with total |
+| v1.1 | 2024-12-17 | cyanezf | Full refactor and bugs fixed |
+
+## Description
+
+This function is used to queue/dequeue data
+
+## Commands
+
+In any call if queue is not initialized, the function tries to do it.
+| Command | Description |
+|:-------:|:------------|
+| 1 | Initialize queue attributes, that means, function clears queue |
+| 10 |Add data from buffer to the top position of data array |
+| 11 | Remove data from the top position of data array to buffer |
+| 12 | Read data from the top position of data array to buffer |
+| Unknown | Init. is tried and returns an error code |
+
+## RLO and Return
+
+| RLO | Return | Description |
+|:---:|:------:|:------------|
+| TRUE | 0 | Done |
+| FALSE | 0x8002 | Error - Data array is not array |
+| FALSE | 0x8003 | Error - Data array is not valid array |
+| FALSE | 0x8005 | Error - Data array is less than two elements |
+| FALSE | 0x8010 | Error - ADT is empty |
+| FALSE | 0x8011 | Error - ADT is full |
+| FALSE | 0x8020 | Error - Movement from buffer to data |
+| FALSE | 0x8021 | Error - Movement from data to buffer |
+| FALSE | 0x8FFF | Error - Unknown command |
+
+--*)
+	
+	REGION Method 01: Initialize
+	  // 1. Initialize
+	  IF NOT #instance.isInitialized OR #method = #METHOD_01_INIT THEN
+	    
+	    // 1.1. Initialize class attributes
+	    #instance.length := 0;
+	    #instance.total := 0;
+	    #instance.isEmpty := 1;
+	    #instance.isFull := 0;
+	    
+	    // 1.2. Return if data is not array
+	    IF NOT IS_ARRAY(#data) THEN
+	      #_stack := #STATUS_8002_DATA_IS_NOT_ARRAY;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.3. Get array length
+	    #length := UDINT_TO_DINT(CountOfElements(#data));
+	    
+	    // 1.4. Return if array is less than two elements
+	    IF #length < 2 THEN
+	      #_stack := #STATUS_8005_DATA_ARRAY_LESS_THAN_TWO;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.5. Check array limits
+	    #result := MOVE_BLK_VARIANT(SRC := #data,
+	                                COUNT := 1,
+	                                SRC_INDEX := 0,
+	                                DEST_INDEX := #length - 1,
+	                                DEST => #data);
+	    // 1.6. Return is array is not ok
+	    IF #result <> 0 THEN
+	      #_stack := #STATUS_8003_DATA_IS_NOT_VALID_ARRAY;
+	      ENO := FALSE;
+	      RETURN;
+	    END_IF;
+	    
+	    // 1.7. Set initialized
+	    #instance.isInitialized := TRUE;
+	    #instance.total := #length;
+	    
+	    // 1.8. Return done if Method was called
+	    IF #method = #METHOD_01_INIT THEN
+	      #_stack := #STATUS_0000_DONE;
+	      ENO := TRUE;
+	      RETURN;
+	    END_IF;
+	  END_IF;
+	END_REGION
+	
+	CASE #method OF
+	  #METHOD_10_PUSH:
+	    // ##################################################
+	    REGION Method 10: Push to stack
+	      
+	      // 1. Return if stack is full
+	      IF #instance.isFull THEN
+	        #_stack := #STATUS_8011_IS_FULL;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 2. Move from buffer to data
+	      #result := MOVE_BLK_VARIANT(SRC := #buffer,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := 0,
+	                                  DEST_INDEX := #instance.length,
+	                                  DEST => #data);
+	      
+	      // 3. Return if data movement error
+	      IF #result <> 0 THEN
+	        #_stack := #STATUS_8020_ERROR_MOVE_BUFFER_TO_DATA;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 4. Update class attributes
+	      IF #instance.length < #instance.total THEN
+	        #instance.length += 1;
+	      END_IF;
+	      
+	      #instance.isEmpty := #instance.length <= 0;
+	      #instance.isFull := #instance.length >= #instance.total;
+	      
+	      // 5. Return true
+	      #_stack := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	    
+	  #METHOD_11_POP:
+	    // ##################################################
+	    REGION Method 11: Pop from stack
+	      
+	      // 1. Return if stack is empty
+	      IF #instance.isEmpty THEN
+	        #_stack := #STATUS_8010_IS_EMPTY;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 2. Move from data to buffer
+	      #result := MOVE_BLK_VARIANT(SRC := #data,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := #instance.length-1,
+	                                  DEST_INDEX := 0,
+	                                  DEST => #buffer);
+	      
+	      // 3. Return if data movement error
+	      IF #result <> 0 THEN
+	        #_stack := #STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 4. Update class attributes
+	      IF #instance.length > 0 THEN
+	        #instance.length -= 1;
+	      END_IF;
+	      
+	      #instance.isEmpty := #instance.length <= 0;
+	      #instance.isFull := #instance.length >= #instance.total;
+	      
+	      // 5. Return true
+	      #_stack := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	    
+	  #METHOD_12_PEEK:
+	    // ##################################################
+	    REGION Method 12: Peek from stack
+	      
+	      // 1. Return if stack is empty
+	      IF #instance.isEmpty THEN
+	        #_stack := #STATUS_8010_IS_EMPTY;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 2. Move from data to buffer
+	      #result := MOVE_BLK_VARIANT(SRC := #data,
+	                                  COUNT := 1,
+	                                  SRC_INDEX := #instance.length-1,
+	                                  DEST_INDEX := 0,
+	                                  DEST => #buffer);
+	      
+	      // 3. Return if data movement error
+	      IF #result <> 0 THEN
+	        #_stack := #STATUS_8021_ERROR_MOVE_DATA_TO_BUFFER;
+	        ENO := FALSE;
+	        RETURN;
+	      END_IF;
+	      
+	      // 4. Return true
+	      #_stack := #STATUS_0000_DONE;
+	      ENO := true;
+	      RETURN;
+	    END_REGION ;
+	    
+	END_CASE;
+	
+	// Return
+	#_stack := #STATUS_8FFF_UNKNOWN_METHOD;
+	ENO := FALSE;
+	
+END_FUNCTION
+

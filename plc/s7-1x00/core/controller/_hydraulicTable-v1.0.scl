@@ -1,0 +1,92 @@
+﻿FUNCTION_BLOCK "_hydraulicTable"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TP_TIME", "TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller'
+NAME : _hydraulicTable
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
+      runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
+      USE_PULSE_UP_TIME { ExternalWritable := 'False'} : Time := T#10s;   // IR: Use pulse up time (this time is when controller is not running this time)
+      PULSE_UP_TIME { ExternalWritable := 'False'} : Time := T#300ms;   // IR: Pulse up time (must be a short time)
+   END_VAR
+
+   VAR_OUTPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      DO_runForward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run Pos 1
+      DO_runBackward { ExternalWritable := 'False'} : Bool;   // OR: 1=DO run Pos 0
+   END_VAR
+
+   VAR 
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         usePulseUpTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         pulseUpTp {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      ok : Bool;
+      noRun : Bool;
+      auxRunForward : Bool;
+      auxRunBackward : Bool;
+      usePulseUp : Bool;
+      pulseUp : Bool;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2025-07-17 | cyanezf | First version |
+  
+## Description
+
+This function controls an hydraulic table with pulse up to move down when no actions a long while.
+
+--*)
+	
+	// Ok
+	#ok := #controlOn AND #emrgStopOk;
+	
+	// Aux run
+	#auxRunBackward := #ok AND NOT #runForward AND #runBackward;
+	#auxRunForward := #ok AND #runForward AND NOT #runBackward;
+	
+	// No run
+	#noRun := NOT #DO_runBackward AND NOT #DO_runForward;
+	
+	#private.usePulseUpTon(IN := #noRun,
+	                       PT := #USE_PULSE_UP_TIME,
+	                       Q => #usePulseUp);
+	
+	// Pulse up
+	#private.pulseUpTp(IN:=#auxRunBackward AND #usePulseUp,
+	                   PT:=#PULSE_UP_TIME,
+	                   Q=>#pulseUp);
+	
+	// Run pos 0
+	#DO_runBackward := #auxRunBackward AND NOT #pulseUp;
+	
+	// Run pos 1
+	#DO_runForward := #auxRunForward OR #pulseUp;
+	
+	// Is running
+	#isRunning := #auxRunBackward OR #auxRunForward;
+	
+	// Direction
+	#direction := #auxRunBackward OR #pulseUp;
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,259 @@
+﻿FUNCTION "_dtlToString" : String
+TITLE = {"status":"deprecated","deprecatedBy":"_dtlToString-v1.3","dependencies" : ["VAL_STRG"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/datetime'
+NAME : _dtlToString
+VERSION : 1.2
+
+   VAR_INPUT 
+      dat {InstructionName := 'DTL'; LibVersion := '1.0'} : DTL;   // Date and time to convert
+      format : USInt;   // 0=Date and time; 1=Date; 2=Time; 3=Serialized date and time; 4=Serialized date; 5=Serialized time; 6=JSON
+      submultiples : USInt;   // 0=No; 1=Add milliseconds to time; 2=Add microseconds; 3=Add nanoseconds to time;
+   END_VAR
+
+   VAR_TEMP 
+      tString : String;
+      year : String[4];
+      month : String[2];
+      day : String[2];
+      hour : String[2];
+      minute : String[2];
+      second : String[2];
+      sub : String[9];
+      i : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      FORMAT_0_DAT : USInt := 0;   // Date and time: dd/mm/yyyy hh:mm:ss[,000[000[000]]]
+      FORMAT_1_DATE : USInt := 1;   // Date: dd/mm/yyyy
+      FORMAT_2_TIME : USInt := 2;   // Time: hh:mm:ss[,000[000[000]]]
+      FORMAT_3_SERIALIZED_DAT : USInt := 3;   // Serialized date and time: yyyymmddhhmmss[000[000[000]]]
+      FORMAT_4_SERIALIZED_DATE : USInt := 4;   // Serialized date: yyyymmdd
+      FORMAT_5_SERIALIZED_TIME : USInt := 5;   // Serialized time: ddhhmmss[000[000[000]]]
+      FORMAT_6_JSON_DAT : USInt := 6;   // Serialized date and time as JSON yyyy-mm-ddThh:mm:ss[.000]
+      SUB_0_NIL : USInt := 0;   // No add millis or seconds
+      SUB_1_MS : USInt := 1;   // Add millis [000]
+      SUB_2_US : USInt := 2;   // Add micros [000000]
+      SUB_3_NS : USInt := 3;   // Add nanos [000000000]
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.2 | 2025-02-23 | cyanezf | Added JSON format" |
+| v1.1 | 2022-10-13 | cyanezf | Fixed representation format |
+| v1.0 | 2022-10-12 | cyanezf | First version |
+
+## Description
+
+This function convert a datetime to string.
+
+## String formats
+
+| usint | constant | description |
+|:-----:|:---------|:------------|
+| 0 | FORMAT_0_DAT | Date and time: dd/mm/yyyy hh:mm:ss[,000[000[000]]] |
+| 1 | FORMAT_1_DATE | Date: dd/mm/yyyy |
+| 2 | FORMAT_2_TIME | Time: hh:mm:ss[,000[000[000]]] |
+| 3 | FORMAT_3_SERIALIZED_DAT | Serialized date and time: yyyymmddhhmmss[000[000[000]]] |
+| 4 | FORMAT_4_SERIALIZED_DATE | Serialized date: yyyymmdd |
+| 5 | FORMAT_5_SERIALIZED_TIME | Serialized time: hhmmss[000[000[000]]] |
+| 6 | FORMAT_6_JSON_DAT | Serialized date and time as JSON yyyy-mm-ddThh:mm:ss[.000] |
+
+## Second submultiples
+
+| usint | constant | description |
+|:-----:|:--------:|:------------|
+| 0 | SUB_0_NIL | No add millis or seconds |
+| 1 | SUB_1_MS | Add millis [000] |
+| 2 | SUB_2_US | Add micros [000000] |
+| 3 | SUB_3_NS | Add nanos [000000000] |
+
+--*)
+
+	// Get year
+	VAL_STRG(IN := #dat.YEAR,
+	         SIZE := 4,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #year);
+	
+	// Get month
+	VAL_STRG(IN := #dat.MONTH,
+	         SIZE := 2,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #month);
+	
+	// Get dat
+	VAL_STRG(IN := #dat.DAY,
+	         SIZE := 2,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #day);
+	
+	// Get hour
+	VAL_STRG(IN := #dat.HOUR,
+	         SIZE := 2,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #hour);
+	
+	// Get minute
+	VAL_STRG(IN := #dat.MINUTE,
+	         SIZE := 2,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #minute);
+	
+	// Get second
+	VAL_STRG(IN := #dat.SECOND,
+	         SIZE := 2,
+	         PREC := 0,
+	         FORMAT := 0,
+	         P := 1,
+	         OUT => #second);
+	
+	// Decode submultiples
+	CASE #submultiples OF
+	    // 000
+	  #SUB_1_MS:
+	    
+	    VAL_STRG(IN := #dat.NANOSECOND / 1000000,
+	             SIZE := 3,
+	             PREC := 0,
+	             FORMAT := 0,
+	             P := 1,
+	             OUT => #sub);
+	    
+	    // 000000
+	  #SUB_2_US:
+	    
+	    VAL_STRG(IN := #dat.NANOSECOND / 1000,
+	             SIZE := 6,
+	             PREC := 0,
+	             FORMAT := 0,
+	             P := 1,
+	             OUT => #sub);
+	    
+	    // 000000000
+	  #SUB_3_NS:
+	    
+	    VAL_STRG(IN := #dat.NANOSECOND,
+	             SIZE := 9,
+	             PREC := 0,
+	             FORMAT := 0,
+	             P := 1,
+	             OUT => #sub);
+	    
+	    // empty
+	  ELSE
+	    #sub := '';
+	END_CASE;
+	
+	CASE #format OF
+	    
+	  #FORMAT_1_DATE: // DD/MM/YYYY
+	    
+	    #tString := CONCAT(IN1 := #day, IN2 := '/');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #month);
+	    #tString := CONCAT(IN1 := #tString, IN2 := '/');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #year);
+	    
+	  #FORMAT_2_TIME: // hh:mm:ss[.000[000[000]]]
+	    
+	    #tString := CONCAT(IN1 := #hour, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #minute);
+	    #tString := CONCAT(IN1 := #tString, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #second);
+	    IF LEN(#sub) > 0 THEN
+	      #tString := CONCAT(IN1 := #tString, IN2 := '.');
+	      #tString := CONCAT(IN1 := #tString, IN2 := #sub);
+	    END_IF;
+	    
+	  #FORMAT_3_SERIALIZED_DAT: // YYYYMMDDhhmmss[000[000[000]]]
+	    
+	    #tString := CONCAT(IN1 := #year, IN2 := #month);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #day);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #hour);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #minute);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #second);
+	    IF LEN(#sub) > 0 THEN
+	      #tString := CONCAT(IN1 := #tString, IN2 := #sub);
+	    END_IF;
+	    
+	  #FORMAT_4_SERIALIZED_DATE: // YYYYMMDD
+	    
+	    #tString := CONCAT(IN1 := #year, IN2 := #month);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #day);
+	    
+	  #FORMAT_5_SERIALIZED_TIME: // hhmmss[000[000[000]]]
+	    
+	    #tString := CONCAT(IN1 := #hour, IN2 := #minute);
+	    #tString := CONCAT(IN1 := #tString, IN2 := #second);
+	    IF LEN(#sub) > 0 THEN
+	      #tString := CONCAT(IN1 := #tString, IN2 := #sub);
+	    END_IF;
+	    
+	  #FORMAT_6_JSON_DAT: // yyyy-mm-ddThh:mm:ss[.000[000[000]]]
+	    
+	    #tString := CONCAT(IN1 := #year, IN2 := '-');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #month);
+	    #tString := CONCAT(IN1 := #tString, IN2 := '-');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #day);
+	    #tString := CONCAT(IN1 := #tString, IN2 := 'T');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #hour);
+	    #tString := CONCAT(IN1 := #tString, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #minute);
+	    #tString := CONCAT(IN1 := #tString, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #second);
+	    
+	    IF LEN(#sub) > 0 THEN
+	      #tString := CONCAT(IN1 := #tString, IN2 := '.');
+	      #tString := CONCAT(IN1 := #tString, IN2 := #sub);
+	    END_IF;
+	    
+	  ELSE // DD/MM/YYYY-hh:mm:ss[.000[000[000]]]
+	    
+	    #tString := CONCAT(IN1 := #day, IN2 := '/');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #month);
+	    #tString := CONCAT(IN1 := #tString, IN2 := '/');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #year);
+	    #tString := CONCAT(IN1 := #tString, IN2 := '-');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #hour);
+	    #tString := CONCAT(IN1 := #tString, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #minute);
+	    #tString := CONCAT(IN1 := #tString, IN2 := ':');
+	    #tString := CONCAT(IN1 := #tString, IN2 := #second);
+	    IF LEN(#sub) > 0 THEN
+	      #tString := CONCAT(IN1 := #tString, IN2 := '.');
+	      #tString := CONCAT(IN1 := #tString, IN2 := #sub);
+	    END_IF;
+	    
+	END_CASE;
+	
+	// Fill spaces with zeros
+	FOR #i := 1 TO LEN(#tString) DO
+	  IF #tString[#i] = ' ' THEN
+	    #tString[#i] := '0';
+	  END_IF;
+	END_FOR;
+	
+	// Return
+	#_dtlToString := #tString;
+	ENO := true;
+		
+END_FUNCTION
+
