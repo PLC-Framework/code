@@ -1,0 +1,247 @@
+﻿FUNCTION_BLOCK "__jxd1_halt"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile","jxd1_driveUnit_16bytes_directNumericalSettingModePdi","jxd1_driveUnit_16bytes_directNumericalSettingModePdo","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/smc/jxd1'
+NAME : '__jxd1_halt'
+VERSION : 1.0
+
+   VAR_INPUT 
+      request { ExternalWritable := 'False'} : Bool;   // IR: 1=Request
+      abort { ExternalWritable := 'False'} : Bool;   // IR: 1=Abort positioning
+      ready { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: 1=Ready
+   END_VAR
+   VAR_INPUT RETAIN
+      holdingTime : Time := T#1s;   // IW: Keep holing time (used when homing job was prev. command)
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Status code. See constants
+      busy { ExternalWritable := 'False'} : Bool;   // OR: 1=Busy (some action)
+      done { ExternalWritable := 'False'} : Bool;   // OR: 1=Done
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+      commandAborted { ExternalWritable := 'False'} : Bool;   // OR: 1=Command aborted
+      hold { ExternalWritable := 'False'} : Bool;   // OR: 1=Hold
+      servoOn { ExternalWritable := 'False'} : Bool;   // OR: 1=Servo on
+   END_VAR
+
+   VAR_IN_OUT 
+      profile : "jxd1_profile";   // IOX: Read only - Profile
+      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Read only - PDI
+      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Conditional Partial Write - PDO
+   END_VAR
+
+   VAR 
+      step { ExternalWritable := 'False'} : Int := #STEP_0_IDLE;   // SR: Step
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         requestFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+         holdingTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      requestPulseOn : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0000_IDLE : Int := 0;
+      STATUS_0001_DONE : Int := 1;
+      STATUS_6000_BUSY : Int := 16#6000;
+      STATUS_8000_ABORTED : Int := 16#8000;
+      STATUS_8001_DRIVE_ERROR : Int := 16#8001;
+      STEP_0_IDLE : Int := 0;
+      STEP_1_REQ : Int := 1;
+      STEP_2_HOLD : Int := 2;
+      STEP_3_SERVO_OFF : Int := 3;
+      STEP_4_SERVO_ON : Int := 4;
+      STEP_5_DONE : Int := 5;
+      STEP_20_ABORTED : Int := 20;
+      STEP_21_ERROR : Int := 21;
+      POS_FACTOR : LReal := 100.0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-19 | cyanezf | First version |
+  
+## Description
+
+This private function block implements the halt logic for the SMC JXD1 step motor controller based on the JXD1 manual. It provides commands for halting the motor, including holding and servo control, as well as reading and writing step data.
+
+--*)
+
+	// Request Event
+	#requestPulseOn := #request AND NOT #private.requestFp;
+	#private.requestFp := #request;
+	
+	REGION Unconditional transitions
+	  
+	  // ############################################################################
+	  IF NOT #ready THEN
+	    IF #step >= #STEP_1_REQ AND #step <= #STEP_4_SERVO_ON THEN
+	      #step := #STEP_21_ERROR;
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #abort THEN
+	    IF #step >= #STEP_1_REQ AND #step <= #STEP_4_SERVO_ON THEN
+	      #step := #STEP_20_ABORTED;
+	    END_IF;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Steps
+	  
+	  // ############################################################################
+	  IF #step = #STEP_0_IDLE THEN
+	    
+	    // Status
+	    #status := #STATUS_0000_IDLE;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 0;
+	    
+	    // Absolute flags
+	    #servoOn := 1;
+	    #hold := 0;
+	    
+	    IF #requestPulseOn AND #ready THEN
+	      #step := #STEP_1_REQ;
+	    END_IF;
+	  END_IF;
+	  
+	  // ############################################################################
+	  // Normal task steps
+	  // ############################################################################
+	  IF #step = #STEP_1_REQ THEN
+	    
+	    // Status
+	    #status := #STATUS_6000_BUSY;
+	    #busy := 1;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 0;
+	    
+	    // Set parameters
+	    #pdo.acceleration := LREAL_TO_INT(#profile.deceleration);
+	    
+	    // Init flags
+	    // Homing
+	    #pdo.control.homing := 0;
+	    // Jog
+	    #pdo.control.jogMinus := 0;
+	    #pdo.control.jogPlus := 0;
+	    #pdo.control.flight := 0;
+	    // Push
+	    #pdo.control.push := 0;
+	    #pdo.control.pushDirection := 0;
+	    // Abs
+	    #pdo.control.incMode := 0; // ABS
+	    // Start abs
+	    #pdo.control.start := 0;
+	    
+	    // Transitions
+	    #step := #STEP_2_HOLD;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_2_HOLD THEN
+	      
+	      // Init flags
+	      #hold := 1;
+	      
+	      #private.holdingTimer(IN:=1,
+	                            PT:=#holdingTime);
+	      
+	      
+	      // Transitions
+	      IF NOT #pdi.status.isRunning OR #private.holdingTimer.Q THEN
+	        RESET_TIMER(#private.holdingTimer);
+	        #step := #STEP_3_SERVO_OFF;
+	      END_IF;
+	      
+	      // ############################################################################
+	    ELSIF #step = #STEP_3_SERVO_OFF THEN
+	      
+	      // Init flags
+	      #servoOn := 0;
+	      
+	      // Transitions
+	      IF NOT #pdi.status.servoReady THEN
+	        #step := #STEP_4_SERVO_ON;
+	      END_IF;
+	      
+	      // ############################################################################
+	    ELSIF #step = #STEP_4_SERVO_ON THEN
+	      
+	      // Init flags
+	      #hold := 0;
+	      #servoOn := 1;
+	      
+	      // Transitions
+	      IF #pdi.status.servoReady THEN
+	        #step := #STEP_5_DONE;
+	      END_IF;
+	      
+	      // ############################################################################
+	  ELSIF #step = #STEP_5_DONE THEN
+	    
+	    // Status
+	    #status := #STATUS_0001_DONE;
+	    #busy := 0;
+	    #done := 1;
+	    #error := 0;
+	    #commandAborted := 0;
+	    
+	    // Transitions
+	    #step := #STEP_0_IDLE;
+	    
+	  END_IF;
+	  
+	  // ############################################################################
+	  // Abort and error steps
+	  // ############################################################################
+	  IF #step = #STEP_20_ABORTED THEN
+	    
+	    // Status
+	    #status := #STATUS_8000_ABORTED;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 1;
+	    
+	    // Transitions
+	    IF NOT #abort THEN
+	      #step := #STEP_0_IDLE;
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_21_ERROR THEN
+	    
+	    // Status
+	    #status := #STATUS_8001_DRIVE_ERROR;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 1;
+	    #commandAborted := 0;
+	    
+	    // Transitions
+	    IF NOT #request THEN
+	      #step := #STEP_0_IDLE;
+	    END_IF;
+	    
+	  END_IF;
+	END_REGION
+	
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,50 @@
+﻿TYPE "jxd1_driveUnit_8bytes_simpleDirectValueModePdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Output (PDO) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains control words and data fields that are used to send commands and parameters to the axis as simple direct value mode.
+//--*)
+
+   STRUCT
+      position : DInt;   // 0.0: Target position in 0.01mm
+      commandStepData : Struct   // 4.0: Specifies the step data number of operation data from 0 to 63
+         in0 : Bool;   // 4.0: Bit 0
+         in1 : Bool;   // 4.1: Bit 1
+         in2 : Bool;   // 4.2: Bit 2
+         in3 : Bool;   // 4.3: Bit 3
+         in4 : Bool;   // 4.4: Bit 4
+         in5 : Bool;   // 4.5: Bit 5
+         x6 : Bool;   // 4.6
+         x7 : Bool;   // 4.7
+         b1 : Byte;   // 5.0
+      END_STRUCT;
+      control : Struct   // 6.0: Control word
+         jogPlus : Bool;   // 6.0: JOG(+) - JOG operation instruction; moves in the + direction while ON. When FLGTH in ON, constant dimension feed is performed in the + direction at the rising edge of the signal
+         x1 : Bool;   // 6.1
+         x2 : Bool;   // 6.2
+         x3 : Bool;   // 6.3
+         x4 : Bool;   // 6.4
+         x5 : Bool;   // 6.5
+         x6 : Bool;   // 6.6
+         lockForcedRelease : Bool;   // 6.7: LKRL - Lock-force release signal (Valid only when servo in OFF). ON=Lock forced release; OFF=Lock retained
+         start : Bool;   // 7.0: DRIVE - Start of operating at the rising edge of the signal
+         homing : Bool;   // 7.1: SETUP - Homing operation. BUSY turns On during the homing operation, and SETON turns On adter the homing operation is completed. iNP is turned ON if it is within the range of 'Home position +- parameter "initial positioning range"'
+         hold : Bool;   // 7.2: HOLD - When turned ON during an operation it will decelerate to a stop according to the Max. acceleration/deceleration parameter. When turned OFF, it starts moving the remaining travel distance. During JOG operation, even if HOLD is turned OFF, operation will not resume unless JOG is turned ON. Caution: the HOLD signal is disabled during pushing in Pushing operation mode
+         reset : Bool;   // 7.3: RESET - This is an instruction to reset the alarm and stop operation. If an alarm is still occurring, ALM is turned OFF. During operation, decelerate and stop according to the parameter Max acceleration/deceleration. At that time, if it is within the target position range, INP is turned ON (otherwise, INP is not turned On)
+         servoOn : Bool;   // 7.4: SVON - 0=Servo OFF; 1=Servo ON
+         flight : Bool;   // 7.5: FLGTH - Switched between JOG operation and constant dimension feed operation. At the rising edge of JOG signal, ON=constant dimension feed; OFF=JOG operation the feed rate for constant dimension feed is determined by the parameter "constant dimension distance"
+         xE : Bool;   // 7.6
+         jogMinus : Bool;   // 7.7: JOG(-) - JOG operation instruction; moves in the - direction while ON. When FLGTH in ON, constant dimension feed is performed in the - direction at the rising edge of the signal
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

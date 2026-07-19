@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-15T12:13:14+00:00",
+  "generatedAt": "2026-07-19T16:07:27+00:00",
   "nodes": [
     {
       "id": "abstractAlarmData-v2.0",
@@ -2147,6 +2147,257 @@
       "legacyFolder": false
     },
     {
+      "id": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "name": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+      "base": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "name": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+      "base": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_2bytes_IOmodePdi-v1.0",
+      "name": "jxd1_driveUnit_2bytes_IOmodePdi",
+      "base": "jxd1_driveUnit_2bytes_IOmodePdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_2bytes_IOmodePdi-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_2bytes_IOmodePdo-v1.0",
+      "name": "jxd1_driveUnit_2bytes_IOmodePdo",
+      "base": "jxd1_driveUnit_2bytes_IOmodePdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_2bytes_IOmodePdo-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_8bytes_simpleDirectValueModePdi-v1.0",
+      "name": "jxd1_driveUnit_8bytes_simpleDirectValueModePdi",
+      "base": "jxd1_driveUnit_8bytes_simpleDirectValueModePdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_simpleDirectValueModePdi-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_8bytes_simpleDirectValueModePdo-v1.0",
+      "name": "jxd1_driveUnit_8bytes_simpleDirectValueModePdo",
+      "base": "jxd1_driveUnit_8bytes_simpleDirectValueModePdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_simpleDirectValueModePdo-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_8bytes_stepInstructionModePdi-v1.0",
+      "name": "jxd1_driveUnit_8bytes_stepInstructionModePdi",
+      "base": "jxd1_driveUnit_8bytes_stepInstructionModePdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_stepInstructionModePdi-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_driveUnit_8bytes_stepInstructionModePdo-v1.0",
+      "name": "jxd1_driveUnit_8bytes_stepInstructionModePdo",
+      "base": "jxd1_driveUnit_8bytes_stepInstructionModePdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_stepInstructionModePdo-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_gatewayPdi-v1.0",
+      "name": "jxd1_gatewayPdi",
+      "base": "jxd1_gatewayPdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_gatewayPdi-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_gatewayPdo-v1.0",
+      "name": "jxd1_gatewayPdo",
+      "base": "jxd1_gatewayPdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_gatewayPdo-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "jxd1_profile-v1.0",
+      "name": "jxd1_profile",
+      "base": "jxd1_profile",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_profile-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "_jxd1_directNumerical-v1.0",
+      "name": "_jxd1_directNumerical",
+      "base": "_jxd1_directNumerical",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/_jxd1_directNumerical-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "__jxd1_stop",
+        "__jxd1_halt",
+        "__jxd1_home",
+        "__jxd1_moveAbsolute",
+        "__jxd1_moveRelative",
+        "__jxd1_moveJog",
+        "TOF_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "_jxd1_gateway-v1.0",
+      "name": "_jxd1_gateway",
+      "base": "_jxd1_gateway",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/_jxd1_gateway-v1.0.scl",
+      "dependencies": [
+        "jxd1_gatewayPdi",
+        "jxd1_gatewayPdo"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_halt-v1.0",
+      "name": "__jxd1_halt",
+      "base": "__jxd1_halt",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_halt-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_home-v1.0",
+      "name": "__jxd1_home",
+      "base": "__jxd1_home",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_home-v1.0.scl",
+      "dependencies": [
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_moveAbsolute-v1.0",
+      "name": "__jxd1_moveAbsolute",
+      "base": "__jxd1_moveAbsolute",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveAbsolute-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_moveJog-v1.0",
+      "name": "__jxd1_moveJog",
+      "base": "__jxd1_moveJog",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveJog-v1.0.scl",
+      "dependencies": [
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_moveRelative-v1.0",
+      "name": "__jxd1_moveRelative",
+      "base": "__jxd1_moveRelative",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveRelative-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__jxd1_stop-v1.0",
+      "name": "__jxd1_stop",
+      "base": "__jxd1_stop",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_stop-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
       "id": "al2401Status-v1.0",
       "name": "al2401Status",
       "base": "al2401Status",
@@ -4027,6 +4278,224 @@
       "kind": "system"
     },
     {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_stop-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_halt-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_home-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_moveAbsolute-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_moveRelative-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "__jxd1_moveJog-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.0",
+      "to": "TOF_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_jxd1_gateway-v1.0",
+      "to": "jxd1_gatewayPdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_gateway-v1.0",
+      "to": "jxd1_gatewayPdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_halt-v1.0",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_halt-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_halt-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_halt-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_home-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_home-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_home-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.0",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_moveJog-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveJog-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveJog-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_moveRelative-v1.0",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveRelative-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveRelative-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveRelative-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_stop-v1.0",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_stop-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_stop-v1.0",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_stop-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
       "from": "_ifm_ogd250-v1.0",
       "to": "ifm_ogd250_status-v1.0",
       "resolved": true,
@@ -4597,7 +5066,8 @@
         "_mc_positioning1Axis-v1.1",
         "_mc_positioning1Axis-v2.0",
         "_standBy-v2.0",
-        "_ecc_dfc_24_0x_config-v1.0"
+        "_ecc_dfc_24_0x_config-v1.0",
+        "_jxd1_directNumerical-v1.0"
       ]
     },
     {
@@ -4654,6 +5124,12 @@
         "_ecc_dfc_24_0x_config-v1.0",
         "_ecc_dfc_24_0x_speedControl-v1.0",
         "_jxc-v1.1",
+        "__jxd1_halt-v1.0",
+        "__jxd1_home-v1.0",
+        "__jxd1_moveAbsolute-v1.0",
+        "__jxd1_moveJog-v1.0",
+        "__jxd1_moveRelative-v1.0",
+        "__jxd1_stop-v1.0",
         "_sick_clv6xx_cmd-v1.2",
         "_sick_cola-v1.2",
         "_esc-v5.4"

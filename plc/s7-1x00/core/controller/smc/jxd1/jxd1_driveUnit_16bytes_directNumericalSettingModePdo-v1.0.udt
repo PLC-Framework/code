@@ -1,0 +1,43 @@
+﻿TYPE "jxd1_driveUnit_16bytes_directNumericalSettingModePdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Output (PDO) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains control words and data fields that are used to send commands and parameters to the axis as direct numerical settings mode.
+//--*)
+
+   STRUCT
+      position : DInt;   // 0.0: Target position in 0.01 mm. The range of values is the same as the input range for “Position” 
+      tolerance : DInt;   // 4-0: Positioning width in 0.01 mm. The range of values is the same as the input range for Positioning width in 10.3.1 Step Data Entry
+      velocity : Int;   // 8.0: Speed in mm/s. The range of values is the same as the input range for Speed in 10.3.1 Step data entry
+      acceleration : Int;   // 10.0: Acceleration/Deceleration mm/s^2. The range of value is the same as the input range for Acceleration and deceleration in 10.3.1 Step data entry
+      pushingForce : Int;   // 12.0: Pushing force in %. The INP is switched to ON after a certain period has elapsed after the pushing force has been reached. The range of values is the same as the input range for Pushing force in 10.3.1 Step Data Entry
+      control : Struct   // 14.0 Control word
+         jogPlus : Bool;   // 14.0: JOG(+) - JOG operation instruction; moves in the + direction while ON. When FLGTH in ON, constant dimension feed is performed in the + direction at the rising edge of the signal
+         x1 : Bool;   // 14.1
+         x2 : Bool;   // 14.2
+         x3 : Bool;   // 14.3
+         push : Bool;   // 14.4: POI - Push operation command. At the rising edge of the DRIVE signal, ON=Push operation; OFF=Positioning operation
+         pushDirection : Bool;   // 14.5: PDIR - Push direction selection. At the rising edge of the DRIVE signal; ON=Push in the + direction; OFF=Push in the - direction
+         incMode : Bool;   // 14.6: INC/ABS - ON=INC (relative); OFF=ABS (absolute)
+         lockForcedRelease : Bool;   // 14.7: LKRL - Lock-force release signal (Valid only when servo in OFF). ON=Lock forced release; OFF=Lock retained
+         start : Bool;   // 15.0: DRIVE - Start of operating at the rising edge of the signal
+         homing : Bool;   // 15.1: SETUP - Homing operation. BUSY turns On during the homing operation, and SETON turns On adter the homing operation is completed. iNP is turned ON if it is within the range of 'Home position +- parameter "initial positioning range"'
+         hold : Bool;   // 15.2: HOLD - When turned ON during an operation it will decelerate to a stop according to the Max. acceleration/deceleration parameter. When turned OFF, it starts moving the remaining travel distance. During JOG operation, even if HOLD is turned OFF, operation will not resume unless JOG is turned ON. Caution: the HOLD signal is disabled during pushing in Pushing operation mode
+         reset : Bool;   // 15.3: RESET - This is an instruction to reset the alarm and stop operation. If an alarm is still occurring, ALM is turned OFF. During operation, decelerate and stop according to the parameter Max acceleration/deceleration. At that time, if it is within the target position range, INP is turned ON (otherwise, INP is not turned On)
+         servoOn : Bool;   // 15.4: SVON - 0=Servo OFF; 1=Servo ON
+         flight : Bool;   // 15.5: FLGTH - Switched between JOG operation and constant dimension feed operation. At the rising edge of JOG signal, ON=constant dimension feed; OFF=JOG operation the feed rate for constant dimension feed is determined by the parameter "constant dimension distance"
+         xE : Bool;   // 15.6
+         jogMinus : Bool;   // 15.7: JOG(-) - JOG operation instruction; moves in the - direction while ON. When FLGTH in ON, constant dimension feed is performed in the - direction at the rising edge of the signal
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,29 @@
+﻿TYPE "jxd1_profile"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the profile structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains parameters related to the actuator's movement, such as velocity, position, acceleration,
+//deceleration, pushing force, and other settings that define a specific motion profile. 
+//The structure is designed to be used in conjunction with the Process Data Output (PDO) structure to
+//control the actuator's operation effectively.
+//--*)
+
+   STRUCT
+      position : LReal;   // Position in units (mm, º)
+      velocity : LReal;   // Velocity in units/s
+      acceleration : LReal;   // Acceleration in units/s^2
+      deceleration : LReal;   // Deceleration in units/s^2
+      pushingForce : USInt;   // Pushing force in %
+      tolerance : LReal;   // In position in units
+   END_STRUCT;
+
+END_TYPE
+

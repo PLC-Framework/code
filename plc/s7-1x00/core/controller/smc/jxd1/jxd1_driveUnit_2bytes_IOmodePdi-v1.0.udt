@@ -1,0 +1,36 @@
+﻿TYPE "jxd1_driveUnit_2bytes_IOmodePdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Input (PDI) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains status words and data fields that are used to receive information from the axis as IO mode.
+//--*)
+
+   STRUCT
+      inPosition : Bool;   // 0.0: INP - Turns on when the current position is within the target position width. In-position operation: target position +- positioining width. Pushing operation: Current force is > pushing force. Home positioning: Home position +- parameter "initial positioning width". Turns OFF when the target position is out of range or when the target position width is changed by the next operation command
+      isHomed : Bool;   // 0.1: SETON - Indicates the homing is complete and the position is fixed. ON=Position is fixed; OFF=Position is not fixed
+      isRunning : Bool;   // 0.2: BUSY - Motor is rotating or running. However the following statuses are Stopped. * During temporary stop by HOLD input (running during homing). * During pushing operation and INP output (When INP is OFF, the servo is "in operation"). * When the motor stops when the servo is on, other than the above.
+      error : Bool;   // 0.3: ALM - OFF when all alarms are cleared; ON=Some alarm
+      servoReady : Bool;   // 0.4: SVRE - ON=Servo is on
+      pmis : Bool;   // 0.5: PMIS - Turns ON when a swing occurs during pushing operation. PMIS is switched off at the following times. -At the start of the next operation command execution. 
+      inWarea : Bool;   // 0.6: WAREA - OFf=Out of range; ON=W area output end 1 <= current position <= W are output end 2.
+      eStop : Bool;   // 0.7: ESTOP - OFF=Normal; Turns On when the axis is set to disabled in ACT-Connected or the stop is caused by a specific reason. ON=EMG stop at the power input termina. Stopped due to low motor power supply voltage. Stopped due to low control power supply voltage
+      completedStepData0 : Bool;   // 1.0: Step data number (0 to 63) for which the operation has been completed
+      completedStepData1 : Bool;   // 1.1: Bit 1
+      completedStepData2 : Bool;   // 1.2: Bit 2
+      completedStepData3 : Bool;   // 1.3: Bit 3
+      completedStepData4 : Bool;   // 1.4: Bit 4
+      completedStepData5 : Bool;   // 1.5: Bit 5
+      x6 : Bool;   // 0.6
+      warning : Bool;   // 0.7: WARN - OFF=Normal; ON=Alarm (warning) detection without stop
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,50 @@
+﻿TYPE "jxd1_driveUnit_8bytes_stepInstructionModePdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Input (PDI) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains status words and data fields that are used to receive information from the axis as step instruction mode.
+//--*)
+
+   STRUCT
+      position : DInt;   // 0.0: Current position in 0.01 mm
+      completedStepData : Struct   // 4.0: Step data number (0 to 63) for which the operation has been completed
+         out0 : Bool;   // 4.0: Bit 0
+         out1 : Bool;   // 4.1: Bit 1
+         out2 : Bool;   // 4.2: Bit 2
+         out3 : Bool;   // 4.3: Bit 3
+         out4 : Bool;   // 4.4: Bit 4
+         out5 : Bool;   // 4.5: Bit 5
+         x6 : Bool;   // 4.6
+         x7 : Bool;   // 4.7
+         b1 : Bool;   // 5.0
+      END_STRUCT;
+      status : Struct   // 6.0: Status word
+         x0 : Bool;   // 6.0
+         x1 : Bool;   // 6.1
+         x2 : Bool;   // 6.2
+         area : Bool;   // 6.3: AREA - OFF=Out of range; ON=Area output end 1 <= current position <= area output end 2
+         inWarea : Bool;   // 6.4: WAREA - OFf=Out of range; ON=W area output end 1 <= current position <= W are output end 2.
+         x5 : Bool;   // 6.5
+         ready : Bool;   // 6.6: RDY - ON=Servo is On and there is no alarm. Servo is ready for operation
+         eStop : Bool;   // 6.7: ESTOP - OFF=Normal; Turns On when the axis is set to disabled in ACT-Connected or the stop is caused by a specific reason. ON=EMG stop at the power input termina. Stopped due to low motor power supply voltage. Stopped due to low control power supply voltage
+         inPosition : Bool;   // 7.0: INP - Turns on when the current position is within the target position width. In-position operation: target position +- positioining width. Pushing operation: Current force is > pushing force. Home positioning: Home position +- parameter "initial positioning width". Turns OFF when the target position is out of range or when the target position width is changed by the next operation command
+         isHomed : Bool;   // 7.1: SETON - Indicates the homing is complete and the position is fixed. ON=Position is fixed; OFF=Position is not fixed
+         isRunning : Bool;   // 7.2: BUSY - Motor is rotating or running. However the following statuses are Stopped. * During temporary stop by HOLD input (running during homing). * During pushing operation and INP output (When INP is OFF, the servo is "in operation"). * When the motor stops when the servo is on, other than the above.
+         error : Bool;   // 7.3: ALM - OFF when all alarms are cleared; ON=Some alarm
+         servoReady : Bool;   // 7.4: SVRE - ON=Servo is on
+         pmis : Bool;   // 7.5: PMIS - Turns ON when a swing occurs during pushing operation. PMIS is switched off at the following times. -At the start of the next operation command execution. 
+         xE : Bool;   // 7.6
+         warning : Bool;   // 7.7: WARN - OFF=Normal; ON=Alarm (warning) detection without stop
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

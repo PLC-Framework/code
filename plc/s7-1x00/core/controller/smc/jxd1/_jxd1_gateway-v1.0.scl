@@ -1,0 +1,153 @@
+﻿FUNCTION_BLOCK "_jxd1_gateway"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_gatewayPdi","jxd1_gatewayPdo"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/smc/jxd1'
+NAME : _jxd1_gateway
+VERSION : 1.0
+
+   VAR_INPUT 
+      enable { ExternalWritable := 'False'} : Bool := 1;   // IR: 1=Enable control from PLC
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int := 0;   // OR: Gateway module status
+      gwAlarm { ExternalWritable := 'False'} : Int;   // OR: 
+      detectedSlots { ExternalWritable := 'False'} : USInt;   // OR: Detected Axis slots
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "jxd1_gatewayPdi";   // IOX: Read only - PDI
+      pdo : "jxd1_gatewayPdo";   // IOX: Write - PDO
+   END_VAR
+
+   VAR_TEMP 
+      count : USInt;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0_OK : Int := 0;
+      STATUS_8000_SW_STOP : Int := 16#8000;
+      STATUS_8001_GW_ALARM : Int := 16#8001;
+      STATUS_8002_INTERNAL_COM_ERROR : Int := 16#8002;
+      STATUS_8003_BUS_COM_ERROR : Int := 16#8003;
+      STATUS_8004_GW_STOP : Int := 16#8004;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-19 | cyanezf | First version |
+  
+## Description
+
+This function block implements the control logic for the SMC JXD1 gateway module. It reads the status from the PDI and updates the output variables accordingly. The control of the gateway is enabled or disabled based on the input variable `enable`.
+
+--*) 
+
+
+	// Code status
+	IF #pdi.gwStatus0.sStop THEN
+	  #status := #STATUS_8000_SW_STOP;
+	  
+	ELSIF #pdi.gwStatus0.gwAlarm THEN
+	  #status := #STATUS_8001_GW_ALARM;
+	  
+	ELSIF #pdi.gwStatus0.internalComerror THEN
+	  #status := #STATUS_8002_INTERNAL_COM_ERROR;
+	  
+	ELSIF #pdi.gwStatus0.busComError THEN
+	  #status := #STATUS_8003_BUS_COM_ERROR;
+	  
+	ELSIF NOT #pdi.gwStatus0.gwRun THEN
+	  #status := #STATUS_8004_GW_STOP;
+	  
+	ELSE
+	  #status := #STATUS_0_OK;
+	  
+	END_IF;
+	
+	// Alarm  
+	#gwAlarm := BYTE_TO_INT(#pdi.gwStatus0.gwAlarmCode);
+	
+	// Detected slots
+	#count := 0;
+	
+	IF #pdi.link.axis00 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis01 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis02 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis03 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis04 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis05 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis06 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis07 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis08 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis09 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis10 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis11 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis12 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis13 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis14 THEN
+	  #count += 1;
+	END_IF;
+	
+	IF #pdi.link.axis15 THEN
+	  #count += 1;
+	END_IF;
+	
+	#detectedSlots := #count;
+	
+	// Control PDO
+	#pdo.gwControl0.gwmon := #enable;
+	
+	// Save RLO
+	ENO := true;
+END_FUNCTION_BLOCK
+

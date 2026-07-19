@@ -1,0 +1,55 @@
+﻿TYPE "jxd1_gatewayPdi"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Input (PDI) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains status words and data fields that are used to receive information from the gateway.
+//--*)
+
+   STRUCT
+      gwStatus0 : Struct   // 0.0: GW state 0
+         sStop : Bool;   // 0.0: SSTOP - 0=Normal; 1=Stow SW input detection
+         x1 : Bool;   // 0.1
+         x2 : Bool;   // 0.2
+         gwAlarm : Bool;   // 0.3: GWALM - 0=Normal; 1=GW alarm in progress
+         x4 : Bool;   // 0.4
+         internalComerror : Bool;   // 0.5: SIRERR - 0=Normal; 1=Internal communication error occurred
+         busComError : Bool;   // 0.6: FBERR - 0=Normal; 1=Fieldbus communication error occurred
+         gwRun : Bool;   // 0.7: GWRUN - 0=Power not turned on; 1=Normal operation
+         gwAlarmCode : Byte;   // 1.0: GWALC - Displays the latest GW alarm code in hexadecimal
+      END_STRUCT;
+      link : Struct   // 2.0: LINK 0-15
+         axis08 : Bool;   // 2.0: Axis 8
+         axis09 : Bool;   // 2.1: Axis 9
+         axis10 : Bool;   // 2.2: Axis 10
+         axis11 : Bool;   // 2.3: Axis 11
+         axis12 : Bool;   // 2.4: Axis 12
+         axis13 : Bool;   // 2.5: Axis 13
+         axis14 : Bool;   // 2.6: Axis 14
+         axis15 : Bool;   // 2.7: Axis 15
+         axis00 : Bool;   // 3.0: Axis 0
+         axis01 : Bool;   // 3.1: Axis 1
+         axis02 : Bool;   // 3.2: Axis 2
+         axis03 : Bool;   // 3.3: Axis 3
+         axis04 : Bool;   // 3.4: Axis 4
+         axis05 : Bool;   // 3.5: Axis 5
+         axis06 : Bool;   // 3.6: Axis 6
+         axis07 : Bool;   // 3.7: Axis 7
+      END_STRUCT;
+      w4 : Word;   // 4.0: Request command (not used)
+      w6 : Word;   // 6.0: Data 0 (not used)
+      w8 : Word;   // 8.0: Data 1 (not used)
+      w10 : Word;   // 10.0: Data 2 (not used)
+      w12 : Word;   // 12.0: Data 3 (not used)
+      w14 : Word;   // 14.0: Occupied area (not used)
+   END_STRUCT;
+
+END_TYPE
+

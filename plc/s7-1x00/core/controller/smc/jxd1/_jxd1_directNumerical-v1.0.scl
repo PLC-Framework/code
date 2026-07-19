@@ -1,0 +1,273 @@
+﻿FUNCTION_BLOCK "_jxd1_directNumerical"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile","jxd1_driveUnit_16bytes_directNumericalSettingModePdi","jxd1_driveUnit_16bytes_directNumericalSettingModePdo","__jxd1_stop","__jxd1_halt","__jxd1_home","__jxd1_moveAbsolute","__jxd1_moveRelative","__jxd1_moveJog","TOF_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/smc/jxd1'
+NAME : _jxd1_directNumerical
+VERSION : 1.0
+
+   VAR_INPUT 
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control On
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency stop ok
+      enable { ExternalWritable := 'False'} : Bool;   // IR: 1=Enable drive
+      hold { ExternalWritable := 'False'} : Bool;   // IR: 1=Hold drive
+      forceVelocity { ExternalWritable := 'False'} : Bool;   // IR: 1=Force low velocity
+      profile { ExternalWritable := 'False'} : "jxd1_profile";   // IR: Positioning profile
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: 1=Error ackn
+      config { ExternalWritable := 'False'} : Struct   // IR: Config controller
+         offset { ExternalWritable := 'False'} : Real := 0.0;   // IR: Position offset for user
+         startDelay { ExternalWritable := 'False'} : Time := T#300MS;   // IR: Start delay (only for profile movement)
+         readyOffDelay { ExternalWritable := 'False'} : Time := T#500ms;   // IR: Delay drive off time
+         position { ExternalWritable := 'False'} : Struct   // IR: Position config
+            changeOnFly { ExternalWritable := 'False'} : Bool := 1;   // IR: Whe profile.position changes. 0=Fininsh movement; 1=Abort current movement and start the new one
+            runJobWhileRequestIsOn { ExternalWritable := 'False'} : Bool := 0;   // IR: 0=Run job on the rising edge of the request; 1=Run job while request is ON
+         END_STRUCT;
+         jog { ExternalWritable := 'False'} : Struct   // IR: Jog config
+            stepMode { ExternalWritable := 'False'} : Bool;   // IR: 0=Infinite jog; 1=Step job (see smc software to configure)
+         END_STRUCT;
+      END_STRUCT;
+   END_VAR
+
+   VAR_OUTPUT 
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive is ready
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive is running/moving/positioning
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      warning { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive warning
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Drive error
+      isHomed { ExternalWritable := 'False'} : Bool;   // OR: 1=Is homed, referenced
+      inPosition { ExternalWritable := 'False'} : Bool;   // OR: 1=In position, position reached
+      inArea { ExternalWritable := 'False'} : Bool;   // OR: 1=In area, area reached
+      errorId { ExternalWritable := 'False'} : Int;   // OR: 0=Ok; 1..N=Error ID, see manual
+      actualCommand { ExternalWritable := 'False'} : Int;   // OR: 0=Nil; 1..N=Some Command. See constants
+      actualProfile { ExternalWritable := 'False'} : USInt;   // OR: 0..63=Current profile loaded
+      targetPosition { ExternalWritable := 'False'} : LReal;   // OR: N=Target position in u (mm, º)
+      actualPosition { ExternalWritable := 'False'} : LReal;   // OR: N=Actual postion in u (mm, º)
+      actualVelocity { ExternalWritable := 'False'} : LReal;   // OR: N=Actual velocity in u/s (mm, º)/s
+      actualTorque { ExternalWritable := 'False'} : USInt;   // OR: N=Actual percentage of torque in %
+   END_VAR
+
+   VAR_IN_OUT 
+      command { ExternalWritable := 'False'} : Int;   // IOR: Command
+      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Process data input channel
+      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Process data output channel
+   END_VAR
+
+   VAR 
+      stop { S7_SetPoint := 'False'} : "__jxd1_stop";   // SW: Stop drive
+      halt { S7_SetPoint := 'False'} : "__jxd1_halt";   // SW: Halt movements
+      homing { S7_SetPoint := 'False'} : "__jxd1_home";   // SW: Homing
+      absolute { S7_SetPoint := 'False'} : "__jxd1_moveAbsolute";   // SW: Absolute positioning
+      relative { S7_SetPoint := 'False'} : "__jxd1_moveRelative";   // SW: Relative positioning
+      jog { S7_SetPoint := 'False'} : "__jxd1_moveJog";   // SW: Jog
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         readyTof {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
+         directionTof {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
+         lastPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      mc_hold : Bool;
+      mc_servoOn : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      CMD_0_NIL : Int := 0;
+      CMD_1_STOP : Int := 1;   // While STOP is true no other commands can be performed
+      CMD_2_HALT : Int := 2;   // Abort other commands and stop servo
+      CMD_3_HOMING : Int := 3;
+      CMD_4_JOG_FWD : Int := 4;
+      CMD_5_JOG_BWD : Int := 5;
+      CMD_7_RELATIVE_POS : Int := 7;
+      CMD_8_ABSOLUTE_POS : Int := 8;
+      POS_FACTOR : LReal := 100.0;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-19 | cyanezf | First version |
+  
+## Description
+
+This function block implements a direct numerical control for the JXD1 drive unit. It handles various commands such as stop, halt, homing, jogging, and positioning (both relative and absolute). The block processes input commands and updates output status accordingly.
+
+--*) 
+
+	REGION Output
+	  
+	  #errorId := #pdi.alarmCode;
+	  #actualCommand := #CMD_0_NIL;
+	  #actualPosition := (DINT_TO_LREAL(#pdi.position) / #POS_FACTOR) - #config.offset;
+	  #actualVelocity := INT_TO_REAL(#pdi.velocity);
+	  #actualTorque := INT_TO_USINT(#pdi.force);
+	  
+	  #inPosition := #pdi.status.inPosition;
+	  
+	  #inArea := #pdi.status.inWarea;
+	  #isHomed := #pdi.status.isHomed;
+	  #warning := #pdi.status.warning;
+	  #error := #pdi.status.error;
+	  #isRunning := #pdi.status.isRunning;
+	  // Direction
+	  #private.directionTof(IN:=#actualPosition < #private.lastPosition,
+	                        PT:=t#1s);
+	  #private.lastPosition := #actualPosition;
+	  #direction := #isRunning AND #private.directionTof.Q;
+	  // Ready
+	  #private.readyTof(IN:=#pdi.status.ready AND #pdi.status.servoReady AND NOT #pdi.status.error AND NOT #pdi.status.eStop,
+	                    PT:=#config.readyOffDelay,
+	                    Q=>#ready);
+	  
+	  IF #error THEN
+	    #command := #CMD_0_NIL;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Stop
+	  
+	  #stop(execute:=#command = #CMD_1_STOP,
+	        ready:=#ready,
+	        profile:=#profile,
+	        pdi:=#pdi,
+	        pdo:=#pdo);
+	  
+	  IF #halt.done OR #halt.error OR #halt.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #halt.busy THEN
+	    #actualCommand := #CMD_2_HALT;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Halt
+	  
+	  #halt(request:=#command = #CMD_2_HALT,
+	        abort:=0,
+	        ready:=#ready,
+	        profile:=#profile,
+	        pdi:=#pdi,
+	        pdo:=#pdo);
+	  
+	  IF #halt.done OR #halt.error OR #halt.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #halt.busy THEN
+	    #actualCommand := #CMD_2_HALT;
+	  END_IF;
+	  
+	  
+	END_REGION
+	
+	REGION Homing
+	  
+	  #homing(request:=#command = #CMD_3_HOMING,
+	          abort:=#halt.busy,
+	          ready:=#ready,
+	          actualPosition:=#actualPosition,
+	          pdi:=#pdi,
+	          pdo:=#pdo);
+	  
+	  IF #homing.done OR #homing.error OR #homing.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #homing.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Jog
+	  
+	  #jog(jogForward := #command = #CMD_4_JOG_FWD,
+	       jogBackward := #command = #CMD_5_JOG_BWD,
+	       abort := #halt.busy,
+	       ready := #ready,
+	       config_stepMode := #config.jog.stepMode,
+	       pdi := #pdi,
+	       pdo := #pdo);
+	  
+	  IF #jog.done OR #jog.error OR #jog.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #jog.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	
+	REGION Velocity
+	  // Velocity method cannot be implemented because this controller doesn't support it.
+	END_REGION
+	
+	REGION Relative positioning
+	  
+	  #relative(request := #command = #CMD_7_RELATIVE_POS,
+	            abort := #halt.busy OR #absolute.busy,
+	            ready := #ready,
+	            actualPosition := #actualPosition,
+	            config_changeOnFly := #config.position.changeOnFly,
+	            config_runJobWhileRequestIsOn := #config.position.runJobWhileRequestIsOn,
+	            profile := #profile, // Warning profile is read only inside
+	            pdi := #pdi,
+	            pdo := #pdo,
+	            targetPosition := #targetPosition);
+	  
+	  IF #relative.done OR #relative.error OR #relative.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #relative.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Absolute positioning
+	  
+	  #absolute(request:=#command = #CMD_8_ABSOLUTE_POS,
+	            abort:=#halt.busy OR #relative.busy,
+	            ready:=#ready,
+	            actualPosition:=#actualPosition,
+	            config_offset:=#config.offset,
+	            config_changeOnFly:=#config.position.changeOnFly,
+	            config_runJobWhileRequestIsOn:=#config.position.runJobWhileRequestIsOn,
+	            profile:=#profile, // Warning profile is read only inside
+	            pdi:=#pdi,
+	            pdo:=#pdo,
+	            targetPosition:=#targetPosition);
+	  
+	  
+	  IF #absolute.done OR #absolute.error OR #absolute.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #absolute.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	
+	
+	REGION Common motion control
+	  
+	  #mc_hold := #stop.hold OR #halt.hold OR #absolute.hold OR #relative.hold; // jog has not hold
+	  #mc_servoOn := #stop.servoOn AND #halt.servoOn AND #absolute.servoOn AND #relative.servoOn; // jog has not servoOn
+	  
+	END_REGION
+	
+	REGION General PDO
+	  
+	  #pdo.control.lockForcedRelease := false;
+	  #pdo.control.hold := #hold OR #mc_hold;
+	  #pdo.control.reset := #ackn;
+	  #pdo.control.servoOn := #controlOn AND #emrgStopOk AND #enable AND NOT #error AND #mc_servoOn;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

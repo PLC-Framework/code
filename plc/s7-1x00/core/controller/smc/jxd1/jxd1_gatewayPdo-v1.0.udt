@@ -1,0 +1,38 @@
+﻿TYPE "jxd1_gatewayPdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Output (PDO) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains control words and data fields that are used to send commands and parameters to the gateway.
+//--*)
+
+   STRUCT
+      gwControl0 : Struct   // 0.0: Gateway control word 0
+         x0 : Bool;   // 0.0
+         x1 : Bool;   // 0.1
+         x2 : Bool;   // 0.2
+         x3 : Bool;   // 0.3
+         x4 : Bool;   // 0.4
+         x5 : Bool;   // 0.5
+         x6 : Bool;   // 0.6
+         gwmon : Bool;   // 0.7: 0=disable control from PLC; 1=Enable control from PLC
+         b1 : Byte;   // 1.0
+      END_STRUCT;
+      w2 : Word;   // 2.0: Gateway control word 1 (not used)
+      w4 : Word;   // 4.0: Request command (not used)
+      w6 : Word;   // 6.0: Data 0 (not used)
+      w8 : Word;   // 8.0: Data 1 (not used)
+      w10 : Word;   // 10.0: Data 2 (not used)
+      w12 : Word;   // 12.0: Data 3 (not used)
+      w14 : Word;   // 14.0: Occupied area (not used)
+   END_STRUCT;
+
+END_TYPE
+

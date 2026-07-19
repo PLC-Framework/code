@@ -588,26 +588,23 @@
 
   var GENERAL_SUBMODULE = "(general)";
 
-  function moduleOf(file) {
+  // Full list of folder names between "core" and the filename, excluding
+  // legacy folders. This is the recursive path: ["controller"] for a file
+  // straight under controller/, ["controller","smc","jxc"] for one nested
+  // three levels deep — the graph mirrors however deep the repo actually goes.
+  function pathSegments(file) {
     var parts = file.split("/");
     var i = parts.indexOf("core");
-    return i >= 0 && parts[i + 1] ? parts[i + 1] : "other";
-  }
-
-  function submoduleOf(file, module) {
-    var parts = file.split("/");
-    var i = parts.indexOf("core");
-    if (i < 0) return GENERAL_SUBMODULE;
-    var afterModule = parts.slice(i + 2, -1).filter(function (p) {
+    if (i < 0) return [];
+    return parts.slice(i + 1, -1).filter(function (p) {
       return p !== "__old" && p !== "__deprecated";
     });
-    return afterModule.length ? afterModule[0] : GENERAL_SUBMODULE;
   }
 
   var nodesById = {};
   RAW.nodes.forEach(function (n) {
-    n.module = moduleOf(n.file);
-    n.submodule = submoduleOf(n.file, n.module);
+    n.pathSegs = pathSegments(n.file);
+    n.module = n.pathSegs.length ? n.pathSegs[0] : "other";
     n.isMismatch = n.name !== n.base;
     n.isLegacy = n.legacyFolder || n.status === "deprecated";
     n.outEdges = [];
@@ -632,27 +629,69 @@
       : "none";
   });
 
-  var modules = {};
+  // Recursive folder tree: each node has .children (subfolders, keyed by
+  // name) and .files (blocks that live directly in that folder). Built once,
+  // then walked at arbitrary depth to mirror the real directory structure.
+  var tree = { children: {}, files: [] };
   RAW.nodes.forEach(function (n) {
-    if (!modules[n.module]) modules[n.module] = { key: n.module, nodes: [], hasCritical: false, hasWarn: false, submodules: {} };
-    var m = modules[n.module];
-    m.nodes.push(n);
-    if (n.severity === "critical") m.hasCritical = true;
-    if (n.severity === "warn") m.hasWarn = true;
-    if (!m.submodules[n.submodule]) m.submodules[n.submodule] = { key: n.submodule, nodes: [], hasCritical: false, hasWarn: false };
-    var sm = m.submodules[n.submodule];
-    sm.nodes.push(n);
-    if (n.severity === "critical") sm.hasCritical = true;
-    if (n.severity === "warn") sm.hasWarn = true;
+    var cursor = tree;
+    n.pathSegs.forEach(function (seg) {
+      if (!cursor.children[seg]) cursor.children[seg] = { key: seg, children: {}, files: [] };
+      cursor = cursor.children[seg];
+    });
+    cursor.files.push(n);
   });
-  var moduleList = Object.keys(modules).sort(function (a, b) { return modules[b].nodes.length - modules[a].nodes.length; });
 
-  function submoduleList(moduleKey) {
-    var sm = modules[moduleKey].submodules;
-    return Object.keys(sm).sort(function (a, b) { return sm[b].nodes.length - sm[a].nodes.length; });
+  function aggregateTree(node) {
+    var allNodes = node.files.slice();
+    var hasCritical = node.files.some(function (f) { return f.severity === "critical"; });
+    var hasWarn = node.files.some(function (f) { return f.severity === "warn"; });
+    Object.keys(node.children).forEach(function (key) {
+      var child = node.children[key];
+      aggregateTree(child);
+      allNodes = allNodes.concat(child.allNodes);
+      if (child.hasCritical) hasCritical = true;
+      if (child.hasWarn) hasWarn = true;
+    });
+    node.allNodes = allNodes;
+    node.hasCritical = hasCritical;
+    node.hasWarn = hasWarn;
   }
-  function hasSubmoduleGrouping(moduleKey) {
-    return submoduleList(moduleKey).length > 1;
+  aggregateTree(tree);
+
+  var moduleList = Object.keys(tree.children).sort(function (a, b) {
+    return tree.children[b].allNodes.length - tree.children[a].allNodes.length;
+  });
+
+  function treeAt(path) {
+    var cursor = tree;
+    for (var i = 0; i < path.length; i++) {
+      cursor = cursor.children[path[i]];
+      if (!cursor) return null;
+    }
+    return cursor;
+  }
+
+  // The groups shown as bubbles at a given path: one per child subfolder,
+  // plus a "(general)" bucket for files that live directly in this folder
+  // alongside those subfolders (if any).
+  function groupsAt(node) {
+    var groups = {};
+    Object.keys(node.children).forEach(function (key) { groups[key] = node.children[key]; });
+    if (node.files.length) {
+      groups[GENERAL_SUBMODULE] = {
+        key: GENERAL_SUBMODULE, children: {}, files: node.files, allNodes: node.files,
+        hasCritical: node.files.some(function (f) { return f.severity === "critical"; }),
+        hasWarn: node.files.some(function (f) { return f.severity === "warn"; })
+      };
+    }
+    return groups;
+  }
+  function groupKeysAt(node) {
+    var groups = groupsAt(node);
+    return Object.keys(groups).sort(function (a, b) {
+      return groups[b].allNodes.length - groups[a].allNodes.length;
+    });
   }
 
   // ---------------- stats ----------------
@@ -690,7 +729,7 @@
   RAW.nodes.forEach(function (n) { nodesByFile[n.file] = n.id; });
 
   // ---------------- state ----------------
-  var state = { level: "overview", module: null, submodule: null, selected: null, query: "", reportFilter: null };
+  var state = { level: "overview", path: [], selected: null, query: "", reportFilter: null };
 
   var svg = document.getElementById("canvas");
   var canvasWrap = document.getElementById("canvas-wrap");
@@ -833,112 +872,54 @@
   }
   function hideTooltip() { tooltip.hidden = true; }
 
-  function renderOverview() {
-    state.level = "overview";
-    state.module = null;
-    state.reportFilter = null;
-    canvasWrap.hidden = false;
-    legend.hidden = false;
-    reportsPanel.hidden = true;
-    updateCrumb();
-    clearSvg();
-
-    var width = Math.max(canvasWrap.clientWidth, 700);
-    var height = Math.max(canvasWrap.clientHeight, 560);
-    svg.setAttribute("width", width);
-    svg.setAttribute("height", height);
-    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-
-    var nodes = moduleList.map(function (key) {
-      var m = modules[key];
-      return { id: key, r: 28 + Math.sqrt(m.nodes.length) * 5.5, count: m.nodes.length, m: m };
-    });
-    var byId = {}; nodes.forEach(function (n) { byId[n.id] = n; });
-
-    var pairCounts = {};
-    RAW.edges.forEach(function (e) {
-      if (!e.resolved) return;
-      var fm = nodesById[e.from].module, tm = nodesById[e.to].module;
-      if (fm === tm) return;
-      var key = fm < tm ? fm + "|" + tm : tm + "|" + fm;
-      pairCounts[key] = (pairCounts[key] || 0) + 1;
-    });
-    var links = Object.keys(pairCounts).map(function (key) {
-      var parts = key.split("|");
-      return { a: byId[parts[0]], b: byId[parts[1]], count: pairCounts[key] };
-    }).filter(function (l) { return l.a && l.b; });
-
-    layout(nodes, links, width, height, 260);
-
-    var gLinks = el("g", {});
-    links.forEach(function (l) {
-      var line = el("line", {
-        class: "edge-agg", x1: l.a.x, y1: l.a.y, x2: l.b.x, y2: l.b.y,
-        "stroke-width": Math.min(6, 0.6 + l.count * 0.35), opacity: 0.55
-      });
-      gLinks.appendChild(line);
-    });
-    svg.appendChild(gLinks);
-
-    var gNodes = el("g", {});
-    nodes.forEach(function (n) {
-      var match = state.query && matchesModule(n.id, state.query);
-      var dim = state.query && !match;
-      var g = el("g", { class: "node severity-" + (n.m.hasCritical ? "critical" : n.m.hasWarn ? "warn" : "none") + (dim ? " dim" : "") });
-      var c = el("circle", { class: "node-circle", cx: n.x, cy: n.y, r: n.r, style: bubbleColorStyle(n.id) });
-      g.appendChild(c);
-      appendBubbleLabel(g, n.x, n.y, MODULE_META[n.id] ? MODULE_META[n.id].label : n.id, n.count + " blocks");
-
-      g.addEventListener("click", function () { openModule(n.id); });
-      g.addEventListener("mousemove", function (evt) {
-        showTooltip(evt, MODULE_META[n.id] ? MODULE_META[n.id].label : n.id,
-          (MODULE_META[n.id] ? MODULE_META[n.id].desc + " · " : "") + n.count + " blocks");
-      });
-      g.addEventListener("mouseleave", hideTooltip);
-      gNodes.appendChild(g);
-    });
-    svg.appendChild(gNodes);
-
-    renderRail();
-    renderDetail(null);
+  // Whether a file's folder (its full pathSegs) sits at-or-under a given path.
+  function nodeUnderPath(n, path) {
+    if (n.pathSegs.length < path.length) return false;
+    for (var i = 0; i < path.length; i++) if (n.pathSegs[i] !== path[i]) return false;
+    return true;
+  }
+  // Which group (child-folder name, or the general bucket) a file belongs to
+  // at a given path — one level below that path.
+  function groupKeyForNode(n, path) {
+    return n.pathSegs.length > path.length ? n.pathSegs[path.length] : GENERAL_SUBMODULE;
   }
 
-  function matchesModule(moduleKey, query) {
-    var q = query.toLowerCase();
-    if (moduleKey.toLowerCase().indexOf(q) !== -1) return true;
-    if (MODULE_META[moduleKey] && MODULE_META[moduleKey].label.toLowerCase().indexOf(q) !== -1) return true;
-    return modules[moduleKey].nodes.some(function (n) { return n.id.toLowerCase().indexOf(q) !== -1; });
+  function isGeneralPath(path) {
+    return path.length > 0 && path[path.length - 1] === GENERAL_SUBMODULE;
   }
 
-  function matchesSubmodule(moduleKey, submoduleKey, query) {
-    var q = query.toLowerCase();
-    if (submoduleKey.toLowerCase().indexOf(q) !== -1) return true;
-    return modules[moduleKey].submodules[submoduleKey].nodes.some(function (n) { return n.id.toLowerCase().indexOf(q) !== -1; });
-  }
-
-  function openModule(key) {
-    state.module = key;
-    state.submodule = null;
+  function openPath(path) {
+    if (isGeneralPath(path)) {
+      // "(general)" is a synthetic bucket for files that sit directly in a
+      // folder alongside its subfolders — not a real tree node, so it always
+      // resolves straight to the blocks view of its parent's direct files.
+      state.path = path;
+      state.selected = null;
+      state.level = "blocks";
+      renderBlocksAt(path);
+      return;
+    }
+    var node = treeAt(path) || tree;
+    if (!treeAt(path)) path = [];
+    state.path = path;
     state.selected = null;
-    if (hasSubmoduleGrouping(key)) {
-      state.level = "module";
-      renderModuleSubmodules(key);
+    if (Object.keys(node.children).length > 0) {
+      state.level = path.length === 0 ? "overview" : "folder";
+      renderFolderBubbles(path);
     } else {
-      state.level = "submodule";
-      renderBlocks(key, null);
+      state.level = "blocks";
+      renderBlocksAt(path);
     }
   }
 
-  function openSubmodule(moduleKey, submoduleKey) {
-    state.module = moduleKey;
-    state.submodule = submoduleKey;
-    state.selected = null;
-    state.level = "submodule";
-    renderBlocks(moduleKey, submoduleKey);
+  function matchesFolder(key, node, query) {
+    var q = query.toLowerCase();
+    if (key.toLowerCase().indexOf(q) !== -1) return true;
+    if (MODULE_META[key] && MODULE_META[key].label.toLowerCase().indexOf(q) !== -1) return true;
+    return node.allNodes.some(function (n) { return n.id.toLowerCase().indexOf(q) !== -1; });
   }
 
-  function renderModuleSubmodules(key) {
-    state.level = "module";
+  function renderFolderBubbles(path) {
     state.reportFilter = null;
     canvasWrap.hidden = false;
     legend.hidden = false;
@@ -946,16 +927,22 @@
     updateCrumb();
     clearSvg();
 
+    var atRoot = path.length === 0;
+    var parentNode = treeAt(path);
+    var groups = groupsAt(parentNode);
+    var keys = groupKeysAt(parentNode);
+
     var width = Math.max(canvasWrap.clientWidth, 700);
     var height = Math.max(canvasWrap.clientHeight, 560);
     svg.setAttribute("width", width);
     svg.setAttribute("height", height);
     svg.setAttribute("viewBox", "0 0 " + width + " " + height);
 
-    var subKeys = submoduleList(key);
-    var nodes = subKeys.map(function (subKey) {
-      var sm = modules[key].submodules[subKey];
-      return { id: subKey, r: 24 + Math.sqrt(sm.nodes.length) * 5, count: sm.nodes.length, sm: sm };
+    var nodes = keys.map(function (key) {
+      var grp = groups[key];
+      var baseR = atRoot ? 28 : 24;
+      var scale = atRoot ? 5.5 : 5;
+      return { id: key, r: baseR + Math.sqrt(grp.allNodes.length) * scale, count: grp.allNodes.length, grp: grp };
     });
     var byId = {}; nodes.forEach(function (n) { byId[n.id] = n; });
 
@@ -963,9 +950,10 @@
     RAW.edges.forEach(function (e) {
       if (!e.resolved) return;
       var fn = nodesById[e.from], tn = nodesById[e.to];
-      if (fn.module !== key || tn.module !== key) return;
-      if (fn.submodule === tn.submodule) return;
-      var pkey = fn.submodule < tn.submodule ? fn.submodule + "|" + tn.submodule : tn.submodule + "|" + fn.submodule;
+      if (!nodeUnderPath(fn, path) || !nodeUnderPath(tn, path)) return;
+      var fg = groupKeyForNode(fn, path), tg = groupKeyForNode(tn, path);
+      if (fg === tg) return;
+      var pkey = fg < tg ? fg + "|" + tg : tg + "|" + fg;
       pairCounts[pkey] = (pairCounts[pkey] || 0) + 1;
     });
     var links = Object.keys(pairCounts).map(function (pkey) {
@@ -973,7 +961,7 @@
       return { a: byId[parts[0]], b: byId[parts[1]], count: pairCounts[pkey] };
     }).filter(function (l) { return l.a && l.b; });
 
-    layout(nodes, links, width, height, 240);
+    layout(nodes, links, width, height, atRoot ? 260 : 240);
 
     var gLinks = el("g", {});
     links.forEach(function (l) {
@@ -986,16 +974,18 @@
 
     var gNodes = el("g", {});
     nodes.forEach(function (n) {
-      var match = state.query && matchesSubmodule(key, n.id, state.query);
+      var meta = atRoot && MODULE_META[n.id];
+      var label = meta ? meta.label : n.id;
+      var match = state.query && matchesFolder(n.id, n.grp, state.query);
       var dim = state.query && !match;
-      var g = el("g", { class: "node severity-" + (n.sm.hasCritical ? "critical" : n.sm.hasWarn ? "warn" : "none") + (dim ? " dim" : "") });
-      var c = el("circle", { class: "node-circle", cx: n.x, cy: n.y, r: n.r, style: bubbleColorStyle(key + "/" + n.id) });
+      var g = el("g", { class: "node severity-" + (n.grp.hasCritical ? "critical" : n.grp.hasWarn ? "warn" : "none") + (dim ? " dim" : "") });
+      var c = el("circle", { class: "node-circle", cx: n.x, cy: n.y, r: n.r, style: bubbleColorStyle(path.concat([n.id]).join("/")) });
       g.appendChild(c);
-      appendBubbleLabel(g, n.x, n.y, n.id, n.count + " blocks");
+      appendBubbleLabel(g, n.x, n.y, label, n.count + " blocks");
 
-      g.addEventListener("click", function () { openSubmodule(key, n.id); });
+      g.addEventListener("click", function () { openPath(path.concat([n.id])); });
       g.addEventListener("mousemove", function (evt) {
-        showTooltip(evt, n.id, n.count + " blocks");
+        showTooltip(evt, label, (meta ? meta.desc + " · " : "") + n.count + " blocks");
       });
       g.addEventListener("mouseleave", hideTooltip);
       gNodes.appendChild(g);
@@ -1006,15 +996,14 @@
     renderDetail(null);
   }
 
-  function renderBlocks(moduleKey, submoduleKey) {
-    state.level = "submodule";
+  function renderBlocksAt(path) {
     state.reportFilter = null;
     canvasWrap.hidden = false;
     legend.hidden = false;
     reportsPanel.hidden = true;
     updateCrumb();
     clearSvg();
-    var sourceNodes = submoduleKey ? modules[moduleKey].submodules[submoduleKey].nodes : modules[moduleKey].nodes;
+    var sourceNodes = isGeneralPath(path) ? treeAt(path.slice(0, -1)).files : treeAt(path).allNodes;
     var width = Math.max(canvasWrap.clientWidth, 700);
     var height = Math.max(canvasWrap.clientHeight, 560);
     svg.setAttribute("width", width);
@@ -1075,20 +1064,18 @@
 
   function selectNode(id) {
     state.selected = id;
-    if (state.level === "submodule") renderBlocks(state.module, state.submodule);
+    if (state.level === "blocks") renderBlocksAt(state.path);
     renderDetail(nodesById[id]);
   }
 
   function goToNode(id) {
     var target = nodesById[id];
     if (!target) return;
-    if (hasSubmoduleGrouping(target.module)) {
-      if (state.module !== target.module || state.submodule !== target.submodule) {
-        openSubmodule(target.module, target.submodule);
-      }
-    } else if (state.module !== target.module) {
-      openModule(target.module);
-    }
+    var node = treeAt(target.pathSegs);
+    var path = (node && Object.keys(node.children).length > 0)
+      ? target.pathSegs.concat([GENERAL_SUBMODULE])
+      : target.pathSegs;
+    openPath(path);
     selectNode(id);
   }
 
@@ -1098,7 +1085,7 @@
     var overviewBtn = document.createElement("button");
     overviewBtn.textContent = "Graph";
     overviewBtn.className = state.level !== "reports" ? "active" : "";
-    overviewBtn.addEventListener("click", renderOverview);
+    overviewBtn.addEventListener("click", function () { openPath([]); });
     tabs.appendChild(overviewBtn);
 
     var reportsBtn = document.createElement("button");
@@ -1120,31 +1107,24 @@
     var crumb = document.getElementById("crumb");
     crumb.innerHTML = "";
 
-    if (state.level === "module") {
-      addCrumbSep(crumb);
-      var cur = document.createElement("span");
-      cur.className = "current";
-      cur.textContent = MODULE_META[state.module] ? MODULE_META[state.module].label : state.module;
-      crumb.appendChild(cur);
-    } else if (state.level === "submodule") {
-      addCrumbSep(crumb);
-      var modLabel = MODULE_META[state.module] ? MODULE_META[state.module].label : state.module;
-      if (hasSubmoduleGrouping(state.module)) {
-        var modBtn = document.createElement("button");
-        modBtn.textContent = modLabel;
-        modBtn.addEventListener("click", function () { renderModuleSubmodules(state.module); });
-        crumb.appendChild(modBtn);
+    if (state.level === "folder" || state.level === "blocks") {
+      state.path.forEach(function (seg, idx) {
         addCrumbSep(crumb);
-        var subCur = document.createElement("span");
-        subCur.className = "current";
-        subCur.textContent = state.submodule;
-        crumb.appendChild(subCur);
-      } else {
-        var modCur = document.createElement("span");
-        modCur.className = "current";
-        modCur.textContent = modLabel;
-        crumb.appendChild(modCur);
-      }
+        var label = idx === 0 && MODULE_META[seg] ? MODULE_META[seg].label : seg;
+        var isLast = idx === state.path.length - 1;
+        if (isLast) {
+          var cur = document.createElement("span");
+          cur.className = "current";
+          cur.textContent = label;
+          crumb.appendChild(cur);
+        } else {
+          var crumbPath = state.path.slice(0, idx + 1);
+          var btn = document.createElement("button");
+          btn.textContent = label;
+          btn.addEventListener("click", function () { openPath(crumbPath); });
+          crumb.appendChild(btn);
+        }
+      });
     } else if (state.level === "reports" && state.reportFilter) {
       addCrumbSep(crumb);
       var cur2 = document.createElement("span");
@@ -1215,17 +1195,17 @@
     var list = document.getElementById("rail-list");
     list.innerHTML = "";
     moduleList.forEach(function (key) {
-      var m = modules[key];
+      var m = tree.children[key];
       var meta = MODULE_META[key] || { label: key, desc: "" };
       var btn = document.createElement("button");
-      btn.className = "rail-item" + (state.module === key ? " active" : "") +
-        (state.query && !matchesModule(key, state.query) ? " dim" : "");
+      btn.className = "rail-item" + (state.path[0] === key ? " active" : "") +
+        (state.query && !matchesFolder(key, m, state.query) ? " dim" : "");
       var dotCls = m.hasCritical ? "critical" : m.hasWarn ? "warn" : "";
       btn.innerHTML =
         '<span class="dot ' + dotCls + '"></span>' +
         '<span class="meta"><div class="name">' + meta.label + '</div><div class="desc">' + meta.desc + "</div></span>" +
-        '<span class="count">' + m.nodes.length + "</span>";
-      btn.addEventListener("click", function () { openModule(key); });
+        '<span class="count">' + m.allNodes.length + "</span>";
+      btn.addEventListener("click", function () { openPath([key]); });
       list.appendChild(btn);
     });
   }
@@ -1278,7 +1258,7 @@
       '<div class="badge-row">' + badges + "</div>" +
       '<dl class="kv">' +
       "<dt>file</dt><dd>" + node.id + "</dd>" +
-      "<dt>module</dt><dd>" + node.module + "</dd>" +
+      "<dt>folder</dt><dd>" + node.pathSegs.join(" / ") + "</dd>" +
       "<dt>version</dt><dd>" + (node.version || "—") + "</dd>" +
       (node.deprecatedBy ? "<dt>replaced by</dt><dd>" + node.deprecatedBy + "</dd>" : "") +
       "<dt>path</dt><dd>" + node.file + "</dd>" +
@@ -1296,9 +1276,8 @@
   }
 
   function rerenderCurrent() {
-    if (state.level === "overview") renderOverview();
-    else if (state.level === "module") renderModuleSubmodules(state.module);
-    else if (state.level === "submodule") renderBlocks(state.module, state.submodule);
+    if (state.level === "overview" || state.level === "folder") renderFolderBubbles(state.path);
+    else if (state.level === "blocks") renderBlocksAt(state.path);
   }
 
   document.getElementById("search").addEventListener("input", function (evt) {
@@ -1321,7 +1300,7 @@
     rerenderCurrent();
   });
 
-  renderOverview();
+  openPath([]);
   }
 
   fetch("./graph.json")

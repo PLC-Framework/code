@@ -1,0 +1,36 @@
+﻿TYPE "jxd1_driveUnit_2bytes_IOmodePdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-07-19 | cyanezf | First version |
+// 
+//## Description
+//This is the Process Data Output (PDO) structure for the SMC JXD1 series actuators when used with the S7-1x00 PLCs.
+//It contains control words and data fields that are used to send commands and parameters to the axis as IO mode.
+//--*)
+
+   STRUCT
+      start : Bool;   // 0.0: DRIVE - Start of operating at the rising edge of the signal
+      homing : Bool;   // 0.1: SETUP - Homing operation. BUSY turns On during the homing operation, and SETON turns On adter the homing operation is completed. iNP is turned ON if it is within the range of 'Home position +- parameter "initial positioning range"'
+      hold : Bool;   // 0.2: HOLD - When turned ON during an operation it will decelerate to a stop according to the Max. acceleration/deceleration parameter. When turned OFF, it starts moving the remaining travel distance. During JOG operation, even if HOLD is turned OFF, operation will not resume unless JOG is turned ON. Caution: the HOLD signal is disabled during pushing in Pushing operation mode
+      reset : Bool;   // 0.3: RESET - This is an instruction to reset the alarm and stop operation. If an alarm is still occurring, ALM is turned OFF. During operation, decelerate and stop according to the parameter Max acceleration/deceleration. At that time, if it is within the target position range, INP is turned ON (otherwise, INP is not turned On)
+      servoOn : Bool;   // 0.4: SVON - 0=Servo OFF; 1=Servo ON
+      x5 : Bool;   // 0.5
+      x6 : Bool;   // 0.6
+      lockForcedRelease : Bool;   // 0.7: LKRL - Lock-force release signal (Valid only when servo in OFF). ON=Lock forced release; OFF=Lock retained
+      commandStepData0 : Bool;   // 1.0: Specifies the step data number of operation data (0 to 63)
+      commandStepData1 : Bool;   // 1.1: Bit 1
+      commandStepData2 : Bool;   // 1.2: Bit 2
+      commandStepData3 : Bool;   // 1.3: Bit 3
+      commandStepData4 : Bool;   // 1.4: Bit 4
+      commandStepData5 : Bool;   // 1.5: Bit 5
+      xE : Bool;   // 1.6
+      xF : Bool;   // 1.7
+   END_STRUCT;
+
+END_TYPE
+

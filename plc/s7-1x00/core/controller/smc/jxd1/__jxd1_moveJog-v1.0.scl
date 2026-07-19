@@ -1,0 +1,229 @@
+﻿FUNCTION_BLOCK "__jxd1_moveJog"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_driveUnit_16bytes_directNumericalSettingModePdi","jxd1_driveUnit_16bytes_directNumericalSettingModePdo","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/smc/jxd1'
+NAME : __jxd1_moveJog
+VERSION : 1.0
+
+   VAR_INPUT 
+      jogForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Jog forward
+      jogBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Jog backward
+      abort { ExternalWritable := 'False'} : Bool;   // IR: 1=Abort positioning
+      ready { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: 1=Ready
+   END_VAR
+   VAR_INPUT RETAIN
+      watchdogTime : Time := T#1M;   // IW: Watchdog time
+   END_VAR
+   VAR_INPUT 
+      config_stepMode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: 0=Infinite jog; 1=Step job (see smc software to configure)
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Status code. See constants
+      busy { ExternalWritable := 'False'} : Bool;   // OR: 1=Busy (some action)
+      done { ExternalWritable := 'False'} : Bool;   // OR: 1=Done
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+      commandAborted { ExternalWritable := 'False'} : Bool;   // OR: 1=Command aborted
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Read only - PDI
+      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Conditional Partial Write - PDO
+   END_VAR
+
+   VAR 
+      step { ExternalWritable := 'False'} : Int := #STEP_0_IDLE;   // SR: Step
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      jog : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      STATUS_0000_IDLE : Int := 0;
+      STATUS_6000_BUSY : Int := 16#6000;
+      STATUS_8000_ABORTED : Int := 16#8000;
+      STATUS_8001_DRIVE_ERROR : Int := 16#8001;
+      STATUS_8002_JOG_MISMATCH : Int := 16#8002;
+      STEP_0_IDLE : Int := 0;
+      STEP_1_REQ : Int := 1;
+      STEP_2_BUSY : Int := 2;
+      STEP_3_DONE : Int := 3;
+      STEP_20_ABORTED : Int := 20;
+      STEP_21_ERROR : Int := 21;
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-19 | cyanezf | First version |
+  
+## Description
+
+This private function block implements the jog logic for the SMC JXD1 step motor controller. It provides a controlled way to jog the motor, ensuring that it moves in the desired direction at the specified speed. The function block uses a state machine to manage the jogging process.
+
+--*)
+
+	// Request event
+	#jog := #jogBackward XOR #jogForward;
+	
+	REGION Unconditional transitions
+	  
+	  IF NOT #ready THEN
+	    IF (#step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY) THEN
+	      #step := #STEP_21_ERROR;
+	    END_IF;
+	    
+	  ELSIF #abort THEN
+	    IF #step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY THEN
+	      #step := #STEP_20_ABORTED;
+	    END_IF;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Steps
+	  
+	  // ############################################################################
+	  IF #step = #STEP_0_IDLE THEN
+	    
+	    // Status
+	    #status := #STATUS_0000_IDLE;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 0;
+	
+	    // Transitions
+	    IF #jog AND #ready AND NOT #pdi.status.isRunning THEN
+	      #step := #STEP_1_REQ;
+	    END_IF;
+	  END_IF;
+	  
+	  // ############################################################################
+	  // Normal task steps
+	  // ############################################################################
+	  IF #step = #STEP_1_REQ THEN
+	    
+	    // Status
+	    #status := #STATUS_6000_BUSY;
+	    #busy := 1;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 0;
+	    
+	    // Init flags
+	    // Homing
+	    #pdo.control.homing := 0;
+	    // Jog
+	    #pdo.control.jogMinus := #jogBackward;
+	    #pdo.control.jogPlus := #jogForward;
+	    #pdo.control.flight := #config_stepMode;
+	    // Push
+	    #pdo.control.push := 0;
+	    #pdo.control.pushDirection := 0;
+	    // Abs
+	    #pdo.control.incMode := 0;
+	    // Start abs
+	    #pdo.control.start := 0;
+	    
+	    // Transitions
+	    IF #pdi.status.isRunning THEN
+	      #step := #STEP_2_BUSY;
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_2_BUSY THEN
+	    
+	    // Update
+	    #pdo.control.flight := 0;
+	    
+	    // Transitions
+	    IF NOT #jog OR (#config_stepMode AND NOT #pdi.status.isRunning) THEN
+	      #step := #STEP_3_DONE;
+	      
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_3_DONE THEN
+	    
+	    // Status
+	    #status := #STATUS_0000_IDLE;
+	    #busy := 0;
+	    #done := 1;
+	    #error := 0;
+	    #commandAborted := 0;
+	    
+	    // Init flags
+	    // Jog
+	    #pdo.control.jogMinus := 0;
+	    #pdo.control.jogPlus := 0;
+	    #pdo.control.flight := 0;
+	    
+	    // Transitions
+	    #step := #STEP_0_IDLE;
+	    
+	  END_IF;
+	  
+	  // ############################################################################
+	  // Abort and error steps
+	  // ############################################################################
+	  IF #step = #STEP_20_ABORTED THEN
+	    
+	    // Status
+	    #status := #STATUS_8000_ABORTED;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 0;
+	    #commandAborted := 1;
+	    
+	    // Init flags
+	    // Jog
+	    #pdo.control.jogMinus := 0;
+	    #pdo.control.jogPlus := 0;
+	    #pdo.control.flight := 0;
+	    
+	    // Transitions
+	    IF NOT #abort THEN
+	      #step := #STEP_0_IDLE;
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_21_ERROR THEN
+	    
+	    // Status
+	    #status := #STATUS_8001_DRIVE_ERROR;
+	    #busy := 0;
+	    #done := 0;
+	    #error := 1;
+	    #commandAborted := 0;
+	    
+	    // Init flags
+	    // Jog
+	    #pdo.control.jogMinus := 0;
+	    #pdo.control.jogPlus := 0;
+	    #pdo.control.flight := 0;
+	    
+	    // Transitions
+	    IF NOT #jog THEN
+	      #step := #STEP_0_IDLE;
+	    END_IF;
+	    
+	  END_IF;
+	  
+	END_REGION
+	
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+
