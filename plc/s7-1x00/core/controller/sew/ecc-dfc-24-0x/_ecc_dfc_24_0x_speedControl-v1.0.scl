@@ -1,10 +1,11 @@
 ﻿FUNCTION_BLOCK "_ecc_dfc_24_0x_speedControl"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi","ecc_dfc_24_0x_fullPlcModePdo","TON_TIME"]}
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi-v1.0","ecc_dfc_24_0x_fullPlcModePdo-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
 NAME : _ecc_dfc_24_0x_speedControl
 VERSION : 1.0
+
    VAR_INPUT 
       motorNr { ExternalWritable := 'False'} : USInt;   // IR: 0=Left motor (default); 1=Right motor
       controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
@@ -159,193 +160,193 @@ This function block controls a single motor as speed control.
 |  1    |   1   | Motor not running and no braking applied (free to spin)
 
 --*)
-	
-	// MDR = Motor Driven Roller
-	
-	REGION Set speed
-	  // Speed to %
-	  // maxSpeed -> 100%
-	  // speed    -> ?
-	  // 
-	  IF #velocity <= 0.0 THEN
-	    #motor.speed := #NO_MOTOR_SPEED;
-	  ELSIF #velocity >= INT_TO_LREAL(#MAX_MOTOR_SPEED) THEN
-	    #motor.speed := #MAX_MOTOR_SPEED;
-	  ELSE
-	    #motor.speed := LREAL_TO_INT(#velocity);
-	  END_IF;
-	END_REGION
-	
-	REGION Motor contorl
-	  // Ok
-	  #ok := #controlOn AND #emrgStopOk AND #motor.speed > #NO_MOTOR_SPEED;
-	  #motor.run := (#runForward XOR #runBackward) AND #ok;
-	  
-	  // | runForward | runBackward | ccw || Direction | Description |
-	  // | :--------- | :---------- | :-- || :-------- | :---------- |
-	  // | 1          | 0           | 0   || 0         | Forward is clock wise |
-	  // | 1          | 0           | 1   || 1         | Forward is counter clock wise |
-	  // | 0          | 1           | 0   || 0         | Backward is counter clock wise |
-	  // | 0          | 1           | 1   || 1         | Backward is clock wise |
-	  #motor.direction := #motor.run AND ((#runBackward AND NOT #config_ccw) OR (#runForward AND #config_ccw)); // 0=cw; 1=ccw
-	  
-	  // Brake mode
-	  IF #config_brakeMode < #BRAKE_MODE_1_STANDARD OR #config_brakeMode > #BRAKE_MODE_3_SERVO_BRAKE THEN
-	    #motor.brakeMode := #BRAKE_MODE_1_STANDARD;
-	  ELSE
-	    #motor.brakeMode := #config_brakeMode;
-	  END_IF;
-	  
-	END_REGION
-	
-	REGION Select status
-	  IF #motorNr = #MOTOR_1_RIGHT THEN
-	    
-	    #rx.current := #pdi.right_current;
-	    #rx.frequency := #pdi.right_frequency;
-	    #rx.temperature := #pdi.right_temperature;
-	    #rx.moduleTemperature := #pdi.right_moduleTemperature;
-	    #rx.mdrDiagnostics := #pdi.right_mdrDiagnostics;
-	    #rx.mdrRealSpeed := #pdi.right_mdrRealSpeed;
-	    
-	  ELSE
-	    #rx.current := #pdi.left_current;
-	    #rx.frequency := #pdi.left_frequency;
-	    #rx.temperature := #pdi.left_temperature;
-	    #rx.moduleTemperature := #pdi.left_moduleTemperature;
-	    #rx.mdrDiagnostics := #pdi.left_mdrDiagnostics;
-	    #rx.mdrRealSpeed := #pdi.left_mdrRealSpeed;
-	    
-	  END_IF;
-	END_REGION
-	
-	REGION Status code
-	  
-	  #motor.overSpeed := #rx.mdrRealSpeed.%X14;
-	  #motor.underSpeed := #rx.mdrRealSpeed.%X15;
-	  
-	  IF #rx.mdrDiagnostics.x3_mdrNotconnected THEN
-	    #status := #STATUS_8000_MDR_NOT_CONNECTED;
-	    
-	  ELSIF #rx.mdrDiagnostics.x6_mdrBadHall THEN
-	    #status := #STATUS_8001_MDR_BAD_HALL;
-	    
-	  ELSIF #rx.mdrDiagnostics.x7_mdrNotUsed THEN
-	    #status := #STATUS_8002_MDR_NOT_USED;
-	    
-	  ELSIF #rx.mdrDiagnostics.xA_mdrInDoMode THEN
-	    #status := #STATUS_8003_MDR_IN_DO_MODE;
-	    
-	  ELSIF #rx.mdrDiagnostics.x2_shortcircuit THEN
-	    #status := #STATUS_8004_SHORT_CIRCUIT;
-	    
-	  ELSIF #rx.mdrDiagnostics.x0_overheat THEN
-	    #status := #STATUS_8005_OVERHEAT;
-	    
-	  ELSIF #rx.mdrDiagnostics.x1_maxTorque THEN
-	    #status := #STATUS_8006_MAX_TORQUE;
-	    
-	  ELSIF #rx.mdrDiagnostics.x4_overload THEN
-	    #status := #STATUS_8007_OVERLOAD;
-	    
-	  ELSIF #rx.mdrDiagnostics.x5_stalled THEN
-	    #status := #STATUS_8008_STALLED;
-	    
-	  ELSIF #rx.mdrDiagnostics.xE_overVoltage THEN
-	    #status := #STATUS_8009_OVER_VOLTAGE;
-	    
-	  ELSIF #rx.mdrDiagnostics.xF_lowVoltage THEN
-	    #status := #STATUS_800A_LOW_VOLTAGE;
-	    
-	  ELSIF #motor.overSpeed THEN
-	    #status := #STATUS_7000_OVER_SPEED;
-	    
-	  ELSIF #motor.underSpeed THEN
-	    #status := #STATUS_7001_UNDER_SPEED;
-	    
-	  ELSE
-	    #status := #STATUS_0000_READY;
-	    
-	  END_IF;
-	END_REGION
-	
-	REGION Function outputs
-	  // Bit outputs
-	  #ready := #status >= #STATUS_0000_READY;
-	  
-	  #isRunning := #rx.mdrDiagnostics.x8_mdrStatusBit1 XOR #rx.mdrDiagnostics.x9_mdrStatusBit2;
-	  #isBraked := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
-	  #isCw := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND #rx.mdrDiagnostics.x9_mdrStatusBit2;
-	  #isCcw := #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
-	  #direction := (NOT #config_ccw AND #isCcw) OR (#config_ccw AND #isCw); // 0=Forward; 1=Backward
-	  
-	  // Actual values
-	  #actualCurrent := INT_TO_LREAL(#rx.current) / 1000;
-	  #actualFrequency := #rx.frequency;
-	  #actualMotorTemperature := #rx.temperature;
-	  #actualModuleTemperature := #rx.moduleTemperature;
-	  #actualVelocity := INT_TO_LREAL(#rx.mdrRealSpeed AND 16#3FFF);
-	  
-	END_REGION
-	
-	REGION Control
-	  
-	  // Brake mode
-	  #tx.brakeMode := #motor.brakeMode;
-	  
-	  // Accelerations
-	  #tx.mdrAcceleration := ABS(LREAL_TO_INT(#acceleration));
-	  #tx.mdrDeceleration := ABS(LREAL_TO_INT(#deceleration));
-	  
-	  // Control
-	  #tx.mdrControl.x0_mdrDirection := #motor.direction;
-	  #tx.mdrControl.x8_runMdr := #motor.run;
-	  
-	  // Speed
-	  #tx.mdrSpeed := #motor.speed;
-	  
-	END_REGION
-	
-	REGION Select control
-	  IF #motorNr = #MOTOR_1_RIGHT THEN
-	    #pdo.right_brakeMode := #tx.brakeMode;
-	    #pdo.right_mdrControl := #tx.mdrControl;
-	    #pdo.right_mdrSpeed := #tx.mdrSpeed;
-	    #pdo.right_mdrAcceleration := #tx.mdrAcceleration;
-	    #pdo.right_mdrDeceleration := #tx.mdrDeceleration;
-	    #pdo.right_servoControlPosition := 0;
-	    #pdo.right_servoControlCommand := #SERVO_CONTROL_00_IDLE;
-	    
-	  ELSE
-	    #pdo.left_brakeMode := #tx.brakeMode;
-	    #pdo.left_mdrControl := #tx.mdrControl;
-	    #pdo.left_mdrSpeed := #tx.mdrSpeed;
-	    #pdo.left_mdrAcceleration := #tx.mdrAcceleration;
-	    #pdo.left_mdrDeceleration := #tx.mdrDeceleration;
-	    #pdo.left_servoControlPosition := 0;
-	    #pdo.left_servoControlCommand := #SERVO_CONTROL_00_IDLE;
-	    
-	  END_IF;
-	END_REGION
-	  
-	REGION Ackn
-	  // Why so comple?
-	  // Because clearMdrError is a shared reset for all module.
-	  IF #ackn AND NOT #private.ackn THEN
-	    #pdo.clearMdrError := 1;
-	  END_IF;
-	  
-	  #private.ackn := #ackn;
-	  #private.acknTon(IN := #pdo.clearMdrError <> 0,
-	                   PT := t#100ms);
-	  
-	  IF #private.acknTon.Q THEN
-	    #pdo.clearMdrError := 0;
-	  END_IF;
-	END_REGION
-	
-	// Save RLO
-	ENO := true;
-	
+	 
+	 // MDR = Motor Driven Roller
+	 
+	 REGION Set speed
+	   // Speed to %
+	   // maxSpeed -> 100%
+	   // speed    -> ?
+	   // 
+	   IF #velocity <= 0.0 THEN
+	     #motor.speed := #NO_MOTOR_SPEED;
+	   ELSIF #velocity >= INT_TO_LREAL(#MAX_MOTOR_SPEED) THEN
+	     #motor.speed := #MAX_MOTOR_SPEED;
+	   ELSE
+	     #motor.speed := LREAL_TO_INT(#velocity);
+	   END_IF;
+	 END_REGION
+	 
+	 REGION Motor contorl
+	   // Ok
+	   #ok := #controlOn AND #emrgStopOk AND #motor.speed > #NO_MOTOR_SPEED;
+	   #motor.run := (#runForward XOR #runBackward) AND #ok;
+	   
+	   // | runForward | runBackward | ccw || Direction | Description |
+	   // | :--------- | :---------- | :-- || :-------- | :---------- |
+	   // | 1          | 0           | 0   || 0         | Forward is clock wise |
+	   // | 1          | 0           | 1   || 1         | Forward is counter clock wise |
+	   // | 0          | 1           | 0   || 0         | Backward is counter clock wise |
+	   // | 0          | 1           | 1   || 1         | Backward is clock wise |
+	   #motor.direction := #motor.run AND ((#runBackward AND NOT #config_ccw) OR (#runForward AND #config_ccw)); // 0=cw; 1=ccw
+	   
+	   // Brake mode
+	   IF #config_brakeMode < #BRAKE_MODE_1_STANDARD OR #config_brakeMode > #BRAKE_MODE_3_SERVO_BRAKE THEN
+	     #motor.brakeMode := #BRAKE_MODE_1_STANDARD;
+	   ELSE
+	     #motor.brakeMode := #config_brakeMode;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION Select status
+	   IF #motorNr = #MOTOR_1_RIGHT THEN
+	     
+	     #rx.current := #pdi.right_current;
+	     #rx.frequency := #pdi.right_frequency;
+	     #rx.temperature := #pdi.right_temperature;
+	     #rx.moduleTemperature := #pdi.right_moduleTemperature;
+	     #rx.mdrDiagnostics := #pdi.right_mdrDiagnostics;
+	     #rx.mdrRealSpeed := #pdi.right_mdrRealSpeed;
+	     
+	   ELSE
+	     #rx.current := #pdi.left_current;
+	     #rx.frequency := #pdi.left_frequency;
+	     #rx.temperature := #pdi.left_temperature;
+	     #rx.moduleTemperature := #pdi.left_moduleTemperature;
+	     #rx.mdrDiagnostics := #pdi.left_mdrDiagnostics;
+	     #rx.mdrRealSpeed := #pdi.left_mdrRealSpeed;
+	     
+	   END_IF;
+	 END_REGION
+	 
+	 REGION Status code
+	   
+	   #motor.overSpeed := #rx.mdrRealSpeed.%X14;
+	   #motor.underSpeed := #rx.mdrRealSpeed.%X15;
+	   
+	   IF #rx.mdrDiagnostics.x3_mdrNotconnected THEN
+	     #status := #STATUS_8000_MDR_NOT_CONNECTED;
+	     
+	   ELSIF #rx.mdrDiagnostics.x6_mdrBadHall THEN
+	     #status := #STATUS_8001_MDR_BAD_HALL;
+	     
+	   ELSIF #rx.mdrDiagnostics.x7_mdrNotUsed THEN
+	     #status := #STATUS_8002_MDR_NOT_USED;
+	     
+	   ELSIF #rx.mdrDiagnostics.xA_mdrInDoMode THEN
+	     #status := #STATUS_8003_MDR_IN_DO_MODE;
+	     
+	   ELSIF #rx.mdrDiagnostics.x2_shortcircuit THEN
+	     #status := #STATUS_8004_SHORT_CIRCUIT;
+	     
+	   ELSIF #rx.mdrDiagnostics.x0_overheat THEN
+	     #status := #STATUS_8005_OVERHEAT;
+	     
+	   ELSIF #rx.mdrDiagnostics.x1_maxTorque THEN
+	     #status := #STATUS_8006_MAX_TORQUE;
+	     
+	   ELSIF #rx.mdrDiagnostics.x4_overload THEN
+	     #status := #STATUS_8007_OVERLOAD;
+	     
+	   ELSIF #rx.mdrDiagnostics.x5_stalled THEN
+	     #status := #STATUS_8008_STALLED;
+	     
+	   ELSIF #rx.mdrDiagnostics.xE_overVoltage THEN
+	     #status := #STATUS_8009_OVER_VOLTAGE;
+	     
+	   ELSIF #rx.mdrDiagnostics.xF_lowVoltage THEN
+	     #status := #STATUS_800A_LOW_VOLTAGE;
+	     
+	   ELSIF #motor.overSpeed THEN
+	     #status := #STATUS_7000_OVER_SPEED;
+	     
+	   ELSIF #motor.underSpeed THEN
+	     #status := #STATUS_7001_UNDER_SPEED;
+	     
+	   ELSE
+	     #status := #STATUS_0000_READY;
+	     
+	   END_IF;
+	 END_REGION
+	 
+	 REGION Function outputs
+	   // Bit outputs
+	   #ready := #status >= #STATUS_0000_READY;
+	   
+	   #isRunning := #rx.mdrDiagnostics.x8_mdrStatusBit1 XOR #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	   #isBraked := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	   #isCw := NOT #rx.mdrDiagnostics.x8_mdrStatusBit1 AND #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	   #isCcw := #rx.mdrDiagnostics.x8_mdrStatusBit1 AND NOT #rx.mdrDiagnostics.x9_mdrStatusBit2;
+	   #direction := (NOT #config_ccw AND #isCcw) OR (#config_ccw AND #isCw); // 0=Forward; 1=Backward
+	   
+	   // Actual values
+	   #actualCurrent := INT_TO_LREAL(#rx.current) / 1000;
+	   #actualFrequency := #rx.frequency;
+	   #actualMotorTemperature := #rx.temperature;
+	   #actualModuleTemperature := #rx.moduleTemperature;
+	   #actualVelocity := INT_TO_LREAL(#rx.mdrRealSpeed AND 16#3FFF);
+	   
+	 END_REGION
+	 
+	 REGION Control
+	   
+	   // Brake mode
+	   #tx.brakeMode := #motor.brakeMode;
+	   
+	   // Accelerations
+	   #tx.mdrAcceleration := ABS(LREAL_TO_INT(#acceleration));
+	   #tx.mdrDeceleration := ABS(LREAL_TO_INT(#deceleration));
+	   
+	   // Control
+	   #tx.mdrControl.x0_mdrDirection := #motor.direction;
+	   #tx.mdrControl.x8_runMdr := #motor.run;
+	   
+	   // Speed
+	   #tx.mdrSpeed := #motor.speed;
+	   
+	 END_REGION
+	 
+	 REGION Select control
+	   IF #motorNr = #MOTOR_1_RIGHT THEN
+	     #pdo.right_brakeMode := #tx.brakeMode;
+	     #pdo.right_mdrControl := #tx.mdrControl;
+	     #pdo.right_mdrSpeed := #tx.mdrSpeed;
+	     #pdo.right_mdrAcceleration := #tx.mdrAcceleration;
+	     #pdo.right_mdrDeceleration := #tx.mdrDeceleration;
+	     #pdo.right_servoControlPosition := 0;
+	     #pdo.right_servoControlCommand := #SERVO_CONTROL_00_IDLE;
+	     
+	   ELSE
+	     #pdo.left_brakeMode := #tx.brakeMode;
+	     #pdo.left_mdrControl := #tx.mdrControl;
+	     #pdo.left_mdrSpeed := #tx.mdrSpeed;
+	     #pdo.left_mdrAcceleration := #tx.mdrAcceleration;
+	     #pdo.left_mdrDeceleration := #tx.mdrDeceleration;
+	     #pdo.left_servoControlPosition := 0;
+	     #pdo.left_servoControlCommand := #SERVO_CONTROL_00_IDLE;
+	     
+	   END_IF;
+	 END_REGION
+	   
+	 REGION Ackn
+	   // Why so comple?
+	   // Because clearMdrError is a shared reset for all module.
+	   IF #ackn AND NOT #private.ackn THEN
+	     #pdo.clearMdrError := 1;
+	   END_IF;
+	   
+	   #private.ackn := #ackn;
+	   #private.acknTon(IN := #pdo.clearMdrError <> 0,
+	                    PT := t#100ms);
+	   
+	   IF #private.acknTon.Q THEN
+	     #pdo.clearMdrError := 0;
+	   END_IF;
+	 END_REGION
+	 
+	 // Save RLO
+	 ENO := true;
+	 
 END_FUNCTION_BLOCK
 

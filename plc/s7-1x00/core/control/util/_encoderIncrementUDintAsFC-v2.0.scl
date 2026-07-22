@@ -1,25 +1,24 @@
-﻿FUNCTION_BLOCK "_encoderIncrementDint"
+﻿FUNCTION "_encoderIncrementUDintAsFC" : Int
 TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/control/util'
-NAME : _encoderIncrementDint
+NAME : _encoderIncrementUDintAsFC
 VERSION : 2.0
 
    VAR_INPUT 
-      encoderValue { ExternalWritable := 'False'} : DInt;   // IR: Current encoder value
-      minValue { ExternalWritable := 'False'} : DInt := -2147483648;   // IR: Min value of encoder
-      maxValue { ExternalWritable := 'False'} : DInt := 2147483647;   // IR: Max value of encoder
-      maxIncrements { ExternalWritable := 'False'} : UDInt := 1000;   // IR: Max steps of encoder in one scan cycle
+      encoderValue : UDInt;   // Current encoder value
+      minValue : UDInt;   // Min value of encoder
+      maxValue : UDInt;   // Max value of encoder
+      maxIncrements : UDInt;   // Max steps of encoder in one scan cycle
    END_VAR
 
    VAR_OUTPUT 
-      status { ExternalWritable := 'False'} : Int;   // OR: Status
-      increment { ExternalWritable := 'False'} : DInt;   // OR: Number of increments in one scan cycle
+      increment : DInt;   // Number of increments in one scan cycle
    END_VAR
 
-   VAR 
-      prevEncoderValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // SX: Stored previous encoder value
+   VAR_IN_OUT 
+      prevEncoderValue : UDInt;   // Stored previous encoder value
    END_VAR
 
    VAR_TEMP 
@@ -46,7 +45,7 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v2.0 | 2026-03-04 | cyanezf | feat: Fix bugs and change to FB |
+| v2.0 | 2026-03-04 | cyanezf | feat: Fix bugs and change to FC |
 | v1.0 | 2025-07-07 | cyanezf | First version |
 
 ## Description
@@ -56,29 +55,30 @@ This function returns the number of increments of an encoder in each scan cycle.
 Encoder value must be between `minValue`and `maxValue`.
 
 `overstepError` is triggered when `increment`is more than +/- `maxIncrements`.
-  
+
 --*)
 	
 	// Check min < max
 	IF #minValue >= #maxValue THEN
-	  #status := #STATUS_8000_MIN_MAX;
+	  #_encoderIncrementUDint := #STATUS_8000_MIN_MAX;
 	  #increment := 0;
 	  ENO := false;
 	  RETURN;
 	END_IF;
 	
 	// Calculate quadrant
-	#maxRange := DINT_TO_UDINT(#maxValue - #minValue);
+	#maxRange := #maxValue - #minValue;
 	#haldRange := (#maxRange / 2) + (#maxRange MOD 2);
 	
 	// Normalize
-	#normCurr := DINT_TO_UDINT(#encoderValue - #minValue);
-	#normPrev := DINT_TO_UDINT(#prevEncoderValue - #minValue);
+	#normCurr := #encoderValue - #minValue;
+	#normPrev := #prevEncoderValue - #minValue;
 	
 	// Check difference
 	IF #normCurr >= #normPrev THEN
 	  #forwardDiff := #normCurr - #normPrev;
 	ELSE
+	  //#forwardDiff := (#maxValue - #prevEncoderValue) + (#encoderValue - #minValue) + 1;
 	  #forwardDiff := #maxRange - #normPrev + #normCurr + 1;
 	END_IF;
 	
@@ -94,17 +94,17 @@ Encoder value must be between `minValue`and `maxValue`.
 	
 	// Update previous
 	#prevEncoderValue := #encoderValue;
-	
+	  
 	// Check increment overflow
 	IF ABS(#increment) > #maxIncrements THEN
-	  #status := #STATUS_8001_INCREMENT_OVERFLOW;
+	  #_encoderIncrementUDint := #STATUS_8001_INCREMENT_OVERFLOW;
 	  ENO := false;
 	  RETURN;
 	END_IF;
 	
 	// Save RLO
-	#status := #STATUS_0_DONE;
+	#_encoderIncrementUDint := #STATUS_0_DONE;
 	ENO := true;
 	
-END_FUNCTION_BLOCK
+END_FUNCTION
 

@@ -1,9 +1,9 @@
-﻿FUNCTION_BLOCK "__jxd1_moveRelative"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
+﻿FUNCTION_BLOCK "__ecc_moveAbsolute"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_profile-v1.0","ecc_dfc_24_0x_control-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/controller/smc/jxd1'
-NAME : '__jxd1_moveRelative'
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : '__ecc_moveAbsolute'
 VERSION : 1.0
 
    VAR_INPUT 
@@ -16,7 +16,6 @@ VERSION : 1.0
       inPositionByCalcTime : Time := T#100ms;   // IW: Time to delay In position by calculation
    END_VAR
    VAR_INPUT 
-      actualPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;   // IX: Actual position
       config_changeOnFly { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: Config - 1=change on fly
       config_runJobWhileRequestIsOn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: 0=Run job on the rising edge of the request; 1=Run job while request is ON
    END_VAR
@@ -27,14 +26,14 @@ VERSION : 1.0
       done { ExternalWritable := 'False'} : Bool;   // OR: 1=Done
       error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
       commandAborted { ExternalWritable := 'False'} : Bool;   // OR: 1=Command aborted
-      hold { ExternalWritable := 'False'} : Bool;   // OR: 1=Hold
-      servoOn { ExternalWritable := 'False'} : Bool;   // OR: 1=Servo on
    END_VAR
 
    VAR_IN_OUT 
-      profile : "jxd1_profile";   // IOX: Read only - Profile
-      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Read only - PDI
-      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Conditional Partial Write - PDO
+      actualPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;   // IOX: Read only - Actual position
+      profile : "ecc_dfc_24_0x_profile";   // IOX: Read only - Profile
+      pdi_servoStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // IOX: Read only - PDI
+      pdi_isRunning { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Read only - Is running
+      pdo : "ecc_dfc_24_0x_control";   // IOX: Conditional Write - Virtual PDO
       targetPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;   // IOX: Conditional Write - Target position
    END_VAR
 
@@ -42,7 +41,7 @@ VERSION : 1.0
       step { ExternalWritable := 'False'} : Int := #STEP_0_IDLE;   // SR: Step
       finishJob { ExternalWritable := 'False'} : Bool;   // SR: 1=finish job
       target { ExternalWritable := 'False'} : Struct   // SR: Target profile
-         relativePosition { ExternalWritable := 'False'} : LReal;
+         absolutePosition { ExternalWritable := 'False'} : LReal;
          tolerance { ExternalWritable := 'False'} : LReal;
       END_STRUCT;
       private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
@@ -58,10 +57,11 @@ VERSION : 1.0
       inPositionByPdiPulse : Bool;
       inPositionByCalc : Bool;
       requestPulseOn : Bool;
-      requestPulseOff : Bool;
    END_VAR
 
    VAR CONSTANT 
+      MOTOR_0_LEFT : USInt := 0;
+      MOTOR_1_RIGHT : USInt := 1;
       STATUS_0000_IDLE : Int := 0;
       STATUS_0001_DONE : Int := 1;
       STATUS_6000_BUSY : Int := 16#6000;
@@ -72,12 +72,17 @@ VERSION : 1.0
       STEP_2_BUSY : Int := 2;
       STEP_3_DONE : Int := 3;
       STEP_10_HOLD : Int := 10;
-      STEP_11_SERVO_OFF : Int := 11;
-      STEP_12_SERVO_ON : Int := 12;
       STEP_20_ABORTED : Int := 20;
       STEP_21_ERROR : Int := 21;
-      POS_FACTOR : LReal := 100.0;
+      SERVO_STATUS_0_IDLE : Word := 0;
+      SERVO_STATUS_2_HOMED : Word := 2;
+      SERVO_STATUS_4_IS_RUNNING : Word := 4;
+      SERVO_STATUS_5_TARGET_REACHED : Word := 5;
+      SERVO_CONTROL_0_IDLE : Word := 0;
+      SERVO_CONTROL_1_HOMING : Word := 1;
+      SERVO_CONTROL_2_ABS_POS : Word := 2;
    END_VAR
+
 
 BEGIN
 (*--
@@ -87,35 +92,33 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v1.0 | 2026-07-19 | cyanezf | First version |
-  
+| v1.0 | 2026-07-21 | cyanezf | First version |
+
 ## Description
 
-This private function block implements the relative move logic for the SMC JXD1 step motor controller. It provides a controlled way to move the motor relative to its current position, ensuring that it reaches the target position within the specified tolerance. The function block uses a state machine to manage the moving process, including holding the motor for a specified time before turning off the servo.
+This function block implements the move absolute command for the SEW ECC DFC 24-0x drive. It handles the request, abort, and ready signals, manages the state machine for the move operation, and interfaces with the drive's PDI and PDO for control and status feedback.
 
---*)	
-	
+--*)
+
 	// Request Event
 	#requestPulseOn := #request AND NOT #private.request;
-	#requestPulseOff := NOT #request AND #private.request;
 	#private.request := #request;
 	
 	// In position by PDI
-	#inPositionByPdiPulse := #pdi.status.inPosition AND NOT #private.inPositionByPdi;
-	#private.inPositionByPdi := #pdi.status.inPosition;
+	#inPositionByPdiPulse := #pdi_servoStatus = #SERVO_STATUS_5_TARGET_REACHED AND NOT #private.inPositionByPdi;
+	#private.inPositionByPdi := #pdi_servoStatus = #SERVO_STATUS_5_TARGET_REACHED;
 	
 	// In position by calculation
 	#aux := ABS(#actualPosition - #targetPosition) <= #target.tolerance AND #step = #STEP_2_BUSY;
-	#private.inPositionByCalcTimer(IN:=#aux,
-	                               PT:=#inPositionByCalcTime,
-	                               Q=>#inPositionByCalc);
+	#private.inPositionByCalcTimer(IN := #aux,
+	                               PT := #inPositionByCalcTime,
+	                               Q => #inPositionByCalc);
 	
 	REGION Unconditional transitions
 	  
 	  // ############################################################################
 	  IF NOT #ready THEN
-	    IF (#step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY) OR
-	      (#step >= #STEP_10_HOLD AND #step <= #STEP_12_SERVO_ON) THEN
+	    IF (#step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY) OR #step = #STEP_10_HOLD THEN
 	      #step := #STEP_21_ERROR;
 	    END_IF;
 	    
@@ -139,7 +142,6 @@ This private function block implements the relative move logic for the SMC JXD1 
 	
 	REGION Steps
 	  
-	  // ############################################################################
 	  IF #step = #STEP_0_IDLE THEN
 	    
 	    // Status
@@ -149,13 +151,9 @@ This private function block implements the relative move logic for the SMC JXD1 
 	    #error := 0;
 	    #commandAborted := 0;
 	    
-	    // Absolute flags
-	    #servoOn := 1;
-	    #hold := 0;
-	    
+	    // Transition
 	    IF ((#requestPulseOn AND NOT #config_runJobWhileRequestIsOn) OR
-	      (#request AND #config_runJobWhileRequestIsOn)) AND
-	      #ready AND NOT #pdi.status.isRunning THEN
+	      (#request AND #config_runJobWhileRequestIsOn)) AND #ready  AND NOT #pdi_isRunning THEN
 	      #step := #STEP_1_REQ;
 	    END_IF;
 	  END_IF;
@@ -174,47 +172,34 @@ This private function block implements the relative move logic for the SMC JXD1 
 	    #finishJob := 0;
 	    
 	    // Set parameters
-	    #pdo.position := LREAL_TO_DINT(#profile.position * #POS_FACTOR);
-	    #pdo.acceleration := LREAL_TO_INT(#profile.acceleration);
-	    #pdo.velocity := LREAL_TO_INT(#profile.velocity);
-	    #pdo.pushingForce := USINT_TO_INT(#profile.pushingForce);
-	    #pdo.tolerance := LREAL_TO_DINT((#profile.tolerance) * #POS_FACTOR);
-	    #target.relativePosition := #profile.position;
-	    #targetPosition := #actualPosition + #profile.position;
+	    #pdo.position := #profile.position;
+	    #pdo.velocity := #profile.velocity;
+	    #pdo.acceleration := #profile.acceleration;
+	    #pdo.deceleration := #profile.deceleration;
+	    #pdo.tolerance := #profile.tolerance;
+	    #targetPosition := #target.absolutePosition := #profile.position;
 	    
-	    // Init flags
-	    // Homing
-	    #pdo.control.homing := 0;
-	    // Jog
-	    #pdo.control.jogMinus := 0;
-	    #pdo.control.jogPlus := 0;
-	    #pdo.control.flight := 0;
-	    // Push
-	    #pdo.control.push := 0;
-	    #pdo.control.pushDirection := 0;
-	    // Rel
-	    #pdo.control.incMode := 1; // REL
-	    // Start abs
-	    #pdo.control.start := 1;
+	    // Control
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
+	    #pdo.servoCommand := #SERVO_CONTROL_0_IDLE;
 	    
 	    // Transitions
-	    IF #pdi.status.isRunning THEN
+	    IF #pdi_servoStatus = #SERVO_STATUS_0_IDLE THEN
 	      #step := #STEP_2_BUSY;
 	    END_IF;
 	    
 	    // ############################################################################
 	  ELSIF #step = #STEP_2_BUSY THEN
 	    
-	    // Update
-	    #pdo.acceleration := LREAL_TO_INT(#profile.deceleration);
-	    #pdo.control.incMode := 0; // REL
-	    #pdo.control.start := 0;
+	    // Control
+	    #pdo.servoCommand := #SERVO_CONTROL_2_ABS_POS;
 	    
 	    // Transitions
 	    IF #inPositionByPdiPulse OR #inPositionByCalc THEN
 	      #step := #STEP_3_DONE;
 	      
-	    ELSIF #profile.position <> #target.relativePosition AND #config_changeOnFly THEN
+	    ELSIF #profile.position <> #target.absolutePosition AND #config_changeOnFly THEN
 	      #step := #STEP_10_HOLD;
 	    END_IF;
 	    
@@ -228,6 +213,9 @@ This private function block implements the relative move logic for the SMC JXD1 
 	    #error := 0;
 	    #commandAborted := 0;
 	    
+	    // Control
+	    #pdo.servoCommand := #SERVO_CONTROL_0_IDLE;
+	    
 	    // Transitions
 	    IF NOT #request OR #config_runJobWhileRequestIsOn THEN
 	      #step := #STEP_0_IDLE;
@@ -240,36 +228,11 @@ This private function block implements the relative move logic for the SMC JXD1 
 	  // ############################################################################
 	  IF #step = #STEP_10_HOLD THEN
 	    
-	    // Init flags
-	    #hold := 1;
+	    // Control
+	    #pdo.servoCommand := #SERVO_CONTROL_0_IDLE;
 	    
 	    // Transitions
-	    IF NOT #pdi.status.isRunning THEN
-	      #step := #STEP_11_SERVO_OFF;
-	    END_IF;
-	    
-	    // ############################################################################
-	  ELSIF #step = #STEP_11_SERVO_OFF THEN
-	    
-	    // Init flags
-	    #servoOn := 0;
-	    
-	    // Transitions
-	    IF NOT #pdi.status.servoReady THEN
-	      #step := #STEP_12_SERVO_ON;
-	    END_IF;
-	    
-	    // ############################################################################
-	  ELSIF #step = #STEP_12_SERVO_ON THEN
-	    
-	    // Init flags
-	    #hold := 0;
-	    #servoOn := 1;
-	    
-	    // Transitions
-	    IF #pdi.status.servoReady AND NOT #finishJob THEN
-	      #step := #STEP_1_REQ;
-	    ELSIF #pdi.status.servoReady AND #finishJob THEN
+	    IF #pdi_servoStatus = #SERVO_STATUS_0_IDLE THEN
 	      #step := #STEP_0_IDLE;
 	    END_IF;
 	    

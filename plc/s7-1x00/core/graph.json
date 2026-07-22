@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-19T16:07:27+00:00",
+  "generatedAt": "2026-07-22T09:12:17+00:00",
   "nodes": [
     {
       "id": "abstractAlarmData-v2.0",
@@ -162,6 +162,17 @@
       "dependencies": [
         "VAL_STRG"
       ],
+      "legacyFolder": false
+    },
+    {
+      "id": "_rpmToRevPerSecond-v1.0",
+      "name": "_rpmToRevPerSecond",
+      "base": "_rpmToRevPerSecond",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/converter/_rpmToRevPerSecond-v1.0.scl",
+      "dependencies": [],
       "legacyFolder": false
     },
     {
@@ -1458,46 +1469,46 @@
       "legacyFolder": false
     },
     {
-      "id": "_encoderIncrementDint-as-FB-v2.0",
-      "name": "_encoderIncrementDint",
-      "base": "_encoderIncrementDint-as-FB",
+      "id": "_encoderIncrementDintAsFB-v2.0",
+      "name": "_encoderIncrementDintAsFB",
+      "base": "_encoderIncrementDintAsFB",
       "version": "2.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDint-as-FB-v2.0.scl",
+      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDintAsFB-v2.0.scl",
       "dependencies": [],
       "legacyFolder": false
     },
     {
-      "id": "_encoderIncrementDint-as-FC-v2.0",
-      "name": "_encoderIncrementDint",
-      "base": "_encoderIncrementDint-as-FC",
+      "id": "_encoderIncrementDintAsFC-v2.0",
+      "name": "_encoderIncrementDintAsFC",
+      "base": "_encoderIncrementDintAsFC",
       "version": "2.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDint-as-FC-v2.0.scl",
+      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDintAsFC-v2.0.scl",
       "dependencies": [],
       "legacyFolder": false
     },
     {
-      "id": "_encoderIncrementUDint-as-FB-v2.0",
-      "name": "_encoderIncrementUDint",
-      "base": "_encoderIncrementUDint-as-FB",
+      "id": "_encoderIncrementUDintAsFB-v2.0",
+      "name": "_encoderIncrementUDintAsFB",
+      "base": "_encoderIncrementUDintAsFB",
       "version": "2.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDint-as-FB-v2.0.scl",
+      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDintAsFB-v2.0.scl",
       "dependencies": [],
       "legacyFolder": false
     },
     {
-      "id": "_encoderIncrementUDint-as-FC-v2.0",
-      "name": "_encoderIncrementUDint",
-      "base": "_encoderIncrementUDint-as-FC",
+      "id": "_encoderIncrementUDintAsFC-v2.0",
+      "name": "_encoderIncrementUDintAsFC",
+      "base": "_encoderIncrementUDintAsFC",
       "version": "2.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDint-as-FC-v2.0.scl",
+      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDintAsFC-v2.0.scl",
       "dependencies": [],
       "legacyFolder": false
     },
@@ -2007,6 +2018,17 @@
       "legacyFolder": false
     },
     {
+      "id": "ecc_dfc_24_0x_control-v1.0",
+      "name": "ecc_dfc_24_0x_control",
+      "base": "ecc_dfc_24_0x_control",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_control-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
       "id": "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
       "name": "ecc_dfc_24_0x_fullPlcModePdi",
       "base": "ecc_dfc_24_0x_fullPlcModePdi",
@@ -2029,6 +2051,17 @@
       "legacyFolder": false
     },
     {
+      "id": "ecc_dfc_24_0x_profile-v1.0",
+      "name": "ecc_dfc_24_0x_profile",
+      "base": "ecc_dfc_24_0x_profile",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_profile-v1.0.udt",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
       "id": "_ecc_dfc_24_0x_config-v1.0",
       "name": "_ecc_dfc_24_0x_config",
       "base": "_ecc_dfc_24_0x_config",
@@ -2037,10 +2070,30 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/_ecc_dfc_24_0x_config-v1.0.scl",
       "dependencies": [
-        "ecc_dfc_24_0x_fullPlcModePdi",
-        "ecc_dfc_24_0x_fullPlcModePdo",
+        "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
+        "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
         "TON_TIME",
         "TOF_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "name": "_ecc_dfc_24_0x_positioningControl",
+      "base": "_ecc_dfc_24_0x_positioningControl",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/_ecc_dfc_24_0x_positioningControl-v1.0.scl",
+      "dependencies": [
+        "ecc_dfc_24_0x_profile-v1.0",
+        "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
+        "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
+        "ecc_dfc_24_0x_control-v1.0",
+        "__ecc_home-v1.0",
+        "__ecc_moveJog-v1.0",
+        "__ecc_moveAbsolute-v1.0",
+        "TON_TIME"
       ],
       "legacyFolder": false
     },
@@ -2053,8 +2106,53 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/_ecc_dfc_24_0x_speedControl-v1.0.scl",
       "dependencies": [
-        "ecc_dfc_24_0x_fullPlcModePdi",
-        "ecc_dfc_24_0x_fullPlcModePdo",
+        "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
+        "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__ecc_home-v1.0",
+      "name": "__ecc_home",
+      "base": "__ecc_home",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/__ecc_home-v1.0.scl",
+      "dependencies": [
+        "ecc_dfc_24_0x_profile-v1.0",
+        "ecc_dfc_24_0x_control-v1.0",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__ecc_moveAbsolute-v1.0",
+      "name": "__ecc_moveAbsolute",
+      "base": "__ecc_moveAbsolute",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/__ecc_moveAbsolute-v1.0.scl",
+      "dependencies": [
+        "ecc_dfc_24_0x_profile-v1.0",
+        "ecc_dfc_24_0x_control-v1.0",
+        "TON_TIME"
+      ],
+      "legacyFolder": false
+    },
+    {
+      "id": "__ecc_moveJog-v1.0",
+      "name": "__ecc_moveJog",
+      "base": "__ecc_moveJog",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/__ecc_moveJog-v1.0.scl",
+      "dependencies": [
+        "ecc_dfc_24_0x_profile-v1.0",
+        "ecc_dfc_24_0x_control-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2276,15 +2374,15 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/_jxd1_directNumerical-v1.0.scl",
       "dependencies": [
-        "jxd1_profile",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
-        "__jxd1_stop",
-        "__jxd1_halt",
-        "__jxd1_home",
-        "__jxd1_moveAbsolute",
-        "__jxd1_moveRelative",
-        "__jxd1_moveJog",
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+        "__jxd1_stop-v1.0",
+        "__jxd1_halt-v1.0",
+        "__jxd1_home-v1.0",
+        "__jxd1_moveAbsolute-v1.0",
+        "__jxd1_moveRelative-v1.0",
+        "__jxd1_moveJog-v1.0",
         "TOF_TIME"
       ],
       "legacyFolder": false
@@ -2312,9 +2410,9 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_halt-v1.0.scl",
       "dependencies": [
-        "jxd1_profile",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2328,8 +2426,8 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_home-v1.0.scl",
       "dependencies": [
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2343,9 +2441,9 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveAbsolute-v1.0.scl",
       "dependencies": [
-        "jxd1_profile",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2359,8 +2457,8 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveJog-v1.0.scl",
       "dependencies": [
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2374,9 +2472,9 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveRelative-v1.0.scl",
       "dependencies": [
-        "jxd1_profile",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2390,9 +2488,9 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_stop-v1.0.scl",
       "dependencies": [
-        "jxd1_profile",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi",
-        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo",
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
       ],
       "legacyFolder": false
@@ -2845,6 +2943,28 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/util/_calculateAcceleration-v1.0.scl",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "_calculateAccelerationDistance-v1.0",
+      "name": "_calculateAccelerationDistance",
+      "base": "_calculateAccelerationDistance",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/motion-control/util/_calculateAccelerationDistance-v1.0.scl",
+      "dependencies": [],
+      "legacyFolder": false
+    },
+    {
+      "id": "_calculateAccelerationPulses-v1.0",
+      "name": "_calculateAccelerationPulses",
+      "base": "_calculateAccelerationPulses",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/motion-control/util/_calculateAccelerationPulses-v1.0.scl",
       "dependencies": [],
       "legacyFolder": false
     },
@@ -4204,6 +4324,56 @@
       "kind": "system"
     },
     {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "ecc_dfc_24_0x_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "ecc_dfc_24_0x_control-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "__ecc_home-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "__ecc_moveJog-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "__ecc_moveAbsolute-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_ecc_dfc_24_0x_positioningControl-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
       "from": "_ecc_dfc_24_0x_speedControl-v1.0",
       "to": "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
       "resolved": true,
@@ -4217,6 +4387,66 @@
     },
     {
       "from": "_ecc_dfc_24_0x_speedControl-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__ecc_home-v1.0",
+      "to": "ecc_dfc_24_0x_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_home-v1.0",
+      "to": "ecc_dfc_24_0x_control-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_home-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__ecc_moveAbsolute-v1.0",
+      "to": "ecc_dfc_24_0x_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_moveAbsolute-v1.0",
+      "to": "ecc_dfc_24_0x_control-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_moveAbsolute-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__ecc_moveJog-v1.0",
+      "to": "ecc_dfc_24_0x_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_moveJog-v1.0",
+      "to": "ecc_dfc_24_0x_control-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__ecc_moveJog-v1.0",
       "to": "TON_TIME",
       "resolved": false,
       "ambiguous": false,
@@ -4730,38 +4960,6 @@
   ],
   "reports": [
     {
-      "level": "warning",
-      "type": "name-mismatch",
-      "message": "File name \"_encoderIncrementDint-as-FB\" does not match declared TIA symbol \"_encoderIncrementDint\".",
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDint-as-FB-v2.0.scl",
-      "base": "_encoderIncrementDint-as-FB",
-      "name": "_encoderIncrementDint"
-    },
-    {
-      "level": "warning",
-      "type": "name-mismatch",
-      "message": "File name \"_encoderIncrementDint-as-FC\" does not match declared TIA symbol \"_encoderIncrementDint\".",
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementDint-as-FC-v2.0.scl",
-      "base": "_encoderIncrementDint-as-FC",
-      "name": "_encoderIncrementDint"
-    },
-    {
-      "level": "warning",
-      "type": "name-mismatch",
-      "message": "File name \"_encoderIncrementUDint-as-FB\" does not match declared TIA symbol \"_encoderIncrementUDint\".",
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDint-as-FB-v2.0.scl",
-      "base": "_encoderIncrementUDint-as-FB",
-      "name": "_encoderIncrementUDint"
-    },
-    {
-      "level": "warning",
-      "type": "name-mismatch",
-      "message": "File name \"_encoderIncrementUDint-as-FC\" does not match declared TIA symbol \"_encoderIncrementUDint\".",
-      "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDint-as-FC-v2.0.scl",
-      "base": "_encoderIncrementUDint-as-FC",
-      "name": "_encoderIncrementUDint"
-    },
-    {
       "level": "info",
       "type": "system-dependency",
       "message": "\"DPRD_DAT\" is a Siemens/TIA system block (listed in plc-system.json).",
@@ -5122,7 +5320,11 @@
         "_measureCycleTime-v1.0",
         "_outOfRangeWithDelay-v1.1",
         "_ecc_dfc_24_0x_config-v1.0",
+        "_ecc_dfc_24_0x_positioningControl-v1.0",
         "_ecc_dfc_24_0x_speedControl-v1.0",
+        "__ecc_home-v1.0",
+        "__ecc_moveAbsolute-v1.0",
+        "__ecc_moveJog-v1.0",
         "_jxc-v1.1",
         "__jxd1_halt-v1.0",
         "__jxd1_home-v1.0",

@@ -1,9 +1,9 @@
 ﻿FUNCTION_BLOCK "__jxd1_stop"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile","jxd1_driveUnit_16bytes_directNumericalSettingModePdi","jxd1_driveUnit_16bytes_directNumericalSettingModePdo","TON_TIME"]}
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/smc/jxd1'
-NAME : __jxd1_stop
+NAME : '__jxd1_stop'
 VERSION : 1.0
 
    VAR_INPUT 

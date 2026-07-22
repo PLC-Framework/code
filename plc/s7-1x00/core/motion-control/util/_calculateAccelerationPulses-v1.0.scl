@@ -1,0 +1,46 @@
+﻿FUNCTION "_calculateAccelerationPulses" : LReal
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":[]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/motion-control/util'
+NAME : _calculateAccelerationPulses
+VERSION : 1.0
+
+   VAR_INPUT 
+      v : LReal;   // Velocity in rev/s
+      t : Time;   // Time in ms
+      ppr : LReal;   // Pulses/rev
+   END_VAR
+
+   VAR CONSTANT 
+      FACTOR : LReal := 0.0005;   // Factor = 1/(1000 * 2)
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-21 | cyanezf | First version |
+
+## Description
+
+This function calculate distance in `rev` in encoder pulses during acceleration.
+
+```
+         v[rev/s] * t[ms/1000] 
+e[rev] = -------------------
+             2
+````
+
+p[pulses] = e[rev] * ppr[pulses/rev]
+
+--*) 		
+	
+	#_calculateAccelerationPulses := #v * DINT_TO_LREAL(TIME_TO_DINT(#t)) * #FACTOR * #ppr;
+	ENO := true;
+
+END_FUNCTION

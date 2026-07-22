@@ -1,0 +1,32 @@
+﻿FUNCTION "_rpmToRevPerSecond" : LReal
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":[]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : 'core/converter'
+FAMILY : cyanezf
+NAME : _rpmToRevPerSecond
+VERSION : 1.0
+
+   VAR_INPUT 
+      rpm : LReal;   // Rpm
+   END_VAR
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-07-20 | cyanezf | First version |
+
+## Description
+
+This function converts rpm to rev/s.
+
+--*)
+
+	#_rpmToRevPerSecond := #rpm / 60.0;
+	ENO := true;
+	
+END_FUNCTION

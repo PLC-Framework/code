@@ -1,9 +1,9 @@
-﻿FUNCTION_BLOCK "__jxd1_moveJog"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
+﻿FUNCTION_BLOCK "__ecc_moveJog"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_profile-v1.0","ecc_dfc_24_0x_control-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/controller/smc/jxd1'
-NAME : '__jxd1_moveJog'
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : '__ecc_moveJog'
 VERSION : 1.0
 
    VAR_INPUT 
@@ -16,7 +16,7 @@ VERSION : 1.0
       watchdogTime : Time := T#1M;   // IW: Watchdog time
    END_VAR
    VAR_INPUT 
-      config_stepMode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IX: 0=Infinite jog; 1=Step job (see smc software to configure)
+      config_stepMode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // IX: 0=No step mode (continuous mov.) 1=Step mode by this time
    END_VAR
 
    VAR_OUTPUT 
@@ -28,19 +28,23 @@ VERSION : 1.0
    END_VAR
 
    VAR_IN_OUT 
-      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Read only - PDI
-      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Conditional Partial Write - PDO
+      profile : "ecc_dfc_24_0x_profile";   // IOX: Read only - Profile
+      pdi_servoStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // IOX: Read only - PDI
+      pdi_isRunning : Bool;   // IOX: Read only - Is running
+      pdo : "ecc_dfc_24_0x_control";   // IOX: Conditional Partial Write - PDO
    END_VAR
 
    VAR 
       step { ExternalWritable := 'False'} : Int := #STEP_0_IDLE;   // SR: Step
       private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         stepModeTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
          watchdogTimer {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
       END_STRUCT;
    END_VAR
 
    VAR_TEMP 
       jog : Bool;
+      stepDone : Bool;
    END_VAR
 
    VAR CONSTANT 
@@ -55,7 +59,15 @@ VERSION : 1.0
       STEP_3_DONE : Int := 3;
       STEP_20_ABORTED : Int := 20;
       STEP_21_ERROR : Int := 21;
+      SERVO_STATUS_0_IDLE : Word := 0;
+      SERVO_STATUS_2_HOMED : Word := 2;
+      SERVO_STATUS_4_IS_RUNNING : Word := 4;
+      SERVO_STATUS_5_TARGET_REACHED : Word := 5;
+      SERVO_CONTROL_0_IDLE : Word := 0;
+      SERVO_CONTROL_1_HOMING : Word := 1;
+      SERVO_CONTROL_2_ABS_POS : Word := 2;
    END_VAR
+
 
 BEGIN
 (*--
@@ -65,11 +77,11 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v1.0 | 2026-07-19 | cyanezf | First version |
-  
+| v1.0 | 2026-07-21 | cyanezf | First version |
+
 ## Description
 
-This private function block implements the jog logic for the SMC JXD1 step motor controller. It provides a controlled way to jog the motor, ensuring that it moves in the desired direction at the specified speed. The function block uses a state machine to manage the jogging process.
+This function block implements a jog movement for the SEW ECC DFC 24-0x drive. It allows the user to command the drive to move forward or backward in a continuous or step mode, based on the provided profile parameters. The function block handles the necessary control and status signals to ensure safe and accurate operation.
 
 --*)
 
@@ -105,7 +117,7 @@ This private function block implements the jog logic for the SMC JXD1 step motor
 	    #commandAborted := 0;
 	
 	    // Transitions
-	    IF #jog AND #ready AND NOT #pdi.status.isRunning THEN
+	    IF #jog AND #ready AND NOT #pdi_isRunning THEN
 	      #step := #STEP_1_REQ;
 	    END_IF;
 	  END_IF;
@@ -122,36 +134,33 @@ This private function block implements the jog logic for the SMC JXD1 step motor
 	    #error := 0;
 	    #commandAborted := 0;
 	    
-	    // Init flags
-	    // Homing
-	    #pdo.control.homing := 0;
-	    // Jog
-	    #pdo.control.jogMinus := #jogBackward;
-	    #pdo.control.jogPlus := #jogForward;
-	    #pdo.control.flight := #config_stepMode;
-	    // Push
-	    #pdo.control.push := 0;
-	    #pdo.control.pushDirection := 0;
-	    // Abs
-	    #pdo.control.incMode := 0;
-	    // Start abs
-	    #pdo.control.start := 0;
+	    // Set parameters
+	    #pdo.velocity := #profile.velocity;
+	    #pdo.acceleration := #profile.acceleration;
+	    #pdo.deceleration := #profile.deceleration;
+	    
+	    // Control
+	    #pdo.run := #jog;
+	    #pdo.direction := #jogBackward;
+	    #pdo.servoCommand := #SERVO_CONTROL_0_IDLE;
+	    RESET_TIMER(#private.stepModeTon);
 	    
 	    // Transitions
-	    IF #pdi.status.isRunning THEN
+	    IF #pdi_isRunning THEN
 	      #step := #STEP_2_BUSY;
 	    END_IF;
 	    
 	    // ############################################################################
 	  ELSIF #step = #STEP_2_BUSY THEN
 	    
-	    // Update
-	    #pdo.control.flight := 0;
+	    // Control
+	    #private.stepModeTon(IN:=#config_stepMode > t#0s,
+	                         PT:=#config_stepMode,
+	                         Q=> #stepDone);
 	    
 	    // Transitions
-	    IF NOT #jog OR (#config_stepMode AND NOT #pdi.status.isRunning) THEN
+	    IF NOT #jog OR #stepDone THEN
 	      #step := #STEP_3_DONE;
-	      
 	    END_IF;
 	    
 	    // ############################################################################
@@ -164,11 +173,9 @@ This private function block implements the jog logic for the SMC JXD1 step motor
 	    #error := 0;
 	    #commandAborted := 0;
 	    
-	    // Init flags
-	    // Jog
-	    #pdo.control.jogMinus := 0;
-	    #pdo.control.jogPlus := 0;
-	    #pdo.control.flight := 0;
+	    // Control
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
 	    
 	    // Transitions
 	    #step := #STEP_0_IDLE;
@@ -187,11 +194,9 @@ This private function block implements the jog logic for the SMC JXD1 step motor
 	    #error := 0;
 	    #commandAborted := 1;
 	    
-	    // Init flags
-	    // Jog
-	    #pdo.control.jogMinus := 0;
-	    #pdo.control.jogPlus := 0;
-	    #pdo.control.flight := 0;
+	    // Control
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
 	    
 	    // Transitions
 	    IF NOT #abort THEN
@@ -208,11 +213,9 @@ This private function block implements the jog logic for the SMC JXD1 step motor
 	    #error := 1;
 	    #commandAborted := 0;
 	    
-	    // Init flags
-	    // Jog
-	    #pdo.control.jogMinus := 0;
-	    #pdo.control.jogPlus := 0;
-	    #pdo.control.flight := 0;
+	    // Control
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
 	    
 	    // Transitions
 	    IF NOT #jog THEN

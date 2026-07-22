@@ -1,0 +1,432 @@
+﻿FUNCTION_BLOCK "_ecc_dfc_24_0x_positioningControl"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_profile-v1.0","ecc_dfc_24_0x_fullPlcModePdi-v1.0","ecc_dfc_24_0x_fullPlcModePdo-v1.0","ecc_dfc_24_0x_control-v1.0","__ecc_home-v1.0","__ecc_moveJog-v1.0","__ecc_moveAbsolute-v1.0","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : _ecc_dfc_24_00_speedControl
+VERSION : 1.0
+
+   VAR_INPUT 
+      motorNr { ExternalWritable := 'False'} : USInt;   // IR: 0=Left motor (default); 1=Right motor
+      controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control on
+      emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
+      profile { ExternalWritable := 'False'} : "ecc_dfc_24_0x_profile";   // IR: Profile
+      ackn { ExternalWritable := 'False'} : Bool;   // IR: Ackn pulse
+      config { ExternalWritable := 'False'} : Struct   // IR: Configuration
+         motor { ExternalWritable := 'False'} : Struct   // IR: Motor
+            brakeMode { ExternalWritable := 'False'} : Word := #BRAKE_MODE_1_STANDARD;   // IR: 1=Standard (default) ; 2=Coasting; 3=ServoBrake
+            ccw { ExternalWritable := 'False'} : Bool;   // IR: Motor - 0=Forward is Clockwise; 1=Forward is Counter clockwise
+         END_STRUCT;
+         position { ExternalWritable := 'False'} : Struct   // IR: Position
+            changeOnFly { ExternalWritable := 'False'} : Bool := 1;   // IR: Whe profile.position changes. 0=Fininsh movement; 1=Abort current movement and start the new one
+            runJobWhileRequestIsOn { ExternalWritable := 'False'} : Bool := 0;   // IR: 0=Run job on the rising edge of the request; 1=Run job while request is ON
+         END_STRUCT;
+         encoder { ExternalWritable := 'False'} : Struct   // IR: Encoder
+            ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Forward is Clockwise; 1=Forward is Counter clockwise
+            ppr { ExternalWritable := 'False'} : LReal := 550.0;   // IR: Pulses per revolution
+            eu { ExternalWritable := 'False'} : LReal := 360.0;   // IR: Engineering Units (mm, º, rad, etc.)
+         END_STRUCT;
+         velocity { ExternalWritable := 'False'} : Struct   // IR: Velocity
+            factor { ExternalWritable := 'False'} : LReal := 6.0;   // IR: velocity = rpm * factor
+         END_STRUCT;
+         jog { ExternalWritable := 'False'} : Struct   // IR: Jog
+            stepMode { ExternalWritable := 'False'} : Time;   // IR: Step mode - 0=Disabled; 1..N=Step time
+         END_STRUCT;
+         homing { ExternalWritable := 'False'} : Struct   // IR: Homing
+            sensor { ExternalWritable := 'False'} : Bool;   // IR: Homing sensor
+            mode { ExternalWritable := 'False'} : USInt;   // IR: Homing mode
+            position { ExternalWritable := 'False'} : LReal := 0.0;   // IR: Homing position (just for confirmation)
+            tolerance { ExternalWritable := 'False'} : LReal := 1.0;   // IR: Homing tolerance
+         END_STRUCT;
+      END_STRUCT;
+   END_VAR
+
+   VAR_OUTPUT 
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=Ready
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+      isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Is running
+      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
+      isBraked { ExternalWritable := 'False'} : Bool;   // OR: 1=Brake is applied
+      isHomed { ExternalWritable := 'False'} : Bool;   // OR: 1=Is homed
+      inPosition { ExternalWritable := 'False'} : Bool;   // OR: 1=Target reached
+      status { ExternalWritable := 'False'} : Int;   // OR: Status code
+      actualCommand { ExternalWritable := 'False'} : Int := #CMD_0_NIL;   // OR: 0=Nil; 1..N=Some Command. See constants
+      targetPosition { ExternalWritable := 'False'} : LReal;   // OR: N=Target position in u (mm, º)
+      actualPosition { ExternalWritable := 'False'} : LReal;   // OR: Actual position
+      actualVelocity { ExternalWritable := 'False'} : LReal;   // OR: Actual speed in speed
+      actualCurrent { ExternalWritable := 'False'} : LReal;   // OR: Actual current in Ampers
+      actualFrequency { ExternalWritable := 'False'} : LReal;   // OR: Actual frequency in Hz
+      actualMotorTemperature { ExternalWritable := 'False'} : LReal;   // OR: Actual temperature in ºc of motor
+      actualModuleTemperature { ExternalWritable := 'False'} : LReal;   // OR: Actual temperature in ºc of power module
+   END_VAR
+
+   VAR_IN_OUT 
+      command { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := #CMD_0_NIL;   // IOX: Command
+      pdi : "ecc_dfc_24_0x_fullPlcModePdi";   // IOX: PDI
+      pdo : "ecc_dfc_24_0x_fullPlcModePdo";   // IOX: PDO
+   END_VAR
+
+   VAR 
+      control { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "ecc_dfc_24_0x_control";   // SR: Control
+      homing { S7_SetPoint := 'False'} : "__ecc_home";   // SW: Homing
+      jog { S7_SetPoint := 'False'} : "__ecc_moveJog";   // SW: Jog
+      absolute { S7_SetPoint := 'False'} : "__ecc_moveAbsolute";   // SW: Absolute
+      diag { ExternalWritable := 'False'} : Struct   // SR: Diag control
+         lastStatus { ExternalWritable := 'False'} : Int;
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         noCommand { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         ackn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         acknTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      nil : Bool;
+      isCw : Bool;
+      isCcw : Bool;
+      mdrDiagnostics : Struct   // 14.0:Lefy MDR diagnostics
+         x0_overheat : Bool;   // 14.0: Overheat: Overtemperature fault. The temperature of the motor roller exceeded 105ºc
+         x1_maxTorque : Bool;   // 14.1: Max torque: Motor at current limit
+         x2_shortcircuit : Bool;   // 14.2: Motor short circuit
+         x3_mdrNotconnected : Bool;   // 14.3: No motor is connected to the motor port
+         x4_overload : Bool;   // 14.4: Overload detected. Speed lowered to <10% of the setpoint speed due tot he overload
+         x5_stalled : Bool;   // 14.5: Motor blockade detected
+         x6_mdrBadHall : Bool;   // 14.6: Hall sensor fault
+         x7_mdrNotUsed : Bool;   // 14.7: Zone was not configured in ZPA
+         x8_mdrStatusBit1 : Bool;   // 15.0: Description of the 2-bit coded
+         x9_mdrStatusBit2 : Bool;   // 15.1: Description of the 2-bit coded
+         xA_mdrInDoMode : Bool;   // 15.2: Motor port is connected to the digital I/O mode
+         xB : Bool;   // 15.3
+         xC : Bool;   // 15.4
+         xD : Bool;   // 15.5
+         xE_overVoltage : Bool;   // 15.6: Overvoltage fault
+         xF_lowVoltage : Bool;   // 15.7: Undervoltage fault
+      END_STRUCT;
+      servoStatus : Word;   // 46.0: Status word for servo commands for left motor: 0x02=Referencing completed, DistanceLeft=0; 0x05=Target position was reached. DistanceLeft= setpoint position
+      overSpeed : Bool;   // Bit14= setpoint speed > max. possible speed
+      underSpeed : Bool;   // Bit15= setpoint speed < min. possible speed
+      et : Time;
+   END_VAR
+
+   VAR CONSTANT 
+      CMD_0_NIL : Int := 0;
+      CMD_3_HOMING : Int := 3;
+      CMD_4_JOG_FWD : Int := 4;
+      CMD_5_JOG_BWD : Int := 5;
+      CMD_6_VELOCITY : Int := 6;   // Not implemented
+      CMD_8_ABSOLUTE_POS : Int := 8;
+      MOTOR_0_LEFT : USInt := 0;
+      MOTOR_1_RIGHT : USInt := 1;
+      BRAKE_MODE_0_IDLE : Word := 0;   // Brake mode - 0 - Idle
+      BRAKE_MODE_1_STANDARD : Word := 1;   // Brake mode - 1 - Standard brake ramp
+      BRAKE_MODE_2_COASTING : Word := 2;   // Brake mode - 2 - Coasting
+      BRAKE_MODE_3_SERVO_BRAKE : Word := 3;   // Brake mode - 3 - ServoBrake
+      SERVO_STATUS_02_HOMED : Word := 2;
+      SERVO_STATUS_04_IS_RUNNING : Word := 4;
+      SERVO_STATUS_05_TARGET_REACHED : Word := 5;
+      SERVO_CONTROL_00_IDLE : Word := 0;
+      SERVO_CONTROL_01_HOMING : Word := 1;
+      SERVO_CONTROL_02_ABS_POS : Word := 2;
+      STATUS_0000_READY : Int := 0;
+      STATUS_7000_OVER_SPEED : Int := 16#7000;
+      STATUS_7001_UNDER_SPEED : Int := 16#7001;
+      STATUS_8000_MDR_NOT_CONNECTED : Int := 16#8000;
+      STATUS_8001_MDR_BAD_HALL : Int := 16#8001;
+      STATUS_8002_MDR_NOT_USED : Int := 16#8002;
+      STATUS_8003_MDR_IN_DO_MODE : Int := 16#8003;
+      STATUS_8004_SHORT_CIRCUIT : Int := 16#8004;
+      STATUS_8005_OVERHEAT : Int := 16#8005;
+      STATUS_8006_MAX_TORQUE : Int := 16#8006;
+      STATUS_8007_OVERLOAD : Int := 16#8007;
+      STATUS_8008_STALLED : Int := 16#8008;
+      STATUS_8009_OVER_VOLTAGE : Int := 16#8009;
+      STATUS_800A_LOW_VOLTAGE : Int := 16#800A;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v0.1 | 2026-06-19 | cyanezf | First beta version |
+
+## Description
+
+This function block controls a single motor as speed control.
+
+## MDR Status bits
+
+| Bit 1 | Bit 2 | Description |
+| ----- | ----- | ----------- |
+|  0    |   0   | Motor not running, started or servo Brake applied |
+|  0    |   1   | Motor running in CW direction |
+|  1    |   0   | Motor running in CCW direction |
+|  1    |   1   | Motor not running and no braking applied (free to spin)
+
+**MDR**: Motor Driven Roller
+
+--*)
+	
+	#actualCommand := #CMD_0_NIL;
+	
+	
+	REGION Select status
+	  
+	  // #########################################################
+	  IF #motorNr = #MOTOR_1_RIGHT THEN
+	    
+	    #actualCurrent := INT_TO_REAL(#pdi.right_current) / 1000.0;
+	    #actualFrequency:= #pdi.right_frequency;
+	    #actualMotorTemperature := #pdi.right_temperature;
+	    #actualModuleTemperature:= #pdi.right_moduleTemperature;
+	    
+	    #actualVelocity := INT_TO_LREAL(#pdi.right_mdrRealSpeed AND 16#3FFF) * #config.velocity.factor;
+	    #overSpeed := #pdi.right_mdrRealSpeed.%X14;
+	    #underSpeed := #pdi.right_mdrRealSpeed.%X15;
+	    
+	    #actualPosition := DINT_TO_LREAL(#pdi.right_position) * #config.encoder.eu / #config.encoder.ppr;
+	    IF #config.encoder.ccw THEN
+	      #actualPosition := - #actualPosition;
+	    END_IF;
+	    
+	    #mdrDiagnostics := #pdi.right_mdrDiagnostics;
+	    #servoStatus := #pdi.right_servoStatus;
+	    
+	    // #######################################################
+	  ELSE
+	    #actualCurrent := INT_TO_REAL(#pdi.left_current) / 1000.0;
+	    #actualFrequency := #pdi.left_frequency;
+	    #actualMotorTemperature:= #pdi.left_temperature;
+	    #actualModuleTemperature := #pdi.left_moduleTemperature;
+	    
+	    #actualVelocity := INT_TO_LREAL(#pdi.left_mdrRealSpeed AND 16#3FFF) * #config.velocity.factor;
+	    #overSpeed := #pdi.left_mdrRealSpeed.%X14;
+	    #underSpeed := #pdi.left_mdrRealSpeed.%X15;
+	    
+	    #actualPosition := DINT_TO_LREAL(#pdi.left_position) * #config.encoder.eu / #config.encoder.ppr;
+	    IF #config.encoder.ccw THEN
+	      #actualPosition := - #actualPosition;
+	    END_IF;
+	    
+	    #mdrDiagnostics := #pdi.left_mdrDiagnostics;
+	    #servoStatus := #pdi.left_servoStatus;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION Status code
+	  
+	  #status := #STATUS_0000_READY;
+	  
+	  IF #mdrDiagnostics.x3_mdrNotconnected THEN
+	    #status := #STATUS_8000_MDR_NOT_CONNECTED;
+	    
+	  ELSIF #mdrDiagnostics.x6_mdrBadHall THEN
+	    #status := #STATUS_8001_MDR_BAD_HALL;
+	    
+	  ELSIF #mdrDiagnostics.x7_mdrNotUsed THEN
+	    #status := #STATUS_8002_MDR_NOT_USED;
+	    
+	  ELSIF #mdrDiagnostics.xA_mdrInDoMode THEN
+	    #status := #STATUS_8003_MDR_IN_DO_MODE;
+	    
+	  ELSIF #mdrDiagnostics.x2_shortcircuit THEN
+	    #status := #STATUS_8004_SHORT_CIRCUIT;
+	    
+	  ELSIF #mdrDiagnostics.x0_overheat THEN
+	    #status := #STATUS_8005_OVERHEAT;
+	    
+	  ELSIF #mdrDiagnostics.x1_maxTorque THEN
+	    #status := #STATUS_8006_MAX_TORQUE;
+	    
+	  ELSIF #mdrDiagnostics.x4_overload THEN
+	    #status := #STATUS_8007_OVERLOAD;
+	    
+	  ELSIF #mdrDiagnostics.x5_stalled THEN
+	    #status := #STATUS_8008_STALLED;
+	    
+	  ELSIF #mdrDiagnostics.xE_overVoltage THEN
+	    #status := #STATUS_8009_OVER_VOLTAGE;
+	    
+	  ELSIF #mdrDiagnostics.xF_lowVoltage THEN
+	    #status := #STATUS_800A_LOW_VOLTAGE;
+	    
+	  ELSIF #overSpeed THEN
+	    #status := #STATUS_7000_OVER_SPEED;
+	    
+	  ELSIF #underSpeed THEN
+	    #status := #STATUS_7001_UNDER_SPEED;
+	    
+	  END_IF;
+	  
+	  IF #status <> #STATUS_0000_READY THEN
+	    #diag.lastStatus := #status;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Function outputs
+	  // Bit outputs
+	  IF #status < #STATUS_0000_READY THEN
+	    #error := true;
+	  ELSE
+	    IF #ackn THEN
+	      #error := false;
+	    END_IF;
+	  END_IF;
+	  
+	  #ready := #controlOn AND #emrgStopOk AND NOT #error;
+	  #isRunning := #mdrDiagnostics.x8_mdrStatusBit1 XOR #mdrDiagnostics.x9_mdrStatusBit2;
+	  #isBraked := NOT #mdrDiagnostics.x8_mdrStatusBit1 AND NOT #mdrDiagnostics.x9_mdrStatusBit2;
+	  #isCw := NOT #mdrDiagnostics.x8_mdrStatusBit1 AND #mdrDiagnostics.x9_mdrStatusBit2;
+	  #isCcw := #mdrDiagnostics.x8_mdrStatusBit1 AND NOT #mdrDiagnostics.x9_mdrStatusBit2;
+	  #direction := (NOT #config.motor.ccw AND #isCcw) OR (#config.motor.ccw AND #isCw); // 0=Forward; 1=Backward
+	  
+	END_REGION
+	
+	REGION Home
+	  
+	  #homing(request:=#command = #CMD_3_HOMING,
+	          ready:=#ready,
+	          homePosition:=#config.homing.position,
+	          homeTolerance:=#config.homing.tolerance,
+	          homeSensor:=#config.homing.sensor,
+	          homeMode:=#config.homing.mode,
+	          actualPosition:=#actualPosition,
+	          profile:=#profile,
+	          pdi_isRunning:=#isRunning,
+	          pdi_direction:=#direction,
+	          pdi_servoStatus:=#servoStatus,
+	          pdo:=#control);
+	
+	  IF #homing.done THEN
+	    #isHomed := true;
+	    #command := #CMD_0_NIL;
+	  ELSIF #homing.error OR #homing.commandAborted THEN
+	    #isHomed := false;
+	    #command := #CMD_0_NIL;
+	  ELSIF #homing.busy THEN
+	    #isHomed := false;
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	  
+	END_REGION
+	
+	REGION Jog
+	  
+	  #jog(jogForward:=#command = #CMD_4_JOG_FWD,
+	       jogBackward:=#command = #CMD_5_JOG_BWD,
+	       ready:=#ready,
+	       config_stepMode:=#config.jog.stepMode,
+	       profile:=#profile,
+	       pdi_servoStatus:=#servoStatus,
+	       pdi_isRunning:=#isRunning,
+	       pdo:=#control);
+	  
+	  IF #jog.done OR #jog.error OR #jog.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #jog.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Absolute
+	  
+	  #absolute(request:=#command = #CMD_8_ABSOLUTE_POS,
+	            ready:=#ready,
+	            actualPosition:=#actualPosition,
+	            config_changeOnFly:=#config.position.changeOnFly,
+	            config_runJobWhileRequestIsOn:=#config.position.runJobWhileRequestIsOn,
+	            profile:=#profile,
+	            pdi_servoStatus:=#servoStatus,
+	            pdi_isRunning:=#isRunning,
+	            pdo:=#control,
+	            targetPosition:=#targetPosition);
+	  
+	  IF #absolute.done OR #absolute.error OR #absolute.commandAborted THEN
+	    #command := #CMD_0_NIL;
+	  ELSIF #absolute.busy THEN
+	    #actualCommand := #command;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Select control
+	  
+	  // #########################################################
+	  IF #motorNr = #MOTOR_1_RIGHT THEN
+	    
+	    IF #config.motor.brakeMode < #BRAKE_MODE_1_STANDARD OR #config.motor.brakeMode > #BRAKE_MODE_3_SERVO_BRAKE THEN
+	      #pdo.right_brakeMode := #BRAKE_MODE_1_STANDARD;
+	    ELSE
+	      #pdo.right_brakeMode := #config.motor.brakeMode;
+	    END_IF;
+	    
+	    #pdo.right_mdrControl.mdrDirection := (#control.direction AND NOT #config.motor.ccw) OR (NOT #control.direction AND #config.motor.ccw);
+	    #pdo.right_mdrControl.runMdr := #control.run;
+	    
+	    #pdo.right_mdrSpeed := LREAL_TO_INT(#control.velocity / #config.velocity.factor);
+	    #pdo.right_mdrAcceleration := ABS(LREAL_TO_INT(#control.acceleration));
+	    #pdo.right_mdrDeceleration := ABS(LREAL_TO_INT(#control.deceleration));
+	    
+	    #pdo.right_servoControlPosition := LREAL_TO_DINT(#control.position * #config.encoder.ppr / #config.encoder.eu);
+	    IF #config.encoder.ccw THEN
+	      #pdo.right_servoControlPosition := - #pdo.right_servoControlPosition;
+	    END_IF;
+	    
+	    #pdo.right_servoControlCommand := #control.servoCommand;
+	    
+	    // #######################################################
+	  ELSE
+	    
+	    IF #config.motor.brakeMode < #BRAKE_MODE_1_STANDARD OR #config.motor.brakeMode > #BRAKE_MODE_3_SERVO_BRAKE THEN
+	      #pdo.left_brakeMode := #BRAKE_MODE_1_STANDARD;
+	    ELSE
+	      #pdo.left_brakeMode := #config.motor.brakeMode;
+	    END_IF;
+	    
+	    #pdo.left_mdrControl.mdrDirection := (#control.direction AND NOT #config.motor.ccw) OR (NOT #control.direction AND #config.motor.ccw);
+	    #pdo.left_mdrControl.runMdr := #control.run;
+	    
+	    #pdo.left_mdrSpeed := LREAL_TO_INT(#control.velocity / #config.velocity.factor);
+	    #pdo.left_mdrAcceleration := ABS(LREAL_TO_INT(#control.acceleration));
+	    #pdo.left_mdrDeceleration := ABS(LREAL_TO_INT(#control.deceleration));
+	    
+	    #pdo.left_servoControlPosition := LREAL_TO_DINT(#control.position * #config.encoder.ppr / #config.encoder.eu);
+	    IF #config.encoder.ccw THEN
+	      #pdo.left_servoControlPosition := - #pdo.left_servoControlPosition;
+	    END_IF;
+	    
+	    #pdo.left_servoControlCommand := #control.servoCommand;
+	    
+	  END_IF;
+	END_REGION
+	
+	REGION ackn
+	  // Why so complex?
+	  // Because clearMdrError is a shared reset for all module.
+	  IF #ackn AND NOT #private.ackn THEN
+	    #pdo.clearMdrError := 1;
+	  END_IF;
+	  
+	  #private.ackn := #ackn;
+	  #private.acknTon(IN := #pdo.clearMdrError <> 0,
+	                   PT := t#100ms);
+	  
+	  IF #private.acknTon.Q THEN
+	    #pdo.clearMdrError := 0;
+	  END_IF;
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

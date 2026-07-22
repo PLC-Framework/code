@@ -212,6 +212,7 @@
   }
   .dot.critical { background: var(--status-critical); box-shadow: 0 0 8px rgba(255, 93, 93, 0.55); }
   .dot.warn { background: var(--status-warn); }
+  .dot.ok { background: var(--status-ok); }
 
   .rail-item .meta { min-width: 0; flex: 1; }
   .rail-item .name { font-weight: 600; font-size: 0.8125rem; }
@@ -299,6 +300,7 @@
   .node.severity-critical .node-circle { stroke: var(--status-critical); stroke-width: 2; }
   .node.severity-warn .node-circle { stroke: var(--status-warn); stroke-width: 2; }
   .node.severity-info .node-circle { stroke: var(--status-info); }
+  .node.severity-ok .node-circle { stroke: var(--status-ok); stroke-width: 2; }
 
   .node-label {
     fill: var(--ink-muted);
@@ -541,9 +543,10 @@
         <div class="tabs" id="tabs"></div>
         <div class="crumb" id="crumb"></div>
         <div class="legend" id="legend">
-          <span class="legend-item"><span class="dot critical"></span>Needs a version pin</span>
-          <span class="legend-item"><span class="dot warn"></span>Deprecated / legacy</span>
+          <span class="legend-item"><span class="dot critical"></span>Needs attention (pin, mismatch, broken link)</span>
+          <span class="legend-item"><span class="dot warn"></span>Depends on a deprecated / uncataloged block</span>
           <span class="legend-item"><span class="dot" style="background:var(--status-info)"></span>Only external dependencies</span>
+          <span class="legend-item"><span class="dot ok"></span>No issues</span>
         </div>
       </div>
       <div class="canvas-wrap" id="canvas-wrap">
@@ -622,11 +625,14 @@
     n.hasExternal = n.outEdges.some(function (e) { return e.external; });
     n.hasUnknownDep = n.outEdges.some(function (e) { return e.kind === "unknown"; });
     n.hasBrokenDeprecation = !!(n.deprecatedBy && !nodesById[n.deprecatedBy]);
+    n.dependsOnDeprecated = n.outEdges.some(function (e) {
+      return e.resolved && nodesById[e.to] && nodesById[e.to].isLegacy;
+    });
     var onlyKnownExternal = n.outEdges.length > 0 && n.outEdges.every(function (e) { return e.external && e.kind !== "unknown"; });
     n.severity = (n.hasAmbiguous || n.isMismatch || n.hasBrokenDeprecation) ? "critical"
-      : (n.isLegacy || n.hasUnknownDep) ? "warn"
+      : (n.dependsOnDeprecated || n.hasUnknownDep) ? "warn"
       : onlyKnownExternal ? "info"
-      : "none";
+      : "ok";
   });
 
   // Recursive folder tree: each node has .children (subfolders, keyed by
@@ -978,7 +984,7 @@
       var label = meta ? meta.label : n.id;
       var match = state.query && matchesFolder(n.id, n.grp, state.query);
       var dim = state.query && !match;
-      var g = el("g", { class: "node severity-" + (n.grp.hasCritical ? "critical" : n.grp.hasWarn ? "warn" : "none") + (dim ? " dim" : "") });
+      var g = el("g", { class: "node severity-" + (n.grp.hasCritical ? "critical" : n.grp.hasWarn ? "warn" : "ok") + (dim ? " dim" : "") });
       var c = el("circle", { class: "node-circle", cx: n.x, cy: n.y, r: n.r, style: bubbleColorStyle(path.concat([n.id]).join("/")) });
       g.appendChild(c);
       appendBubbleLabel(g, n.x, n.y, label, n.count + " blocks");
@@ -1200,7 +1206,7 @@
       var btn = document.createElement("button");
       btn.className = "rail-item" + (state.path[0] === key ? " active" : "") +
         (state.query && !matchesFolder(key, m, state.query) ? " dim" : "");
-      var dotCls = m.hasCritical ? "critical" : m.hasWarn ? "warn" : "";
+      var dotCls = m.hasCritical ? "critical" : m.hasWarn ? "warn" : "ok";
       btn.innerHTML =
         '<span class="dot ' + dotCls + '"></span>' +
         '<span class="meta"><div class="name">' + meta.label + '</div><div class="desc">' + meta.desc + "</div></span>" +

@@ -1,9 +1,9 @@
-﻿FUNCTION_BLOCK "__jxd1_home"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
+﻿FUNCTION_BLOCK "__ecc_home"
+TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_profile-v1.0","ecc_dfc_24_0x_control-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/controller/smc/jxd1'
-NAME : '__jxd1_home'
+FAMILY : 'core/controller/sew/ecc-dfc-24-0x'
+NAME : '__ecc_home'
 VERSION : 1.0
 
    VAR_INPUT 
@@ -17,6 +17,10 @@ VERSION : 1.0
       homePosition : LReal;   // IW: Home position
       homeTolerance : LReal := 1.0;   // IW: Home tolerance
    END_VAR
+   VAR_INPUT 
+      homeSensor { ExternalWritable := 'False'} : Bool;   // IR: Home sensor - 1=Detect
+      homeMode { ExternalWritable := 'False'} : USInt;   // IR: Reserved for future implementations
+   END_VAR
 
    VAR_OUTPUT 
       status { ExternalWritable := 'False'} : Int;   // OR: Status code. See constants
@@ -28,8 +32,11 @@ VERSION : 1.0
 
    VAR_IN_OUT 
       actualPosition { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal;   // IOX: Read only - Actual position
-      pdi : "jxd1_driveUnit_16bytes_directNumericalSettingModePdi";   // IOX: Read only - PDI
-      pdo : "jxd1_driveUnit_16bytes_directNumericalSettingModePdo";   // IOX: Conditional Partial Write - PDO
+      profile : "ecc_dfc_24_0x_profile";   // IOX: Read only - Profile
+      pdi_isRunning { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Read only - Is running
+      pdi_direction { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // IOX: Read only - Direction. 0=Forward; 1=Backward
+      pdi_servoStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // IOX: Read only - PDI
+      pdo : "ecc_dfc_24_0x_control";   // IOX: Conditional Write - Virtual PDO
    END_VAR
 
    VAR 
@@ -57,12 +64,19 @@ VERSION : 1.0
       STATUS_8001_DRIVE_ERROR : Int := 16#8001;
       STEP_0_IDLE : Int := 0;
       STEP_1_REQ : Int := 1;
-      STEP_2_BUSY : Int := 2;
-      STEP_3_DONE : Int := 3;
+      STEP_2_RUN_BWD : Int := 2;
+      STEP_3_SET_HOME : Int := 3;
+      STEP_4_DONE : Int := 4;
       STEP_20_ABORTED : Int := 20;
       STEP_21_ERROR : Int := 21;
+      SERVO_STATUS_0_IDLE : Word := 0;
+      SERVO_STATUS_2_HOMED : Word := 2;
+      SERVO_STATUS_4_IS_RUNNING : Word := 4;
+      SERVO_STATUS_5_TARGET_REACHED : Word := 5;
+      SERVO_CONTROL_0_IDLE : Word := 0;
+      SERVO_CONTROL_1_HOMING : Word := 1;
+      SERVO_CONTROL_2_ABS_POS : Word := 2;
    END_VAR
-
 
 BEGIN
 (*--
@@ -72,11 +86,11 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v1.0 | 2026-07-19 | cyanezf | First version |
-  
+| v1.0 | 2026-07-21 | cyanezf | First version |
+
 ## Description
 
-This private function block implements the home logic for the SMC JXD1 step motor controller. It provides a controlled way to home the motor, ensuring that it reaches the home position within the specified tolerance. The function block uses a state machine to manage the homing process, including holding the motor for a specified time before turning off the servo.
+This function block implements the homing procedure for the SEW drive. It handles the request to home the drive, monitors the status, and manages the transitions between different steps of the homing process.
 
 --*)
 
@@ -85,26 +99,26 @@ This private function block implements the home logic for the SMC JXD1 step moto
 	#private.request := #request;
 	
 	// Is homed by PDI
-	#isHomedByPdiPulse := #pdi.status.isHomed AND NOT #private.isHomedByPdi;
-	#private.isHomedByPdi := #pdi.status.isHomed;
+	#isHomedByPdiPulse := #pdi_servoStatus = #SERVO_STATUS_2_HOMED AND NOT #private.isHomedByPdi;
+	#private.isHomedByPdi := #pdi_servoStatus = #SERVO_STATUS_2_HOMED;
 	
 	// Is homed by calculation
-	#aux :=#pdi.status.isHomed AND ABS(#actualPosition - #homePosition) <= #homeTolerance  AND #step = #STEP_2_BUSY;
+	#aux := #pdi_servoStatus = #SERVO_STATUS_2_HOMED AND ABS(#actualPosition - #homePosition) <= #homeTolerance  AND #step = #STEP_3_SET_HOME;
 	#private.isHomedByCalcTimer(IN:=#aux,
-	PT:=#isHomedByCalcTime,
-	Q=>#isHomedByCalc);
+	                            PT:=#isHomedByCalcTime,
+	                            Q=>#isHomedByCalc);
 	
 	REGION Unconditional transitions
 	  
 	  // ############################################################################
 	  IF NOT #ready THEN
-	    IF #step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY THEN
+	    IF #step >= #STEP_1_REQ AND #step <= #STEP_3_SET_HOME THEN
 	      #step := #STEP_21_ERROR;
 	    END_IF;
 	    
 	    // ############################################################################
 	  ELSIF #abort THEN
-	    IF #step >= #STEP_1_REQ AND #step <= #STEP_2_BUSY THEN
+	    IF #step >= #STEP_1_REQ AND #step <= #STEP_3_SET_HOME THEN
 	      #step := #STEP_20_ABORTED;
 	    END_IF;
 	    
@@ -123,7 +137,7 @@ This private function block implements the home logic for the SMC JXD1 step moto
 	    #error := 0;
 	    #commandAborted := 0;
 	    
-	    IF #request AND #ready AND NOT #pdi.status.isRunning THEN
+	    IF #request AND #ready AND NOT #pdi_isRunning THEN
 	      #step := #STEP_1_REQ;
 	    END_IF;
 	  END_IF;
@@ -140,39 +154,48 @@ This private function block implements the home logic for the SMC JXD1 step moto
 	    #error := 0;
 	    #commandAborted := 0;
 	    
-	    // Init flags
-	    // Homing
-	    #pdo.control.homing := 1;
-	    // Jog
-	    #pdo.control.jogMinus := 0;
-	    #pdo.control.jogPlus := 0;
-	    #pdo.control.flight := 0;
-	    // Push
-	    #pdo.control.push := 0;
-	    #pdo.control.pushDirection := 0;
-	    // Abs
-	    #pdo.control.incMode := 0;
-	    // Start abs
-	    #pdo.control.start := 0;
+	    // Set parameters
+	    #pdo.velocity := #profile.velocity;
+	    #pdo.acceleration := #profile.acceleration;
+	    #pdo.deceleration := #profile.deceleration;
+	    
+	    // Control
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
+	    #pdo.servoCommand := #SERVO_CONTROL_0_IDLE;
 	    
 	    // Transitions
-	    IF #pdi.status.isRunning THEN
-	      #step := #STEP_2_BUSY;
+	    IF #pdi_servoStatus = #SERVO_STATUS_0_IDLE THEN
+	      #step := #STEP_2_RUN_BWD;
 	    END_IF;
 	    
 	    // ############################################################################
-	  ELSIF #step = #STEP_2_BUSY THEN
+	  ELSIF #step = #STEP_2_RUN_BWD THEN
 	    
-	    // Update
-	    #pdo.control.homing := 0;
+	    // Control
+	    #pdo.run := 1; // RUN
+	    #pdo.direction := 1; // BWD
+	    
+	    // Transitions
+	    IF #homeSensor THEN
+	      #step := #STEP_3_SET_HOME;
+	    END_IF;
+	    
+	    // ############################################################################
+	  ELSIF #step = #STEP_3_SET_HOME THEN
+	    
+	    // Control
+	    #pdo.servoCommand := #SERVO_CONTROL_1_HOMING;
+	    #pdo.run := 0;
+	    #pdo.direction := 0;
 	    
 	    // Transitions
 	    IF #isHomedByPdiPulse OR #isHomedByCalc THEN
-	      #step := #STEP_3_DONE;
+	      #step := #STEP_4_DONE;
 	    END_IF;
 	    
 	    // ############################################################################
-	  ELSIF #step = #STEP_3_DONE THEN
+	  ELSIF #step = #STEP_4_DONE THEN
 	    
 	    // Status
 	    #status := #STATUS_0001_DONE;

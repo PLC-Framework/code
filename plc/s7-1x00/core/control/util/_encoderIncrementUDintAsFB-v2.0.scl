@@ -1,24 +1,25 @@
-﻿FUNCTION "_encoderIncrementUDint" : Int
+﻿FUNCTION_BLOCK "_encoderIncrementUDintAsFB"
 TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/control/util'
-NAME : _encoderIncrementUDint
+NAME : _encoderIncrementUDintAsFB
 VERSION : 2.0
 
    VAR_INPUT 
-      encoderValue : UDInt;   // Current encoder value
-      minValue : UDInt;   // Min value of encoder
-      maxValue : UDInt;   // Max value of encoder
-      maxIncrements : UDInt;   // Max steps of encoder in one scan cycle
+      encoderValue { ExternalWritable := 'False'} : UDInt;   // IR: Current encoder value
+      minValue { ExternalWritable := 'False'} : UDInt := 0;   // IR: Min value of encoder
+      maxValue { ExternalWritable := 'False'} : UDInt := 4294967295;   // IR: Max value of encoder
+      maxIncrements { ExternalWritable := 'False'} : UDInt := 1000;   // IR: Max steps of encoder in one scan cycle
    END_VAR
 
    VAR_OUTPUT 
-      increment : DInt;   // Number of increments in one scan cycle
+      status { ExternalWritable := 'False'} : Int;   // OR: Status
+      increment { ExternalWritable := 'False'} : DInt;   // OR: Number of increments in one scan cycle
    END_VAR
 
-   VAR_IN_OUT 
-      prevEncoderValue : UDInt;   // Stored previous encoder value
+   VAR 
+      prevEncoderValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UDInt;   // SX: Stored previous encoder value
    END_VAR
 
    VAR_TEMP 
@@ -45,7 +46,7 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v2.0 | 2026-03-04 | cyanezf | feat: Fix bugs and change to FC |
+| v2.0 | 2026-03-04 | cyanezf | feat: Fix bugs |
 | v1.0 | 2025-07-07 | cyanezf | First version |
 
 ## Description
@@ -60,7 +61,7 @@ Encoder value must be between `minValue`and `maxValue`.
 	
 	// Check min < max
 	IF #minValue >= #maxValue THEN
-	  #_encoderIncrementUDint := #STATUS_8000_MIN_MAX;
+	  #status := #STATUS_8000_MIN_MAX;
 	  #increment := 0;
 	  ENO := false;
 	  RETURN;
@@ -94,17 +95,17 @@ Encoder value must be between `minValue`and `maxValue`.
 	
 	// Update previous
 	#prevEncoderValue := #encoderValue;
-	  
+	
 	// Check increment overflow
 	IF ABS(#increment) > #maxIncrements THEN
-	  #_encoderIncrementUDint := #STATUS_8001_INCREMENT_OVERFLOW;
+	  #status := #STATUS_8001_INCREMENT_OVERFLOW;
 	  ENO := false;
 	  RETURN;
 	END_IF;
 	
 	// Save RLO
-	#_encoderIncrementUDint := #STATUS_0_DONE;
+	#status := #STATUS_0_DONE;
 	ENO := true;
 	
-END_FUNCTION
+END_FUNCTION_BLOCK
 
