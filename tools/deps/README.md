@@ -1,17 +1,17 @@
 # Dependency graph
 
-`build_graph.py` builds a dependency graph between `core/` blocks (`.scl`/`.udt`), reading the JSON embedded in each file's `TITLE` line. It only reads under `--root` (`plc/` by default) — it never modifies source files.
+`build_core_graph.py` builds a dependency graph between `core/` blocks (`.scl`/`.udt`), reading the JSON embedded in each file's `TITLE` line. It only reads under `--root` (`plc/` by default) — it never modifies source files.
 
-Each PLC family has its own `core/` folder (e.g. `plc/s7-1x00/core/`). The script finds every folder named `core` under `--root` and builds an **independent graph per family** — blocks from different families are never mixed together. For each `core/` folder found, it writes `graph.json` and `graph.html` **directly inside that folder**.
+Each PLC family has its own `core/` folder (e.g. `plc/s7-1x00/core/`). The script finds every folder named `core` under `--root` and builds an **independent graph per family** — blocks from different families are never mixed together. For each `core/` folder found, it writes `core.json` and `core.html` **directly inside that folder**.
 
-`graph.json` is a **committed artifact**, not build output: only the repo maintainer runs this script (whenever a `core/` folder changes) and commits the regenerated files.
+`core.json` is a **committed artifact**, not build output: only the repo maintainer runs this script (whenever a `core/` folder changes) and commits the regenerated files.
 
-`graph.html` is a **static viewer**. Its canonical, hand-maintained source is `tools/deps/graph.html` — edit it there if the visualization needs changes; the script copies it byte-for-byte into every `core/` folder it processes, so all families share the exact same viewer. It loads its sibling `graph.json` at runtime via `fetch("./graph.json")`, so it must be served over HTTP (GitHub Pages, `python -m http.server`, any static host). Opening it directly with a double-click (`file://`) will fail — Chrome/Edge block local `fetch()` under that protocol; the page shows an explanatory error in that case instead of a blank screen.
+`core.html` is a **static viewer**. Its canonical, hand-maintained source is `tools/deps/core.html` — edit it there if the visualization needs changes; the script copies it byte-for-byte into every `core/` folder it processes, so all families share the exact same viewer. It loads its sibling `core.json` at runtime via `fetch("./core.json")`, so it must be served over HTTP (GitHub Pages, `python -m http.server`, any static host). Opening it directly with a double-click (`file://`) will fail — Chrome/Edge block local `fetch()` under that protocol; the page shows an explanatory error in that case instead of a blank screen.
 
 ## Usage
 
 ```shell
-python tools/deps/build_graph.py [--root plc]
+python tools/deps/build_core_graph.py [--root plc]
 ```
 
 - `--root` — root folder to search for `core/` folders (defaults to `plc`). If `--root` itself is named `core`, it is treated as the single family to build.
@@ -19,22 +19,16 @@ python tools/deps/build_graph.py [--root plc]
 Example (defaults, run from the repo root after touching any `core/` folder):
 
 ```shell
-python tools/deps/build_graph.py
+python tools/deps/build_core_graph.py
 ```
 
-Or via the wrapper script, which finds the repo root itself so it works from any working directory:
-
-```shell
-tools/deps/build.sh
-```
-
-To preview a family's `graph.html` locally:
+To preview a family's `core.html` locally:
 
 ```shell
 python -m http.server 8000 --directory plc/s7-1x00/core
 ```
 
-then open `http://localhost:8000/graph.html`.
+then open `http://localhost:8000/core.html`.
 
 ## Metadata expected in each file
 
@@ -58,9 +52,9 @@ A dependency matching neither is reported as `unknown-dependency` — either add
 
 ## Output
 
-The script is silent on the console — all diagnostics live in the `reports` array of `graph.json` instead.
+The script is silent on the console — all diagnostics live in the `reports` array of `core.json` instead.
 
-### `graph.json`
+### `core.json`
 
 ```json
 {

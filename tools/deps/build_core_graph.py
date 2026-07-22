@@ -14,14 +14,14 @@ matching neither is reported as "unknown-dependency" (warning).
 Each PLC family has its own core/ folder (e.g. plc/s7-1x00/core/); this
 script finds every folder named "core" under --root and builds an
 independent graph for each one — families are never mixed together.
-graph.json and graph.html are written straight into that core/ folder,
-as committed artifacts, not build-time output. graph.html is a static
-viewer (its content is just copied from tools/deps/graph.html, the
-canonical source to hand-edit) that fetches ./graph.json at runtime, so
+core.json and core.html are written straight into that core/ folder,
+as committed artifacts, not build-time output. core.html is a static
+viewer (its content is just copied from tools/deps/core.html, the
+canonical source to hand-edit) that fetches ./core.json at runtime, so
 it must be served over HTTP, not opened via file://.
 
 Usage:
-    python tools/deps/build_graph.py [--root plc]
+    python tools/deps/build_core_graph.py [--root plc]
 """
 import argparse
 import json
@@ -32,7 +32,7 @@ from pathlib import Path
 from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-VIEWER_TEMPLATE = SCRIPT_DIR / "graph.html"
+VIEWER_TEMPLATE = SCRIPT_DIR / "core.html"
 
 NAME_RE = re.compile(
     r'^\s*(FUNCTION_BLOCK|FUNCTION|TYPE|DATA_BLOCK|ORGANIZATION_BLOCK)\s+"([^"]+)"',
@@ -229,9 +229,9 @@ def build_for_core(core_dir: Path):
         "reports": reports,
     }
 
-    (core_dir / "graph.json").write_text(json.dumps(graph, indent=2, ensure_ascii=False), encoding="utf-8")
+    (core_dir / "core.json").write_text(json.dumps(graph, indent=2, ensure_ascii=False), encoding="utf-8")
     if VIEWER_TEMPLATE.exists():
-        shutil.copyfile(VIEWER_TEMPLATE, core_dir / "graph.html")
+        shutil.copyfile(VIEWER_TEMPLATE, core_dir / "core.html")
 
     return graph
 
@@ -253,7 +253,7 @@ def main():
     print("Done")
 
 # To execute:
-# python tools\deps\build_graph.py --root plc\s7-1x00\core
+# python tools\deps\build_core_graph.py --root plc\s7-1x00\core
 
 if __name__ == "__main__":
     main()
