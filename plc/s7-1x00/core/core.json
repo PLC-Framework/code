@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T16:33:31+00:00",
+  "generatedAt": "2026-07-22T17:29:54+00:00",
   "nodes": [
     {
       "id": "abstractAlarmData-v2.0",
@@ -11,8 +11,7 @@
       "file": "plc/s7-1x00/core/alarm/abstractAlarmData-v2.0.udt",
       "dependencies": [
         "abstractAlarmLevel-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "abstractAlarmLevel-v2.0",
@@ -22,8 +21,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/abstractAlarmLevel-v2.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBit-v2.0",
@@ -33,8 +31,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/_alarmBit-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBitForSafety-v2.0",
@@ -46,8 +43,7 @@
       "file": "plc/s7-1x00/core/alarm/_alarmBitForSafety-v2.0.scl",
       "dependencies": [
         "_alarmBit-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmBitWithOM-v2.0",
@@ -57,8 +53,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/_alarmBitWithOM-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_configNetworkAdapter-v1.2",
@@ -76,8 +71,7 @@
         "IF_CONF_v4",
         "TON_TIME",
         "RESET_TIMER"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_stringToIPv4Address-v1.0",
@@ -90,8 +84,7 @@
       "dependencies": [
         "IP_V4",
         "STRG_VAL"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_hydraulicTable-v1.0",
@@ -104,8 +97,7 @@
       "dependencies": [
         "TP_TIME",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_motor2Directions-v1.0",
@@ -115,8 +107,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/_motor2Directions-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_pneu_2DO-v1.0",
@@ -126,8 +117,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/_pneu_2DO-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_pneu_2DOInterlock-v1.1",
@@ -137,8 +127,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/_pneu_2DOInterlock-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_16BitsToReal-v1.0",
@@ -148,8 +137,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/converter/_16BitsToReal-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_realToString-v1.1",
@@ -161,8 +149,7 @@
       "file": "plc/s7-1x00/core/converter/_realToString-v1.1.scl",
       "dependencies": [
         "VAL_STRG"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_rpmToRevPerSecond-v1.0",
@@ -172,8 +159,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/converter/_rpmToRevPerSecond-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_sexagesimalToRadians-v1.0",
@@ -183,8 +169,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/converter/_sexagesimalToRadians-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_addToDatetime-v1.0",
@@ -202,8 +187,7 @@
         "_datetimeToUnixTimestamp-v1.0",
         "_normalizeDeltatime-v1.0",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_dtlToString-v1.2",
@@ -215,8 +199,7 @@
       "file": "plc/s7-1x00/core/datetime/_dtlToString-v1.2.scl",
       "dependencies": [
         "VAL_STRG"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_dtlToString-v1.3",
@@ -228,8 +211,7 @@
       "file": "plc/s7-1x00/core/datetime/_dtlToString-v1.3.scl",
       "dependencies": [
         "VAL_STRG"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_inRangeDatetime-v1.0",
@@ -241,8 +223,7 @@
       "file": "plc/s7-1x00/core/datetime/_inRangeDatetime-v1.0.scl",
       "dependencies": [
         "_compareDatetime-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_activatePnioDevice-v1.0",
@@ -255,8 +236,7 @@
       "dependencies": [
         "TON_TIME",
         "D_ACT_DP"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_activatePnioDevice-v1.1",
@@ -269,8 +249,7 @@
       "dependencies": [
         "TON_TIME",
         "D_ACT_DP"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_acousticSignal-v1.1",
@@ -282,8 +261,7 @@
       "file": "plc/s7-1x00/core/hmi/_acousticSignal-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_beacon3L1H-v1.0",
@@ -295,8 +273,7 @@
       "file": "plc/s7-1x00/core/hmi/_beacon3L1H-v1.0.scl",
       "dependencies": [
         "escOutput-v2.2"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_codedLightSignal-v1.0",
@@ -308,8 +285,7 @@
       "file": "plc/s7-1x00/core/hmi/_codedLightSignal-v1.0.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_enableDisableButton-v2.0",
@@ -321,8 +297,7 @@
       "file": "plc/s7-1x00/core/hmi/_enableDisableButton-v2.0.scl",
       "dependencies": [
         "escOutput-v2.2"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_externalHmiCommand-v1.0",
@@ -332,8 +307,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/hmi/_externalHmiCommand-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_jobmailbox_screenSelection-v1.0",
@@ -343,8 +317,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/hmi/_jobmailbox_screenSelection-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_monitor2PosPhysicalKeyWith2NonEquivalentChannels-v1.0",
@@ -356,8 +329,7 @@
       "file": "plc/s7-1x00/core/hmi/_monitor2PosPhysicalKeyWith2NonEquivalentChannels-v1.0.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_monitorPhysicalAcknButton-v1.1",
@@ -370,8 +342,7 @@
       "dependencies": [
         "TON_TIME",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_monitorPhysicalPulseButton-v1.1",
@@ -384,8 +355,7 @@
       "dependencies": [
         "TON_TIME",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_monitorPhysicalPulseButton-v1.2",
@@ -398,8 +368,7 @@
       "dependencies": [
         "TON_TIME",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_monitorPhysicalPulseButton-v1.3",
@@ -412,8 +381,7 @@
       "dependencies": [
         "TON_TIME",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_monitorPhysicalPulseButton2Q-v1.0",
@@ -426,8 +394,7 @@
       "dependencies": [
         "TON_TIME",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_power-v1.0",
@@ -437,8 +404,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/maths/_power-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "mc_profile-v1.0",
@@ -448,8 +414,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/mc_profile-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "TO_axisBasicData-v1.0",
@@ -463,8 +428,7 @@
         "TO_positioningAxis_error-v1.0",
         "TO_positioningAxis_warning-v1.0",
         "TO_positioningAxis_status-v1.1"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "TO_diagStatusErrorBits-v1.0",
@@ -474,8 +438,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/TO_diagStatusErrorBits-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "TO_positioningAxis_error-v1.0",
@@ -485,8 +448,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/TO_positioningAxis_error-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "TO_positioningAxis_status-v1.1",
@@ -496,8 +458,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/TO_positioningAxis_status-v1.1.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "TO_positioningAxis_warning-v1.0",
@@ -507,8 +468,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/TO_positioningAxis_warning-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_easyMCMoveAbsolute-v0.1-beta",
@@ -518,8 +478,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/_easyMCMoveAbsolute-v0.1-beta.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_mc_positioning1Axis-v1.0",
@@ -545,8 +504,7 @@
         "MC_TORQUELIMITING",
         "TON_TIME",
         "TOF_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_mc_positioning1Axis-v1.1",
@@ -572,8 +530,7 @@
         "MC_TORQUELIMITING",
         "TON_TIME",
         "TOF_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_mc_positioning1Axis-v2.0",
@@ -600,8 +557,7 @@
         "MC_TORQUELIMITING",
         "TON_TIME",
         "TOF_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "nodeLink-v1.0",
@@ -614,8 +570,7 @@
       "dependencies": [
         "nodeLinkSourceToDest-v1.1",
         "nodeLinkDestToSource-v1.1"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "nodeLinkDestToSource-v1.1",
@@ -625,8 +580,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/node/nodeLinkDestToSource-v1.1.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "nodeLinkSourceToDest-v1.1",
@@ -636,8 +590,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/node/nodeLinkSourceToDest-v1.1.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_siemens_sitop_PSE200U-v1.1",
@@ -649,8 +602,7 @@
       "file": "plc/s7-1x00/core/protection/_siemens_sitop_PSE200U-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_UF_enkeyStatus-v1.0",
@@ -660,8 +612,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_enkeyStatus-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_fdiStatus-v1.0",
@@ -671,8 +622,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_fdiStatus-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_feedbackStatus-v1.0",
@@ -682,8 +632,7 @@
       "status": "deprecated",
       "deprecatedBy": "_UF_feedbackStatus-v1.1",
       "file": "plc/s7-1x00/core/safety/_UF_feedbackStatus-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_feedbackStatus-v1.1",
@@ -693,8 +642,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_feedbackStatus-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_rxDiStatus-v2.0",
@@ -704,8 +652,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_rxDiStatus-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_safetyScannerStatus-v1.0",
@@ -715,8 +662,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_safetyScannerStatus-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_UF_senddpRcvdpStatus-v1.0",
@@ -726,8 +672,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/safety/_UF_senddpRcvdpStatus-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_linearInterpolation-v1.0",
@@ -737,8 +682,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/scaling/_linearInterpolation-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_fillCharInString-v1.0",
@@ -748,8 +692,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_fillCharInString-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_fillSpaces-v1.0",
@@ -759,8 +702,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_fillSpaces-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_generateChars-v1.0",
@@ -770,8 +712,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_generateChars-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_getNumericChars-v1.0",
@@ -781,8 +722,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_getNumericChars-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_removeSpaces-v1.0",
@@ -792,8 +732,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_removeSpaces-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_replaceCharInString-v1.0",
@@ -803,8 +742,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_replaceCharInString-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_substringIsEqualToLeftString-v1.0",
@@ -814,8 +752,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/string/_substringIsEqualToLeftString-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_background-v3.1",
@@ -829,8 +766,7 @@
         "TON_TIME",
         "RUNTIME",
         "RD_LOC_T"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_background-v4.0",
@@ -844,8 +780,7 @@
         "TON_TIME",
         "RUNTIME",
         "RD_LOC_T"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_background-v4.1",
@@ -859,8 +794,7 @@
         "TON_TIME",
         "RUNTIME",
         "RD_LOC_T"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_getEdges-v1.0",
@@ -870,8 +804,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/util/_getEdges-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_incrementIntWithLimits-v1.0",
@@ -881,8 +814,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/util/_incrementIntWithLimits-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_toggleBit-v1.0",
@@ -892,8 +824,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/util/_toggleBit-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "priorityQueueInstanceAttributes-v1.0",
@@ -903,8 +834,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/adt/priority-queue/priorityQueueInstanceAttributes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "priorityQueueMetadata-v1.0",
@@ -914,8 +844,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/adt/priority-queue/priorityQueueMetadata-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_priorityQueue-v1.0",
@@ -929,8 +858,7 @@
         "priorityQueueInstanceAttributes-v1.0",
         "priorityQueueMetadata-v1.0",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "queueInstanceAttributes-v3.0",
@@ -940,8 +868,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/adt/queue/queueInstanceAttributes-v3.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_queue-v3.0",
@@ -954,8 +881,7 @@
       "dependencies": [
         "queueInstanceAttributes-v3.0",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "stackInstanceAttributes-v1.1",
@@ -965,8 +891,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/adt/stack/stackInstanceAttributes-v1.1.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_stack-v1.2",
@@ -979,8 +904,7 @@
       "dependencies": [
         "stackInstanceAttributes-v1.1",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmBit01Id-v2.0",
@@ -990,8 +914,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBit01Id-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBit02Id-v2.0",
@@ -1001,8 +924,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBit02Id-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBit04Id-v2.0",
@@ -1012,8 +934,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBit04Id-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBit08Id-v2.0",
@@ -1023,8 +944,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBit08Id-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBit16Id-v2.0",
@@ -1034,8 +954,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBit16Id-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBitLevel-v2.0",
@@ -1045,8 +964,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBitLevel-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmBitMap-v2.0",
@@ -1056,8 +974,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/add-on/_alarmBitMap-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "alarmTraceGlobalData-v2.0",
@@ -1069,8 +986,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/global/alarmTraceGlobalData-v2.0.udt",
       "dependencies": [
         "alarmTraceGlobalLevel-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "alarmTraceGlobalLevel-v2.0",
@@ -1080,8 +996,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/trace/global/alarmTraceGlobalLevel-v2.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmTraceGlobalCollector-v2.0",
@@ -1094,8 +1009,7 @@
       "dependencies": [
         "alarmTraceSuperData-v2.0",
         "alarmTraceGlobalData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmTraceGlobalUpdater-v2.0",
@@ -1107,8 +1021,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/global/_alarmTraceGlobalUpdater-v2.0.scl",
       "dependencies": [
         "alarmTraceGlobalData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "alarmTraceGroupData-v2.0",
@@ -1120,8 +1033,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/group/alarmTraceGroupData-v2.0.udt",
       "dependencies": [
         "alarmTraceGroupLevel-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "alarmTraceGroupLevel-v2.0",
@@ -1131,8 +1043,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/trace/group/alarmTraceGroupLevel-v2.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmTraceGroupCollector-v2.0",
@@ -1144,8 +1055,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/group/_alarmTraceGroupCollector-v2.0.scl",
       "dependencies": [
         "alarmTraceGroupData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmTraceGroupUpdater-v2.0",
@@ -1157,8 +1067,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/group/_alarmTraceGroupUpdater-v2.0.scl",
       "dependencies": [
         "alarmTraceGroupData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "alarmTraceSuperData-v2.0",
@@ -1170,8 +1079,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/super/alarmTraceSuperData-v2.0.udt",
       "dependencies": [
         "alarmTraceSuperLevel-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "alarmTraceSuperLevel-v2.0",
@@ -1181,8 +1089,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/trace/super/alarmTraceSuperLevel-v2.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_alarmTraceRemoteSuperCollector-v1.0",
@@ -1194,8 +1101,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/super/_alarmTraceRemoteSuperCollector-v1.0.scl",
       "dependencies": [
         "alarmTraceSuperData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmTraceSuperCollector-v2.0",
@@ -1208,8 +1114,7 @@
       "dependencies": [
         "alarmTraceGroupData-v2.0",
         "alarmTraceSuperData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmTraceSuperUpdater-v2.0",
@@ -1221,8 +1126,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/super/_alarmTraceSuperUpdater-v2.0.scl",
       "dependencies": [
         "alarmTraceSuperData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_alarmTraceSuperUpdater-v2.1",
@@ -1234,8 +1138,7 @@
       "file": "plc/s7-1x00/core/alarm/trace/super/_alarmTraceSuperUpdater-v2.1.scl",
       "dependencies": [
         "alarmTraceSuperData-v2.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "plcLogBuffer-v1.0",
@@ -1245,8 +1148,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/communication/log/plcLogBuffer-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_plcLogAddEvent-v1.0",
@@ -1262,8 +1164,7 @@
         "_queue-v3.0",
         "_replaceCharInString-v1.0",
         "_dtlToString-v1.3"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_plcLogSender-v1.0",
@@ -1280,8 +1181,7 @@
         "_tcpCommunication-v2.2",
         "_queue-v3.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "tcpCommunicationControl-v1.0",
@@ -1291,8 +1191,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/communication/tcp/tcpCommunicationControl-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_tcpCommunication-v2.2",
@@ -1312,8 +1211,7 @@
         "TSEND",
         "TRCV",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_tcpCommunicationTx-v1.0",
@@ -1326,8 +1224,7 @@
       "dependencies": [
         "tcpCommunicationControl-v1.0",
         "TSEND"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_accumulatorConveyorFilling-v1.0",
@@ -1340,8 +1237,7 @@
       "dependencies": [
         "TONR_TIME",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_collectorConveyorFilling-v1.0",
@@ -1354,8 +1250,7 @@
       "dependencies": [
         "TONR_TIME",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_sensorPulseOnConveyor-v1.0",
@@ -1367,8 +1262,7 @@
       "file": "plc/s7-1x00/core/control/conveyor-technology/_sensorPulseOnConveyor-v1.0.scl",
       "dependencies": [
         "TONR_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_standBy-v2.0",
@@ -1382,8 +1276,7 @@
         "escOutput-v2.2",
         "TOF_TIME",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "mc_manual_synchronous2Axis-v1.0",
@@ -1393,8 +1286,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/manual/mc_manual_synchronous2Axis-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_manualControl-v6.0",
@@ -1406,8 +1298,7 @@
       "file": "plc/s7-1x00/core/control/manual/_manualControl-v6.0.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_manualControl_positioningAxis-v1.4",
@@ -1419,8 +1310,7 @@
       "file": "plc/s7-1x00/core/control/manual/_manualControl_positioningAxis-v1.4.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_calculatePositionAndVelocity-v1.0",
@@ -1430,8 +1320,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_calculatePositionAndVelocity-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_checkLimits-v1.1",
@@ -1441,8 +1330,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_checkLimits-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_compareWithTolerance-v1.0",
@@ -1452,8 +1340,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_compareWithTolerance-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_cycleClock-v1.0",
@@ -1465,8 +1352,7 @@
       "file": "plc/s7-1x00/core/control/util/_cycleClock-v1.0.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_encoderIncrementDintAsFB-v2.0",
@@ -1476,8 +1362,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_encoderIncrementDintAsFB-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_encoderIncrementDintAsFC-v2.0",
@@ -1487,8 +1372,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_encoderIncrementDintAsFC-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_encoderIncrementUDintAsFB-v2.0",
@@ -1498,8 +1382,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDintAsFB-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_encoderIncrementUDintAsFC-v2.0",
@@ -1509,8 +1392,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_encoderIncrementUDintAsFC-v2.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_inMaxRange-v1.1",
@@ -1520,8 +1402,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_inMaxRange-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_inMaxRangeWithDelay-v1.1",
@@ -1533,8 +1414,7 @@
       "file": "plc/s7-1x00/core/control/util/_inMaxRangeWithDelay-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_inMinRange-v1.1",
@@ -1544,8 +1424,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_inMinRange-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_inMinRangeWithDelay-v1.1",
@@ -1557,8 +1436,7 @@
       "file": "plc/s7-1x00/core/control/util/_inMinRangeWithDelay-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_inPosition-v2.1",
@@ -1568,8 +1446,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_inPosition-v2.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_inPositionWithDelay-v3.1",
@@ -1581,8 +1458,7 @@
       "file": "plc/s7-1x00/core/control/util/_inPositionWithDelay-v3.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_inRange-v1.1",
@@ -1592,8 +1468,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_inRange-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_inRangeWithDelay-v1.1",
@@ -1605,8 +1480,7 @@
       "file": "plc/s7-1x00/core/control/util/_inRangeWithDelay-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_measureCycleTime-v1.0",
@@ -1618,8 +1492,7 @@
       "file": "plc/s7-1x00/core/control/util/_measureCycleTime-v1.0.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_outOfRange-v1.1",
@@ -1629,8 +1502,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_outOfRange-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_outOfRangeWithDelay-v1.1",
@@ -1642,8 +1514,7 @@
       "file": "plc/s7-1x00/core/control/util/_outOfRangeWithDelay-v1.1.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_teachPinPositionValues-v1.1",
@@ -1653,8 +1524,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/control/util/_teachPinPositionValues-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi3flagsFaultDetector-v1.0",
@@ -1664,8 +1534,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi3flagsFaultDetector-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi3input32BytesDIO_0_31B-v1.0",
@@ -1675,8 +1544,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi3input32BytesDIO_0_31B-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi3output32BytesDIO_0_31B-v1.0",
@@ -1686,8 +1554,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi3output32BytesDIO_0_31B-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi3peripheryFaults-v1.0",
@@ -1697,8 +1564,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi3peripheryFaults-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi5ConfigurationErrors-v1.0",
@@ -1708,8 +1574,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi5ConfigurationErrors-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi5input128bytes-v1.0",
@@ -1719,8 +1584,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi5input128bytes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi5output128bytes-v1.0",
@@ -1730,8 +1594,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi5output128bytes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu3847C1ASi5peripheryFaults-v1.0",
@@ -1741,8 +1604,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu3847/bwu3847C1ASi5peripheryFaults-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu4067CustomInput16bytes-v1.0",
@@ -1755,8 +1617,7 @@
       "dependencies": [
         "sick_ahm36_status",
         "sick_dx35"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "bwu4067CustomOutput16bytes-v1.0",
@@ -1766,8 +1627,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4067/bwu4067CustomOutput16bytes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu4893Input14bytes-v1.0",
@@ -1777,8 +1637,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893Input14bytes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "bwu4893Output14bytes-v1.0",
@@ -1788,8 +1647,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893Output14bytes-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_bwu4893_singleRoller-v1.0",
@@ -1799,8 +1657,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/_bwu4893_singleRoller-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "vabx_a_s_ve_vbl_pdi-v1.0",
@@ -1810,8 +1667,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/festo/vabx/vabx_a_s_ve_vbl_pdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "vabx_a_s_ve_vbl_pdo-v1.0",
@@ -1821,8 +1677,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/festo/vabx/vabx_a_s_ve_vbl_pdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_vabx_a_s_ve_vbl-v1.0",
@@ -1836,8 +1691,7 @@
         "vabx_a_s_ve_vbl_pdi",
         "vabx_a_s_ve_vbl_pdo",
         "TP_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "multicontrolAI_highLevelObjectReady-v1.0",
@@ -1847,8 +1701,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/multicontrolAI_highLevelObjectReady-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "multicontrolAI_universalFullControl-v1.0",
@@ -1858,8 +1711,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/multicontrolAI_universalFullControl-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "multicontrolAI_universalFullStatus-v1.0",
@@ -1869,8 +1721,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/multicontrolAI_universalFullStatus-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_multicontrolAI_2Rollers-v1.0",
@@ -1880,8 +1731,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/_multicontrolAI_2Rollers-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_multicontrolAI_diverter-v1.0",
@@ -1891,8 +1741,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/_multicontrolAI_diverter-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_multicontrolAI_extSingleMotor-v1.0",
@@ -1905,8 +1754,7 @@
       "dependencies": [
         "multicontrolAI_universalFullStatus-v1.0",
         "multicontrolAI_universalFullControl-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_multicontrolAI_singleRoller-v1.1",
@@ -1916,8 +1764,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/interroll/multicontrolAI/_multicontrolAI_singleRoller-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "i550Motec_customControl-v1.0",
@@ -1929,8 +1776,7 @@
       "file": "plc/s7-1x00/core/controller/lenze/i550-motec/i550Motec_customControl-v1.0.udt",
       "dependencies": [
         "i550Motec_netWordIN1Control-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "i550Motec_customStatus-v1.0",
@@ -1942,8 +1788,7 @@
       "file": "plc/s7-1x00/core/controller/lenze/i550-motec/i550Motec_customStatus-v1.0.udt",
       "dependencies": [
         "i550Motec_netWordOUT1Status-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "i550Motec_netWordIN1Control-v1.0",
@@ -1953,8 +1798,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/lenze/i550-motec/i550Motec_netWordIN1Control-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "i550Motec_netWordOUT1Status-v1.0",
@@ -1964,8 +1808,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/lenze/i550-motec/i550Motec_netWordOUT1Status-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_i550Motec-v1.0",
@@ -1978,8 +1821,7 @@
       "dependencies": [
         "i550Motec_customStatus-v1.0",
         "i550Motec_customControl-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "ica8io4m4G20ioP14_extControl-v1.0",
@@ -1989,8 +1831,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14/ica8io4m4G20ioP14_extControl-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ica8io4m4G20ioP14_extStatus-v1.0",
@@ -2000,8 +1841,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14/ica8io4m4G20ioP14_extStatus-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_ica8io4m4G20ioP14_extSingleMotor-v1.0",
@@ -2014,8 +1854,7 @@
       "dependencies": [
         "ica8io4m4G20ioP14_extStatus-v1.0",
         "ica8io4m4G20ioP14_extControl-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "ecc_dfc_24_0x_control-v1.0",
@@ -2025,8 +1864,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_control-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
@@ -2036,8 +1874,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_fullPlcModePdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
@@ -2047,8 +1884,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_fullPlcModePdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ecc_dfc_24_0x_profile-v1.0",
@@ -2058,8 +1894,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/sew/ecc-dfc-24-0x/ecc_dfc_24_0x_profile-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_ecc_dfc_24_0x_config-v1.0",
@@ -2074,8 +1909,7 @@
         "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
         "TON_TIME",
         "TOF_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_ecc_dfc_24_0x_positioningControl-v1.0",
@@ -2094,8 +1928,7 @@
         "__ecc_moveJog-v1.0",
         "__ecc_moveAbsolute-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_ecc_dfc_24_0x_speedControl-v1.0",
@@ -2109,8 +1942,7 @@
         "ecc_dfc_24_0x_fullPlcModePdi-v1.0",
         "ecc_dfc_24_0x_fullPlcModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__ecc_home-v1.0",
@@ -2124,8 +1956,7 @@
         "ecc_dfc_24_0x_profile-v1.0",
         "ecc_dfc_24_0x_control-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__ecc_moveAbsolute-v1.0",
@@ -2139,8 +1970,7 @@
         "ecc_dfc_24_0x_profile-v1.0",
         "ecc_dfc_24_0x_control-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__ecc_moveJog-v1.0",
@@ -2154,8 +1984,7 @@
         "ecc_dfc_24_0x_profile-v1.0",
         "ecc_dfc_24_0x_control-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "motorStarter_3RK1_308_control-v1.0",
@@ -2165,8 +1994,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/siemens/motorStart_3RK1_308/motorStarter_3RK1_308_control-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "motorStarter_3RK1_308_status-v1.0",
@@ -2176,8 +2004,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/siemens/motorStart_3RK1_308/motorStarter_3RK1_308_status-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_motorStarter_3RK1_308-v2.0",
@@ -2190,8 +2017,7 @@
       "dependencies": [
         "motorStarter_3RK1_308_status-v1.0",
         "motorStarter_3RK1_308_control-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "jxcPdi-v1.0",
@@ -2201,8 +2027,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxc/jxcPdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxcPdo-v1.0",
@@ -2212,8 +2037,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxc/jxcPdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxcProfile-v1.0",
@@ -2223,8 +2047,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxc/jxcProfile-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_jxc-v1.1",
@@ -2241,8 +2064,7 @@
         "TON_TIME",
         "WRREC",
         "RDREC"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
@@ -2252,8 +2074,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
@@ -2263,8 +2084,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_2bytes_IOmodePdi-v1.0",
@@ -2274,8 +2094,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_2bytes_IOmodePdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_2bytes_IOmodePdo-v1.0",
@@ -2285,8 +2104,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_2bytes_IOmodePdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_8bytes_simpleDirectValueModePdi-v1.0",
@@ -2296,8 +2114,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_simpleDirectValueModePdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_8bytes_simpleDirectValueModePdo-v1.0",
@@ -2307,8 +2124,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_simpleDirectValueModePdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_8bytes_stepInstructionModePdi-v1.0",
@@ -2318,8 +2134,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_stepInstructionModePdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_driveUnit_8bytes_stepInstructionModePdo-v1.0",
@@ -2329,8 +2144,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_driveUnit_8bytes_stepInstructionModePdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_gatewayPdi-v1.0",
@@ -2340,8 +2154,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_gatewayPdi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_gatewayPdo-v1.0",
@@ -2351,8 +2164,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_gatewayPdo-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "jxd1_profile-v1.0",
@@ -2362,8 +2174,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/controller/smc/jxd1/jxd1_profile-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_jxd1_directNumerical-v1.0",
@@ -2384,8 +2195,7 @@
         "__jxd1_moveRelative-v1.0",
         "__jxd1_moveJog-v1.0",
         "TOF_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_jxd1_gateway-v1.0",
@@ -2398,8 +2208,7 @@
       "dependencies": [
         "jxd1_gatewayPdi",
         "jxd1_gatewayPdo"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_halt-v1.0",
@@ -2414,8 +2223,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_home-v1.0",
@@ -2429,8 +2237,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_moveAbsolute-v1.0",
@@ -2445,8 +2252,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_moveJog-v1.0",
@@ -2460,8 +2266,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_moveRelative-v1.0",
@@ -2476,8 +2281,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "__jxd1_stop-v1.0",
@@ -2492,8 +2296,7 @@
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "al2401Status-v1.0",
@@ -2503,8 +2306,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/ifm/al2401/al2401Status-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ifm_ogd250_control-v1.0",
@@ -2514,8 +2316,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/ifm/ogd250/ifm_ogd250_control-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ifm_ogd250_status-v1.0",
@@ -2525,8 +2326,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/ifm/ogd250/ifm_ogd250_status-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_ifm_ogd250-v1.0",
@@ -2538,8 +2338,7 @@
       "file": "plc/s7-1x00/core/dad/ifm/ogd250/_ifm_ogd250-v1.0.scl",
       "dependencies": [
         "ifm_ogd250_status-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_dmu218-v1.1",
@@ -2549,8 +2348,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/leuze/dmu218/_dmu218-v1.1.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ice38iolG65iV1d_ioLinkStatus-v1.0",
@@ -2560,8 +2358,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/pepperl-fuchs/ICE3-8IOL-G65L-V1D/ice38iolG65iV1d_ioLinkStatus-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "sick_cdf600_controlWord-v1.0",
@@ -2571,8 +2368,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/sick_cdf600_controlWord-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "sick_cdf600_statusWord-v1.0",
@@ -2582,8 +2378,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/sick_cdf600_statusWord-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "sick_clv6xx-v1.0",
@@ -2593,8 +2388,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/sick_clv6xx-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_sick_clv6xx_cmd-v1.2",
@@ -2610,8 +2404,7 @@
         "_sick_hexAsciiToDword-v1.0",
         "_sick_dwordToHexAscii-v1.1",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_sick_clv6xx_reader-v1.2",
@@ -2626,8 +2419,7 @@
         "TONR_TIME",
         "DPRD_DAT",
         "DPWR_DAT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_sick_cola-v1.2",
@@ -2639,8 +2431,7 @@
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/_sick_cola-v1.2.scl",
       "dependencies": [
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_sick_dwordToHexAscii-v1.1",
@@ -2652,8 +2443,7 @@
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/_sick_dwordToHexAscii-v1.1.scl",
       "dependencies": [
         "Strg_TO_Chars"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_sick_hexAsciiToDword-v1.0",
@@ -2663,8 +2453,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/_sick_hexAsciiToDword-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "ex600Lab1Pqi-v1.0",
@@ -2674,8 +2463,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/smc/ex600-lab1/ex600Lab1Pqi-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "deltatime-v1.0",
@@ -2685,8 +2473,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/deltatime/deltatime-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "unnormalizedDeltatime-v1.0",
@@ -2696,8 +2483,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/deltatime/unnormalizedDeltatime-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_clearDeltatime-v1.0",
@@ -2711,8 +2497,7 @@
         "unnormalizedDeltatime-v1.0",
         "deltatime-v1.0",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_normalizeDeltatime-v1.0",
@@ -2726,8 +2511,7 @@
         "unnormalizedDeltatime-v1.0",
         "deltatime-v1.0",
         "MOVE_BLK_VARIANT"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "unixTimestamp-v1.0",
@@ -2737,8 +2521,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/timestamp/unixTimestamp-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_datetimeToUnixTimestamp-v1.0",
@@ -2753,8 +2536,7 @@
         "_isLeapYear-v1.0",
         "_getMonthDays-v1.0",
         "_checkDatetime-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_unixTimestampToDatetime-v1.0",
@@ -2770,8 +2552,7 @@
         "_getMonthDays-v1.0",
         "_checkDatetime-v1.0",
         "_getWeekday-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_checkDatetime-v1.0",
@@ -2785,8 +2566,7 @@
         "_compareDatetime-v1.0",
         "_getMonthDays-v1.0",
         "_getWeekday-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_compareDatetime-v1.0",
@@ -2796,8 +2576,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/util/_compareDatetime-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_getMonthDays-v1.0",
@@ -2807,8 +2586,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/util/_getMonthDays-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_getWeekday-v1.0",
@@ -2818,8 +2596,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/util/_getWeekday-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_getYearDays-v1.0",
@@ -2829,8 +2606,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/util/_getYearDays-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_isLeapYear-v1.0",
@@ -2840,8 +2616,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/datetime/util/_isLeapYear-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "rxRecordReadPub-v1.0",
@@ -2851,8 +2626,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/lldx/rxRecordReadPub-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "rxRecordReadSto-v1.0",
@@ -2862,8 +2636,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/lldx/rxRecordReadSto-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "rxRecordWritePub-v1.0",
@@ -2873,8 +2646,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/lldx/rxRecordWritePub-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "rxRecordWriteSto-v1.0",
@@ -2884,8 +2656,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/lldx/rxRecordWriteSto-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "txRecordReadSto-v1.0",
@@ -2895,8 +2666,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/lldx/txRecordReadSto-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "pnioDeviceStatus-v1.0",
@@ -2906,8 +2676,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/fieldbus/pnio-diag/pnioDeviceStatus-v1.0.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "pnioSubnetStatus-v1.0",
@@ -2919,8 +2688,7 @@
       "file": "plc/s7-1x00/core/fieldbus/pnio-diag/pnioSubnetStatus-v1.0.udt",
       "dependencies": [
         "pnioDeviceStatus-v1.0"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_pnioDiag-v2.0",
@@ -2932,8 +2700,7 @@
       "file": "plc/s7-1x00/core/fieldbus/pnio-diag/_pnioDiag-v2.0.scl",
       "dependencies": [
         "DeviceStates"
-      ],
-      "legacyFolder": false
+      ]
     },
     {
       "id": "_calculateAcceleration-v1.0",
@@ -2943,8 +2710,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/util/_calculateAcceleration-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_calculateAccelerationDistance-v1.0",
@@ -2954,8 +2720,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/util/_calculateAccelerationDistance-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_calculateAccelerationPulses-v1.0",
@@ -2965,8 +2730,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/util/_calculateAccelerationPulses-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_calculateJerk-v1.0",
@@ -2976,8 +2740,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/motion-control/util/_calculateJerk-v1.0.scl",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "escOutput-v2.2",
@@ -2987,8 +2750,7 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/system/esc/escOutput-v2.2.udt",
-      "dependencies": [],
-      "legacyFolder": false
+      "dependencies": []
     },
     {
       "id": "_esc-v5.4",
@@ -3002,8 +2764,7 @@
         "escOutput-v2.2",
         "TP_TIME",
         "TON_TIME"
-      ],
-      "legacyFolder": false
+      ]
     }
   ],
   "edges": [

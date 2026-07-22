@@ -89,7 +89,6 @@ def parse_file(path: Path):
         "deprecatedBy": deprecated_by,
         "file": path.as_posix(),
         "dependencies": dependencies,
-        "legacyFolder": any(part in ("__old", "__deprecated") for part in path.parts),
     }
 
 

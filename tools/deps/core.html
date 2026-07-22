@@ -619,7 +619,7 @@
     n.pathSegs = pathSegments(n.file);
     n.module = n.pathSegs.length ? n.pathSegs[0] : "other";
     n.isMismatch = n.name !== n.base;
-    n.isLegacy = n.legacyFolder || n.status === "deprecated";
+    n.isLegacy = n.status === "deprecated";
     n.outEdges = [];
     n.inEdges = [];
     nodesById[n.id] = n;
@@ -1252,7 +1252,6 @@
     else badges += '<span class="badge ok">current</span>';
     if (node.isMismatch) badges += '<span class="badge critical">name ≠ file</span>';
     if (node.hasBrokenDeprecation) badges += '<span class="badge critical">broken deprecatedBy</span>';
-    if (node.legacyFolder) badges += '<span class="badge warn">legacy folder</span>';
 
     var depsHtml = node.outEdges.length ? node.outEdges.map(function (e) {
       var label = e.to;

@@ -77,7 +77,6 @@ The script is silent on the console — all diagnostics live in the `reports` ar
 | `deprecatedBy` | `id` of the file that replaces this one, or `null`.                                   |
 | `file`         | Relative path to the file.                                                            |
 | `dependencies` | Raw dependency list as it appears in `TITLE`.                                         |
-| `legacyFolder` | `true` if the file lives inside an `__old/` or `__deprecated/` folder.                |
 
 ### Edge fields
 
