@@ -155,12 +155,17 @@
     flex: 1;
     display: grid;
     grid-template-columns: 258px 1fr 340px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "rail header header"
+      "rail stage  detail";
     min-height: 0;
   }
   .body.no-detail { grid-template-columns: 258px 1fr 0px; }
 
   /* ---------- rail ---------- */
   .rail {
+    grid-area: rail;
     border-right: 1px solid var(--line);
     background: var(--surface);
     display: flex;
@@ -232,8 +237,10 @@
 
   /* ---------- stage ---------- */
   .stage {
+    grid-area: stage;
     position: relative;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background:
@@ -243,6 +250,7 @@
   }
 
   .stage-header {
+    grid-area: header;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -397,6 +405,7 @@
 
   /* ---------- detail panel ---------- */
   .detail {
+    grid-area: detail;
     border-left: 1px solid var(--line);
     background: var(--surface);
     overflow-y: auto;
@@ -538,17 +547,18 @@
       <div class="rail-list" id="rail-list"></div>
     </aside>
 
-    <main class="stage">
-      <div class="stage-header">
-        <div class="tabs" id="tabs"></div>
-        <div class="crumb" id="crumb"></div>
-        <div class="legend" id="legend">
-          <span class="legend-item"><span class="dot critical"></span>Needs attention (pin, mismatch, broken link)</span>
-          <span class="legend-item"><span class="dot warn"></span>Depends on a deprecated / uncataloged block</span>
-          <span class="legend-item"><span class="dot" style="background:var(--status-info)"></span>Only external dependencies</span>
-          <span class="legend-item"><span class="dot ok"></span>No issues</span>
-        </div>
+    <div class="stage-header">
+      <div class="tabs" id="tabs"></div>
+      <div class="crumb" id="crumb"></div>
+      <div class="legend" id="legend">
+        <span class="legend-item"><span class="dot critical"></span>Needs attention (pin, mismatch, broken link)</span>
+        <span class="legend-item"><span class="dot warn"></span>Depends on a deprecated / uncataloged block</span>
+        <span class="legend-item"><span class="dot" style="background:var(--status-info)"></span>Only external dependencies</span>
+        <span class="legend-item"><span class="dot ok"></span>No issues</span>
       </div>
+    </div>
+
+    <main class="stage">
       <div class="canvas-wrap" id="canvas-wrap">
         <svg id="canvas"></svg>
       </div>
