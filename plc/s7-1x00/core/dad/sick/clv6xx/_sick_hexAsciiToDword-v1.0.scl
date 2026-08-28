@@ -1,5 +1,5 @@
 ﻿FUNCTION "_sick_hexAsciiToDword" : Int
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+TITLE = {"version":"v1.0","author":"SICKAG","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies" : []}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : SICKAG
 FAMILY : 'core/dad/sick/clv6xx'

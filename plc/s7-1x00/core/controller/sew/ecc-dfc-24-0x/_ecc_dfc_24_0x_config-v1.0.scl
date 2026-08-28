@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_ecc_dfc_24_0x_config"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi-v1.0","ecc_dfc_24_0x_fullPlcModePdo-v1.0","TON_TIME","TOF_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/sew/ecc-dfc-24-0x","status":"current","deprecatedBy": null,"dependencies":["ecc_dfc_24_0x_fullPlcModePdi-v1.0","ecc_dfc_24_0x_fullPlcModePdo-v1.0","TON_TIME","TOF_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/sew/ecc-dfc-24-0x'

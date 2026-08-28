@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_mc_positioning1Axis"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["mc_profile-v1.0", "TO_axisBasicData-v1.0", "TO_PositioningAxis", "MC_POWER", "MC_RESET", "MC_STOP", "MC_HALT", "MC_HOME",	"MC_MOVEJOG", "MC_MOVEVELOCITY", "MC_MOVEABSOLUTE", "MC_MOVERELATIVE", "MC_TORQUERANGE", "MC_TORQUELIMITING", "TON_TIME", "TOF_TIME"]}
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies" : ["mc_profile-v1.0", "TO_axisBasicData-v1.0", "TO_PositioningAxis", "MC_POWER", "MC_RESET", "MC_STOP", "MC_HALT", "MC_HOME",	"MC_MOVEJOG", "MC_MOVEVELOCITY", "MC_MOVEABSOLUTE", "MC_MOVERELATIVE", "MC_TORQUERANGE", "MC_TORQUELIMITING", "TON_TIME", "TOF_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/motion-control'

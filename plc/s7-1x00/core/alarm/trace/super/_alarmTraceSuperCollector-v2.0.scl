@@ -1,5 +1,5 @@
 ﻿FUNCTION "_alarmTraceSuperCollector" : Void
-TITLE = {"status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceGroupData-v2.0", "alarmTraceSuperData-v2.0"]}
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/alarm/trace/super","status": "current", "deprecatedBy": null,"dependencies" : ["alarmTraceGroupData-v2.0", "alarmTraceSuperData-v2.0"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/alarm/trace/super'

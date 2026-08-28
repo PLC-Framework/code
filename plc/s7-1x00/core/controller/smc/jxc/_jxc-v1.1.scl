@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_jxc"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["jxcPdi-v1.0", "jxcPdo-v1.0", "jxcProfile-v1.0", "TON_TIME", "WRREC", "RDREC"]}
+TITLE = {"version":"v1.1","author":"aripoll","family":"core/controller/smc/jxc","status":"current","deprecatedBy": null,"dependencies" : ["jxcPdi-v1.0", "jxcPdo-v1.0", "jxcProfile-v1.0", "TON_TIME", "WRREC", "RDREC"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : aripoll
 FAMILY : 'core/controller/smc/jxc'

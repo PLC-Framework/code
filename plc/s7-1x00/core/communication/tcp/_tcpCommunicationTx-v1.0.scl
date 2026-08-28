@@ -1,5 +1,5 @@
 ﻿FUNCTION "_tcpCommunicationTx" : Void
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TSEND"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/tcp","status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TSEND"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/communication/tcp'

@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_plcLogSender"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["plcLogBuffer-v1.0","queueInstanceAttributes-v3.0","tcpCommunicationControl-v1.0","_tcpCommunication-v2.2","_queue-v3.0","TON_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/log","status":"current","deprecatedBy": null,"dependencies":["plcLogBuffer-v1.0","queueInstanceAttributes-v3.0","tcpCommunicationControl-v1.0","_tcpCommunication-v2.2","_queue-v3.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/communication/log'

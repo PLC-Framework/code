@@ -1,5 +1,5 @@
 ﻿FUNCTION "_calculateAccelerationDistance" : LReal
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":[]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control/util","status":"current","deprecatedBy": null,"dependencies":[]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/motion-control/util'

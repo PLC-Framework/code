@@ -1,8 +1,8 @@
 ﻿FUNCTION "_stack" : Int
-TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : ["stackInstanceAttributes-v1.1", "MOVE_BLK_VARIANT"]}
+TITLE = {"version":"v1.2","author":"cyanezf","family":"core/adt/stack","status": "current", "deprecatedBy": null, "dependencies" : ["stackInstanceAttributes-v1.1", "MOVE_BLK_VARIANT"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/adt/sack'
+FAMILY : 'core/adt/stack'
 NAME : _stack
 VERSION : 1.2
    VAR_INPUT 

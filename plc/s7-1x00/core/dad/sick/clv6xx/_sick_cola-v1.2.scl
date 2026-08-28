@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_sick_cola"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
+TITLE = {"version":"v1.2","author":"SICKAG","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : SICKAG
 FAMILY : 'core/dad/sick/clv6xx'

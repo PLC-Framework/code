@@ -1,8 +1,8 @@
 ﻿FUNCTION "_rpmToRevPerSecond" : LReal
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":[]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/converter","status":"current","deprecatedBy": null,"dependencies":[]}
 { S7_Optimized_Access := 'TRUE' }
-AUTHOR : 'core/converter'
-FAMILY : cyanezf
+AUTHOR : cyanezf
+FAMILY : 'core/converter'
 NAME : _rpmToRevPerSecond
 VERSION : 1.0
 

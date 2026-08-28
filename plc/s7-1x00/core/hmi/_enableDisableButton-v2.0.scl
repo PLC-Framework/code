@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_enableDisableButton"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2"]}
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/hmi","status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/hmi'

@@ -1,5 +1,5 @@
 ﻿TYPE "priorityQueueMetadata"
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue", "current", "deprecatedBy": null, "dependencies":[]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue", "status": "current", "deprecatedBy": null, "dependencies":[]}
 
 //(*--
 //# Documentation

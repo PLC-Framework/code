@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_collectorConveyorFilling"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TONR_TIME", "TON_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/control/conveyor-technology","status":"current","deprecatedBy": null,"dependencies" : ["TONR_TIME", "TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/control/conveyor-technology'

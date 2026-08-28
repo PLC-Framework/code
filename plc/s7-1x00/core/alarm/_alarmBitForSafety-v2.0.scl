@@ -1,5 +1,5 @@
 ﻿FUNCTION "_alarmBitForSafety" : Void
-TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : ["_alarmBit-v2.0"]}
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/alarm","status": "current", "deprecatedBy": null, "dependencies" : ["_alarmBit-v2.0"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/alarm'

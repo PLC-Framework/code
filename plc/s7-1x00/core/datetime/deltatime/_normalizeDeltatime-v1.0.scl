@@ -1,5 +1,5 @@
 ﻿FUNCTION "_normalizeDeltatime" : Int
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["unnormalizedDeltatime-v1.0", "deltatime-v1.0", "MOVE_BLK_VARIANT"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/datetime/deltatime","status":"current","deprecatedBy": null,"dependencies" : ["unnormalizedDeltatime-v1.0", "deltatime-v1.0", "MOVE_BLK_VARIANT"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/datetime/deltatime'

@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_esc"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2", "TP_TIME", "TON_TIME"]}
+TITLE = {"version":"v5.4","author":"cyanezf","family":"core/system/esc","status":"current","deprecatedBy": null,"dependencies" : ["escOutput-v2.2", "TP_TIME", "TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/system/esc'

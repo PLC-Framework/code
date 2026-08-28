@@ -1,5 +1,5 @@
 ﻿FUNCTION "_queue" : Int
-TITLE = {"status": "current", "deprecatedBy": null, "dependencies" : ["queueInstanceAttributes-v3.0", "MOVE_BLK_VARIANT"]}
+TITLE = {"version":"v3.0","author":"cyanezf","family":"core/adt/queue","status": "current", "deprecatedBy": null, "dependencies" : ["queueInstanceAttributes-v3.0", "MOVE_BLK_VARIANT"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/adt/queue'

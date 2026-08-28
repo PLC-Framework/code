@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_monitorPhysicalPulseButton2Q"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME", "TP_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/hmi","status":"current","deprecatedBy": null,"dependencies" : ["TON_TIME", "TP_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/hmi'

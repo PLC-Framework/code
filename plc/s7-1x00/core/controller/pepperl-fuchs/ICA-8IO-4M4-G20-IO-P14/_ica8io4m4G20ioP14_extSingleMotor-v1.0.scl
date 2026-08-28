@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_ica8io4m4G20ioP14_extSingleMotor"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["ica8io4m4G20ioP14_extStatus-v1.0", "ica8io4m4G20ioP14_extControl-v1.0"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14","status":"current","deprecatedBy": null,"dependencies" : ["ica8io4m4G20ioP14_extStatus-v1.0", "ica8io4m4G20ioP14_extControl-v1.0"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/pepperl-fuchs/ICA-8IO-4M4-G20-IO-P14'

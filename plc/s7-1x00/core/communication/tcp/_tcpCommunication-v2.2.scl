@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_tcpCommunication"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TCON_IP_v4", "TDiag_Status", "T_DIAG", "TDISCON", "TCON", "TSEND", "TRCV", "TON_TIME"]}
+TITLE = {"version":"v2.2","author":"cyanezf","family":"core/communication/tcp","status":"current","deprecatedBy": null,"dependencies" : ["tcpCommunicationControl-v1.0", "TCON_IP_v4", "TDiag_Status", "T_DIAG", "TDISCON", "TCON", "TSEND", "TRCV", "TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/communication/tcp'

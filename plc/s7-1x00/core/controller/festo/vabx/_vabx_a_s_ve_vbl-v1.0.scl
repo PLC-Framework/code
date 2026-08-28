@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_vabx_a_s_ve_vbl"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["vabx_a_s_ve_vbl_pdi","vabx_a_s_ve_vbl_pdo","TP_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/festo/vabx","status":"current","deprecatedBy": null,"dependencies":["vabx_a_s_ve_vbl_pdi","vabx_a_s_ve_vbl_pdo","TP_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/festo/vabx'

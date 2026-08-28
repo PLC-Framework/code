@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "__jxd1_halt"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies":["jxd1_profile-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/smc/jxd1","status":"current","deprecatedBy": null,"dependencies":["jxd1_profile-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0","jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller/smc/jxd1'

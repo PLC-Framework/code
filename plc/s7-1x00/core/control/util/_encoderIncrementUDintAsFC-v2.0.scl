@@ -1,5 +1,5 @@
 ﻿FUNCTION "_encoderIncrementUDintAsFC" : Int
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : []}
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/control/util","status":"current","deprecatedBy": null,"dependencies" : []}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/control/util'

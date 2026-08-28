@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_sick_clv6xx_reader"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["_sick_cola-v1.2", "TONR_TIME", "DPRD_DAT", "DPWR_DAT"]}
+TITLE = {"version":"v1.2","author":"SICKAG","family":"core/dad/sick/clv6xx","status":"current","deprecatedBy": null,"dependencies" : ["_sick_cola-v1.2", "TONR_TIME", "DPRD_DAT", "DPWR_DAT"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : SICKAG
 FAMILY : 'core/dad/sick/clv6xx'

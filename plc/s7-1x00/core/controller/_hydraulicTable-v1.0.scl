@@ -1,5 +1,5 @@
 ﻿FUNCTION_BLOCK "_hydraulicTable"
-TITLE = {"status":"current","deprecatedBy": null,"dependencies" : ["TP_TIME", "TON_TIME"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller","status":"current","deprecatedBy": null,"dependencies" : ["TP_TIME", "TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
 FAMILY : 'core/controller'
