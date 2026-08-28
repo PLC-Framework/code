@@ -21,7 +21,7 @@ canonical source to hand-edit) that fetches ./core.json at runtime, so
 it must be served over HTTP, not opened via file://.
 
 Usage:
-    python tools/deps/build_core_graph.py [--root plc]
+    python tools/dependency_graph_builder/run.py [--root plc]
 """
 import argparse
 import json
@@ -252,7 +252,7 @@ def main():
     print("Done")
 
 # To execute:
-# python tools\deps\build_core_graph.py --root plc\s7-1x00\core
+# python tools\dependency_graph_builder\run.py --root plc\s7-1x00\core
 
 if __name__ == "__main__":
     main()
