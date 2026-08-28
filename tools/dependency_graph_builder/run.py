@@ -5,6 +5,10 @@ Parses the TITLE metadata embedded in each .scl/.udt file under a core
 folder and resolves the declared "dependencies" against the other files
 in the library. Read-only: never edits any source file under --root.
 
+The shape of that metadata and of the graph written out lives in
+the models package — this script only fills those objects in and
+serializes them.
+
 Dependencies that don't resolve to a file are classified against two
 catalogs, each a flat JSON array of names, found inside that same core
 folder: plc-system.json (Siemens/TIA system blocks) and
@@ -16,9 +20,9 @@ script finds every folder named "core" under --root and builds an
 independent graph for each one — families are never mixed together.
 core.json and core.html are written straight into that core/ folder,
 as committed artifacts, not build-time output. core.html is a static
-viewer (its content is just copied from tools/deps/core.html, the
-canonical source to hand-edit) that fetches ./core.json at runtime, so
-it must be served over HTTP, not opened via file://.
+viewer (its content is just copied from the core.html sitting next to
+this script, the canonical source to hand-edit) that fetches
+./core.json at runtime, so it must be served over HTTP, not file://.
 
 Usage:
     python tools/dependency_graph_builder/run.py [--root plc]
@@ -27,9 +31,10 @@ import argparse
 import json
 import re
 import shutil
-from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
+
+from models import BlockMetadata, Edge, ExternalKind, Graph, Node, Report
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 VIEWER_TEMPLATE = SCRIPT_DIR / "core.html"
@@ -39,10 +44,33 @@ NAME_RE = re.compile(
     re.IGNORECASE,
 )
 DEP_ARRAY_RE = re.compile(r'"dependencies"\s*:\s*\[(.*?)\]', re.DOTALL)
+VERSION_RE = re.compile(r'"version"\s*:\s*"([^"]+)"')
+AUTHOR_RE = re.compile(r'"author"\s*:\s*"([^"]+)"')
+FAMILY_RE = re.compile(r'"family"\s*:\s*"([^"]+)"')
 STATUS_RE = re.compile(r'"status"\s*:\s*"([^"]+)"')
 DEPRECATED_BY_RE = re.compile(r'"deprecatedBy"\s*:\s*"([^"]+)"')
 QUOTED_RE = re.compile(r'"([^"]+)"')
 VERSION_SUFFIX_RE = re.compile(r'^(?P<base>.+?)-v(?P<version>[0-9][\w.\-]*)$')
+
+
+def parse_title(lines) -> BlockMetadata:
+    """Read the TITLE line field by field instead of with json.loads, so a
+    hand-edited object with a stray comma still yields what it declares."""
+    meta = BlockMetadata()
+    for line in lines[:10]:
+        if "TITLE" not in line:
+            continue
+        dep_match = DEP_ARRAY_RE.search(line)
+        if dep_match:
+            meta.dependencies = QUOTED_RE.findall(dep_match.group(1))
+        for rx, attr in ((VERSION_RE, "version"), (AUTHOR_RE, "author"),
+                         (FAMILY_RE, "family"), (STATUS_RE, "status"),
+                         (DEPRECATED_BY_RE, "deprecated_by")):
+            m = rx.search(line)
+            if m:
+                setattr(meta, attr, m.group(1))
+        break
+    return meta
 
 
 def parse_file(path: Path):
@@ -60,44 +88,31 @@ def parse_file(path: Path):
     if name is None:
         return None
 
-    dependencies, status, deprecated_by = [], "current", None
-    for line in lines[:10]:
-        if "TITLE" not in line:
-            continue
-        dep_match = DEP_ARRAY_RE.search(line)
-        if dep_match:
-            dependencies = QUOTED_RE.findall(dep_match.group(1))
-        status_match = STATUS_RE.search(line)
-        if status_match:
-            status = status_match.group(1)
-        dep_by_match = DEPRECATED_BY_RE.search(line)
-        if dep_by_match:
-            deprecated_by = dep_by_match.group(1)
-        break
+    meta = parse_title(lines)
 
     stem = path.stem
     ver_match = VERSION_SUFFIX_RE.match(stem)
     base = ver_match.group("base") if ver_match else stem
     version = ver_match.group("version") if ver_match else None
 
-    return {
-        "id": stem,
-        "name": name,
-        "base": base,
-        "version": version,
-        "status": status,
-        "deprecatedBy": deprecated_by,
-        "file": path.as_posix(),
-        "dependencies": dependencies,
-    }
+    return Node(
+        id=stem,
+        name=name,
+        base=base,
+        version=version,
+        status=meta.status,
+        deprecated_by=meta.deprecated_by,
+        file=path.as_posix(),
+        dependencies=meta.dependencies,
+    )
 
 
-def build_index(nodes):
+def build_index(nodes: list[Node]):
     by_stem = {}
     by_base = defaultdict(list)
     for n in nodes:
-        by_stem[n["id"]] = n
-        by_base[n["base"]].append(n)
+        by_stem[n.id] = n
+        by_base[n.base].append(n)
     return by_stem, by_base
 
 
@@ -113,7 +128,7 @@ def load_name_list(root: Path, filename: str) -> set:
     return names
 
 
-def classify_external(dep: str, system_names: set, untracked_names: set) -> str:
+def classify_external(dep: str, system_names: set, untracked_names: set) -> ExternalKind:
     if dep in system_names:
         return "system"
     if dep in untracked_names:
@@ -121,67 +136,52 @@ def classify_external(dep: str, system_names: set, untracked_names: set) -> str:
     return "unknown"
 
 
-def resolve(nodes, by_stem, by_base, system_names, untracked_names):
-    edges = []
+def resolve(nodes: list[Node], by_stem, by_base, system_names, untracked_names):
+    edges: list[Edge] = []
     unresolved = defaultdict(list)
     ambiguous = defaultdict(list)
     for n in nodes:
-        for dep in n["dependencies"]:
+        for dep in n.dependencies:
             if dep in by_stem:
-                edges.append({"from": n["id"], "to": dep, "resolved": True, "ambiguous": False})
+                edges.append(Edge.to_node(n.id, dep))
                 continue
             candidates = by_base.get(dep, [])
             if len(candidates) == 1:
-                edges.append({"from": n["id"], "to": candidates[0]["id"], "resolved": True, "ambiguous": False})
+                edges.append(Edge.to_node(n.id, candidates[0].id))
             elif len(candidates) > 1:
-                edges.append({
-                    "from": n["id"], "to": dep, "resolved": False, "ambiguous": True,
-                    "candidates": [c["id"] for c in candidates],
-                })
-                ambiguous[dep].append(n["id"])
+                edges.append(Edge.to_ambiguous(n.id, dep, [c.id for c in candidates]))
+                ambiguous[dep].append(n.id)
             else:
                 kind = classify_external(dep, system_names, untracked_names)
-                edges.append({
-                    "from": n["id"], "to": dep, "resolved": False, "ambiguous": False,
-                    "external": True, "kind": kind,
-                })
-                unresolved[dep].append((n["id"], kind))
+                edges.append(Edge.to_external(n.id, dep, kind))
+                unresolved[dep].append((n.id, kind))
     return edges, unresolved, ambiguous
 
 
-def build_reports(nodes, ambiguous, unresolved):
-    reports = []
+def build_reports(nodes: list[Node], ambiguous, unresolved) -> list[Report]:
+    reports: list[Report] = []
 
     for dep, users in sorted(ambiguous.items()):
-        reports.append({
-            "level": "error",
-            "type": "ambiguous-dependency",
-            "message": f'"{dep}" matches more than one file; needs a version pin.',
-            "dependency": dep,
-            "usedBy": users,
-        })
+        reports.append(Report.about_dependency(
+            "error", "ambiguous-dependency",
+            f'"{dep}" matches more than one file; needs a version pin.',
+            dep, users,
+        ))
 
-    mismatches = [n for n in nodes if n["name"] != n["base"]]
+    mismatches = [n for n in nodes if n.name != n.base]
     for n in mismatches:
-        reports.append({
-            "level": "warning",
-            "type": "name-mismatch",
-            "message": f'File name "{n["base"]}" does not match declared TIA symbol "{n["name"]}".',
-            "file": n["file"],
-            "base": n["base"],
-            "name": n["name"],
-        })
+        reports.append(Report.name_mismatch(
+            f'File name "{n.base}" does not match declared TIA symbol "{n.name}".',
+            n.file, n.base, n.name,
+        ))
 
-    all_ids = {x["id"] for x in nodes}
+    all_ids = {x.id for x in nodes}
     for n in nodes:
-        if n["deprecatedBy"] and n["deprecatedBy"] not in all_ids:
-            reports.append({
-                "level": "error",
-                "type": "broken-deprecation",
-                "message": f'"{n["id"]}" has deprecatedBy "{n["deprecatedBy"]}", which does not match any file.',
-                "file": n["file"],
-                "deprecatedBy": n["deprecatedBy"],
-            })
+        if n.deprecated_by and n.deprecated_by not in all_ids:
+            reports.append(Report.broken_deprecation(
+                f'"{n.id}" has deprecatedBy "{n.deprecated_by}", which does not match any file.',
+                n.file, n.deprecated_by,
+            ))
 
     for dep in sorted(unresolved):
         users_by_kind = defaultdict(list)
@@ -194,13 +194,9 @@ def build_reports(nodes, ambiguous, unresolved):
                 level, type_, note = "info", "untracked-dependency", "a block outside core/ (listed in plc-untracked.json)"
             else:
                 level, type_, note = "warning", "unknown-dependency", "not defined in the repo and not listed in plc-system.json or plc-untracked.json"
-            reports.append({
-                "level": level,
-                "type": type_,
-                "message": f'"{dep}" is {note}.',
-                "dependency": dep,
-                "usedBy": users,
-            })
+            reports.append(Report.about_dependency(
+                level, type_, f'"{dep}" is {note}.', dep, users,
+            ))
 
     return reports
 
@@ -211,7 +207,7 @@ def find_core_dirs(root: Path):
     return sorted(p for p in root.rglob("core") if p.is_dir())
 
 
-def build_for_core(core_dir: Path):
+def build_for_core(core_dir: Path) -> Graph:
     files = [p for p in core_dir.rglob("*") if p.suffix.lower() in (".scl", ".udt")]
     system_names = load_name_list(core_dir, "plc-system.json")
     untracked_names = load_name_list(core_dir, "plc-untracked.json")
@@ -221,14 +217,11 @@ def build_for_core(core_dir: Path):
     edges, unresolved, ambiguous = resolve(nodes, by_stem, by_base, system_names, untracked_names)
     reports = build_reports(nodes, ambiguous, unresolved)
 
-    graph = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "nodes": nodes,
-        "edges": edges,
-        "reports": reports,
-    }
+    graph = Graph(generated_at=Graph.now(), nodes=nodes, edges=edges, reports=reports)
 
-    (core_dir / "core.json").write_text(json.dumps(graph, indent=2, ensure_ascii=False), encoding="utf-8")
+    (core_dir / "core.json").write_text(
+        json.dumps(graph.to_json(), indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     if VIEWER_TEMPLATE.exists():
         shutil.copyfile(VIEWER_TEMPLATE, core_dir / "core.html")
 
@@ -236,7 +229,7 @@ def build_for_core(core_dir: Path):
 
 
 def main():
-    
+
     print("Run")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default="plc", help="Root folder to scan for core/ folders (default: plc)")
@@ -256,5 +249,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

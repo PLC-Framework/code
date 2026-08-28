@@ -1,0 +1,21 @@
+"""Closed value sets shared by the rest of the model.
+
+Status comes verbatim from a hand-written TITLE, so treat anything outside
+CURRENT/DEPRECATED as unknown rather than assuming.
+"""
+from typing import Literal
+
+Status = Literal["current", "deprecated"]
+Level = Literal["error", "warning", "info"]
+ExternalKind = Literal["system", "untracked", "unknown"]
+ReportType = Literal[
+    "ambiguous-dependency",
+    "broken-deprecation",
+    "name-mismatch",
+    "unknown-dependency",
+    "system-dependency",
+    "untracked-dependency",
+]
+
+CURRENT: Status = "current"
+DEPRECATED: Status = "deprecated"

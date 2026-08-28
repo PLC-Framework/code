@@ -34,12 +34,21 @@ then open `http://localhost:8000/core.html`.
 
 ```shell
 FUNCTION "_priorityQueue" : Int
-TITLE = {"status": "current", "deprecatedBy": null, "dependencies": ["priorityQueueInstanceAttributes-v1.0", "MOVE_BLK_VARIANT"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue","status":"current","deprecatedBy":null,"dependencies":["priorityQueueInstanceAttributes-v1.0","MOVE_BLK_VARIANT"]}
 ```
 
-- `dependencies` — names of other blocks/UDTs it depends on. May include a version (`"_foo-v1.0"`) when several versions of the same block coexist, or just the plain name when only one exists.
-- `status` — optional, `"current"` (default when omitted) or `"deprecated"`.
-- `deprecatedBy` — optional, `id` of the file that replaces this one when `status` is `"deprecated"`. Must match another file's `id` exactly, or it shows up as a `broken-deprecation` report.
+Every `.scl` and `.udt` under `core/` carries the same six keys, in that order:
+
+| Key            | Description                                                                                                                                                     |
+| :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`      | Version **with** the leading `v` (`"v1.0"`), matching the `-vX.Y` suffix of the file name and, in `.scl`, the native `VERSION :` attribute.                     |
+| `author`       | Author of the block, mirroring the `.scl` `AUTHOR :` attribute.                                                                                                 |
+| `family`       | Folder path of the block as `core/<dirs>`, mirroring the `.scl` `FAMILY :` attribute.                                                                           |
+| `status`       | `"current"` (default when omitted) or `"deprecated"`.                                                                                                           |
+| `deprecatedBy` | `id` of the file that replaces this one when `status` is `"deprecated"`, else `null`. Must match another file's `id` exactly, or it becomes a `broken-deprecation` report. |
+| `dependencies` | Names of other blocks/UDTs it depends on. May include a version (`"_foo-v1.0"`) when several versions of the same block coexist, or just the plain name when only one exists. |
+
+All six are read into a `BlockMetadata` (see [`models/`](models/)), but only `status`, `deprecatedBy` and `dependencies` reach `core.json`: `version`, `author` and `family` stay in the sources, and the node's `version` is derived from the file name instead.
 
 ## Catalogs: `plc-system.json` / `plc-untracked.json`
 
@@ -72,7 +81,7 @@ The console only gets the `Run` / `Done` progress markers — all diagnostics li
 | `id`           | File name without extension (e.g. `_priorityQueue-v1.0`).                             |
 | `name`         | TIA symbol declared on the first line (`FUNCTION "_priorityQueue"` → `_priorityQueue`). |
 | `base`         | `id` with the `-vX.Y` suffix stripped. Used to resolve unversioned dependency references. |
-| `version`      | Version extracted from the file name, or `null` if it has no `-vX.Y` suffix.          |
+| `version`      | Version extracted from the file name, **without** the leading `v` (`"1.0"`), or `null` if it has no `-vX.Y` suffix. |
 | `status`       | `"current"` or `"deprecated"`, from `TITLE` (defaults to `"current"`).                |
 | `deprecatedBy` | `id` of the file that replaces this one, or `null`.                                   |
 | `file`         | Relative path to the file.                                                            |
@@ -111,3 +120,39 @@ Report types:
 4. **`unknown-dependency`** (`warning`) — matches no file in the family and isn't listed in either catalog.
 5. **`system-dependency`** (`info`) — matches `plc-system.json`.
 6. **`untracked-dependency`** (`info`) — matches `plc-untracked.json`.
+
+## Consuming `core.json`
+
+An edge always has exactly one of three shapes, so a consumer can branch on them without guessing:
+
+| Shape         | `resolved` | `ambiguous` | Extra keys                |
+| :------------ | :--------: | :---------: | :------------------------ |
+| **resolved**  | `true`     | `false`     | —                         |
+| **ambiguous** | `false`    | `true`      | `candidates`              |
+| **external**  | `false`    | `false`     | `external: true`, `kind`  |
+
+Likewise, a report always carries `level`, `type` and `message`; the rest depend on `type` — `dependency` + `usedBy` on the four `*-dependency` types, `file` + `base` + `name` on `name-mismatch`, `file` + `deprecatedBy` on `broken-deprecation`.
+
+The [`models/`](models/) package is the definition of this contract, and what to edit when the format changes — one dataclass per module:
+
+| Module | Class | Role |
+| :--------------------------------------------- | :---------------- | :------------------------------------------ |
+| [`common.py`](models/common.py)                 | —                 | The closed value sets shared by the rest.    |
+| [`block_metadata.py`](models/block_metadata.py) | `BlockMetadata`   | The `TITLE` object inside a source file.     |
+| [`node.py`](models/node.py)                     | `Node`            | One `.scl`/`.udt` file in the graph.         |
+| [`edge.py`](models/edge.py)                     | `Edge`            | One declared dependency.                     |
+| [`graph.py`](models/graph.py)                   | `Graph`           | The root object of `core.json`.              |
+| [`report.py`](models/report.py)                 | `Report`          | One diagnostic.                              |
+
+`run.py` fills those objects in and calls `to_json()`, which is what fixes the key order and decides which keys are omitted. The constructors `Edge.to_node` / `to_ambiguous` / `to_external` and `Report.about_dependency` / `name_mismatch` / `broken_deprecation` build exactly the shapes above, so no caller has to remember which fields go together. `Graph.from_json(json.load(f))` reads a graph back:
+
+```python
+import json, sys
+sys.path.insert(0, "tools/dependency_graph_builder")
+from models import Graph
+
+graph = Graph.from_json(json.load(open("plc/s7-1x00/core/core.json", encoding="utf-8")))
+broken = [r for r in graph.reports if r.level == "error"]
+```
+
+Consumers written in another language should mirror this package: every key listed in the tables above is always present except `version` and `deprecatedBy` on a node, which are nullable, and the per-shape keys of `Edge` and `Report`, which are absent rather than null when they don't apply.
