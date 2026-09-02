@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T20:16:04+00:00",
+  "generatedAt": "2026-09-02T08:14:55+00:00",
   "nodes": [
     {
       "id": "abstractAlarmData-v2.0",
@@ -2181,8 +2181,8 @@
       "name": "_jxd1_directNumerical",
       "base": "_jxd1_directNumerical",
       "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
+      "status": "deprecated",
+      "deprecatedBy": "_jxd1_directNumerical-v1.1",
       "file": "plc/s7-1x00/core/controller/smc/jxd1/_jxd1_directNumerical-v1.0.scl",
       "dependencies": [
         "jxd1_profile-v1.0",
@@ -2192,6 +2192,27 @@
         "__jxd1_halt-v1.0",
         "__jxd1_home-v1.0",
         "__jxd1_moveAbsolute-v1.0",
+        "__jxd1_moveRelative-v1.0",
+        "__jxd1_moveJog-v1.0",
+        "TOF_TIME"
+      ]
+    },
+    {
+      "id": "_jxd1_directNumerical-v1.1",
+      "name": "_jxd1_directNumerical",
+      "base": "_jxd1_directNumerical",
+      "version": "1.1",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/_jxd1_directNumerical-v1.1.scl",
+      "dependencies": [
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+        "__jxd1_stop-v1.0",
+        "__jxd1_halt-v1.0",
+        "__jxd1_home-v1.0",
+        "__jxd1_moveAbsolute-v1.1",
         "__jxd1_moveRelative-v1.0",
         "__jxd1_moveJog-v1.0",
         "TOF_TIME"
@@ -2244,9 +2265,24 @@
       "name": "__jxd1_moveAbsolute",
       "base": "__jxd1_moveAbsolute",
       "version": "1.0",
+      "status": "deprecated",
+      "deprecatedBy": "__jxd1_moveAbsolute-v1.1",
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveAbsolute-v1.0.scl",
+      "dependencies": [
+        "jxd1_profile-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+        "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+        "TON_TIME"
+      ]
+    },
+    {
+      "id": "__jxd1_moveAbsolute-v1.1",
+      "name": "__jxd1_moveAbsolute",
+      "base": "__jxd1_moveAbsolute",
+      "version": "1.1",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveAbsolute-v1.0.scl",
+      "file": "plc/s7-1x00/core/controller/smc/jxd1/__jxd1_moveAbsolute-v1.1.scl",
       "dependencies": [
         "jxd1_profile-v1.0",
         "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
@@ -2453,6 +2489,61 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/clv6xx/_sick_hexAsciiToDword-v1.0.scl",
+      "dependencies": []
+    },
+    {
+      "id": "mlg2proPdi-v1.0",
+      "name": "mlg2proPdi",
+      "base": "mlg2proPdi",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/mlg2proPdi-v1.0.udt",
+      "dependencies": []
+    },
+    {
+      "id": "mlg2proPdo-v1.0",
+      "name": "mlg2proPdo",
+      "base": "mlg2proPdo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/mlg2proPdo-v1.0.udt",
+      "dependencies": []
+    },
+    {
+      "id": "_mlg2pro_base-v1.0",
+      "name": "_mlg2pro_base",
+      "base": "_mlg2pro_base",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0.scl",
+      "dependencies": [
+        "mlg2proPdi-v1.0",
+        "mlg2proPdo-v1.0"
+      ]
+    },
+    {
+      "id": "_mlg2pro_objectMotionDetection-v1.0",
+      "name": "_mlg2pro_objectMotionDetection",
+      "base": "_mlg2pro_objectMotionDetection",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_objectMotionDetection-v1.0.scl",
+      "dependencies": [
+        "TON_TIME"
+      ]
+    },
+    {
+      "id": "_mlg2pro_singleMeasurement-v1.0",
+      "name": "_mlg2pro_singleMeasurement",
+      "base": "_mlg2pro_singleMeasurement",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_singleMeasurement-v1.0.scl",
       "dependencies": []
     },
     {
@@ -4331,6 +4422,68 @@
       "kind": "system"
     },
     {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_stop-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_halt-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_home-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_moveAbsolute-v1.1",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_moveRelative-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "__jxd1_moveJog-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_jxd1_directNumerical-v1.1",
+      "to": "TOF_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
       "from": "_jxd1_gateway-v1.0",
       "to": "jxd1_gatewayPdi-v1.0",
       "resolved": true,
@@ -4408,6 +4561,32 @@
     },
     {
       "from": "__jxd1_moveAbsolute-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.1",
+      "to": "jxd1_profile-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.1",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.1",
+      "to": "jxd1_driveUnit_16bytes_directNumericalSettingModePdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "__jxd1_moveAbsolute-v1.1",
       "to": "TON_TIME",
       "resolved": false,
       "ambiguous": false,
@@ -4565,6 +4744,26 @@
     {
       "from": "_sick_dwordToHexAscii-v1.1",
       "to": "Strg_TO_Chars",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_mlg2pro_base-v1.0",
+      "to": "mlg2proPdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_mlg2pro_base-v1.0",
+      "to": "mlg2proPdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_mlg2pro_objectMotionDetection-v1.0",
+      "to": "TON_TIME",
       "resolved": false,
       "ambiguous": false,
       "external": true,
@@ -5026,7 +5225,8 @@
         "_mc_positioning1Axis-v2.0",
         "_standBy-v2.0",
         "_ecc_dfc_24_0x_config-v1.0",
-        "_jxd1_directNumerical-v1.0"
+        "_jxd1_directNumerical-v1.0",
+        "_jxd1_directNumerical-v1.1"
       ]
     },
     {
@@ -5090,11 +5290,13 @@
         "__jxd1_halt-v1.0",
         "__jxd1_home-v1.0",
         "__jxd1_moveAbsolute-v1.0",
+        "__jxd1_moveAbsolute-v1.1",
         "__jxd1_moveJog-v1.0",
         "__jxd1_moveRelative-v1.0",
         "__jxd1_stop-v1.0",
         "_sick_clv6xx_cmd-v1.2",
         "_sick_cola-v1.2",
+        "_mlg2pro_objectMotionDetection-v1.0",
         "_esc-v5.4"
       ]
     },
