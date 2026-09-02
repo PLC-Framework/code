@@ -1,0 +1,26 @@
+﻿TYPE "mlg2proPdo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":[]}
+VERSION : 0.1
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-08-31 | cyanezf | First version |
+//
+//## Description
+//MLG2 barried PDO
+//--*)
+   STRUCT
+      x0 : Bool;   // 0.0
+      x1 : Bool;   // 0.1
+      standby : Bool;   // 0.2: 1=Switched the barrier into the energy-saving sleep mode. ISDU75
+      x3 : Bool;   // 0.3
+      x4 : Bool;   // 0.4
+      bbh : Bool;   // 0.5: 1=Block beams hold. This function is effective when BBH function is activated via service data |
+      teachIn : Bool;   // 0.6: 1=Used to set the TX power and switching threshold for all light beams to the current installation situation.
+      test : Bool;   // 0.7: 1=Switch off all sender LEDs
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,0 +1,126 @@
+﻿FUNCTION_BLOCK "_mlg2pro_objectMotionDetection"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":["TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/sick/mlg2'
+NAME : _mlg2pro_objectMotionDetection
+VERSION : 1.0
+   VAR_INPUT 
+      check { ExternalWritable := 'False'} : Bool;   // IR: 1=Check object motion detection
+      minBeamRange { ExternalWritable := 'False'} : DInt := #PDI_DATA_MIN_ARRAY;   // IR: 0..238=Initial beam form measurement
+      maxBeamRange { ExternalWritable := 'False'} : DInt := #PDI_DATA_MAX_ARRAY;   // IR: 1..239=Final beam for measurement
+      waitingTime { ExternalWritable := 'False'} : Time := T#200ms;   // IR: 0..N=Waiting time to ensure the object is stil
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Status. See constants
+      objectIsStill { ExternalWritable := 'False'} : Bool;   // OR: 1=Object is still
+   END_VAR
+
+   VAR_IN_OUT 
+      data : Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool;   // IOX: Data source
+   END_VAR
+
+   VAR 
+      blinkCounter { ExternalWritable := 'False'} : UDInt;   // SR: Blink counter
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         data { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool;
+         isStillTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      i : DInt;
+      minBeamLimit : DInt;
+      maxBeamLimit : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      PDI_DATA_MIN_ARRAY : DInt := 0;
+      PDI_DATA_MAX_ARRAY : DInt := 239;
+      STATUS_0000_OK : Int := 0;
+      STATUS_START_END_BEAM_ERROR : Int := 16#8000;
+      MAX_BLINKING_BEAMS : UDInt := 2;
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2027-08-31 | cyanezf | First version |
+	
+	## Description
+	
+	This function checks if some object is moving in the defined range.
+	
+	--*)
+	
+	REGION Check limits
+	  
+	  // Start beam
+	  IF #minBeamRange < #PDI_DATA_MIN_ARRAY THEN
+	    #minBeamLimit := #PDI_DATA_MIN_ARRAY;
+	  ELSIF #minBeamRange >= #PDI_DATA_MAX_ARRAY THEN
+	    #minBeamLimit := #PDI_DATA_MAX_ARRAY - 1;
+	  END_IF;
+	  
+	  // End beam
+	  IF #maxBeamRange > #PDI_DATA_MAX_ARRAY THEN
+	    #maxBeamLimit := #PDI_DATA_MAX_ARRAY;
+	  ELSIF #maxBeamRange <= #PDI_DATA_MIN_ARRAY + 1 THEN
+	    #maxBeamLimit := #PDI_DATA_MIN_ARRAY + 1;
+	  END_IF;
+	  
+	  // Check value
+	  IF #minBeamLimit >= #maxBeamLimit THEN
+	    #status := #STATUS_START_END_BEAM_ERROR;
+	    #objectIsStill := false;
+	    RESET_TIMER(#private.isStillTon);
+	    ENO := false;
+	    RETURN; // Exit function
+	    
+	  ELSE
+	    #status := #STATUS_0000_OK;
+	    
+	  END_IF;
+	  
+	END_REGION
+	  
+	
+	REGION Counting beams with change
+	  
+	  #blinkCounter := 0; // Init
+	  
+	  // Iterate through data
+	  FOR #i := #minBeamLimit TO #maxBeamLimit DO
+	    
+	    // Count blink
+	    IF #data[#i] XOR #private.data[#i] THEN
+	      #blinkCounter += 1;
+	    END_IF;
+	    
+	    // Update last data
+	    #private.data[#i] := #data[#i];
+	    
+	  END_FOR;
+	  
+	END_REGION
+	
+	REGION Discrimination cases
+	  
+	  #private.isStillTon(IN := #check AND #blinkCounter <= #MAX_BLINKING_BEAMS,
+	                      PT := #waitingTime,
+	                      Q => #objectIsStill); // Output
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+

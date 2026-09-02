@@ -1,0 +1,182 @@
+﻿FUNCTION "_mlg2pro_singleMeasurement" : Void
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":[]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/sick/mlg2'
+NAME : _mlg2pro_singleMeasurement
+VERSION : 1.0
+   VAR_INPUT 
+      maxBeams : USInt;   // 10..240=Max barrier beams
+      resolution : USInt;   // 1..N=Distance between beams in mm
+      mode : Int;   // See constants, if mode is unknown, default is Mode 1
+      center : USInt;   // 0..N=Measurement beam to start measurement in both sides, used in Mode 0
+   END_VAR
+
+   VAR_OUTPUT 
+      measurement : Real;   // Measurement
+   END_VAR
+
+   VAR_IN_OUT 
+      data : Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool;   // Read only - processed data (array of beams)
+   END_VAR
+
+   VAR_TEMP 
+      i : DInt;
+      minBeamLimit : DInt;
+      maxBeamLimit : DInt;
+      offset : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      PDI_DATA_MIN_ARRAY : DInt := 0;
+      PDI_DATA_MAX_ARRAY : DInt := 239;
+      MODE_0_FROM_CENTER : Int := 0;   // Mode 0: Measurement from "center" beam in both sides
+      MODE_1_FROM_MIN : Int := 1;   // Mode 1: Measurement from min beam to max beam
+      MODE_2_FROM_MIN_FIRST_ON_BEAM : Int := 2;   // Mode 2: Measurement from first ON beam in min to max direction
+      MODE_3_FROM_MAX : Int := 3;   // Mode 3: Measurement from max beam to min beam
+      MODE_4_FROM_MAX_FIRST_ON_BEAM : Int := 4;   // Mode 4: Measurement from first ON beam in min to max direction
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2027-08-31 | cyanezf | First version |
+	
+	## Description
+	
+	This function reads each beam and with `resolution` calculate the `measurement`.
+	
+	This function outputs the min and max beam detected.
+	
+	--*)
+	
+	REGION Check limits
+	  
+	  // Max beams
+	  IF #maxBeams > #PDI_DATA_MAX_ARRAY THEN
+	    #maxBeamLimit := #PDI_DATA_MAX_ARRAY;
+	  ELSIF #maxBeams <= #PDI_DATA_MIN_ARRAY + 4 THEN
+	    #maxBeamLimit := #PDI_DATA_MIN_ARRAY + 4;
+	  ELSE
+	    #maxBeamLimit := USINT_TO_DINT(#maxBeams) - 1;
+	  END_IF;
+	  
+	  // Min beams
+	  #minBeamLimit := #PDI_DATA_MIN_ARRAY;
+	  
+	  // Center
+	  IF #center < #minBeamLimit THEN
+	    #offset := #minBeamLimit;
+	  ELSIF #center > #maxBeamLimit THEN
+	    #offset := #maxBeamLimit;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Measurement
+	  
+	  #measurement := 0.0;
+	 
+	  CASE #mode OF
+	    #MODE_0_FROM_CENTER:
+	      REGION Mode 0: From center
+	        // From center to lower
+	        FOR #i := #offset - 1 TO #minBeamLimit BY -1 DO
+	          // Break
+	          IF NOT #data[#i] THEN
+	            EXIT;
+	          END_IF;
+	          // Add
+	          #measurement += USINT_TO_REAL(#resolution);
+	        END_FOR;
+	        
+	        // From center to upper
+	        FOR #i := #offset TO #maxBeamLimit DO
+	          // Break
+	          IF NOT #data[#i] THEN
+	            EXIT;
+	          END_IF;
+	          // Add
+	          #measurement += USINT_TO_UINT(#resolution);
+	        END_FOR;
+	        
+	      END_REGION
+	      
+	    #MODE_2_FROM_MIN_FIRST_ON_BEAM:
+	      REGION Mode 2: From min beam, first ON beam
+	        
+	        FOR #i := #minBeamLimit TO #maxBeamLimit DO
+	          
+	          IF #data[#i] THEN // Add
+	            #measurement += USINT_TO_REAL(#resolution);
+	            
+	          ELSE // Break
+	            IF #measurement > 0.0 THEN
+	              EXIT;
+	            END_IF;
+	          END_IF;
+	          
+	        END_FOR;
+	        
+	      END_REGION
+	      
+	    #MODE_3_FROM_MAX:
+	      REGION Mode 3: From max beam
+	        
+	        FOR #i := #maxBeamLimit TO #minBeamLimit BY -1 DO
+	          // Break
+	          IF NOT #data[#i] THEN
+	            EXIT;
+	          END_IF;
+	          // Add
+	          #measurement += USINT_TO_REAL(#resolution);
+	        END_FOR;
+	        
+	      END_REGION
+	      
+	    #MODE_4_FROM_MAX_FIRST_ON_BEAM:
+	      REGION Mode 4: From max beam, first ON beam
+	        
+	        FOR #i := #maxBeamLimit TO #minBeamLimit BY -1 DO
+	          
+	          IF #data[#i] THEN // Add
+	            #measurement += USINT_TO_REAL(#resolution);
+	             
+	          ELSE // Break
+	            IF #measurement > 0.0 THEN
+	              EXIT;
+	            END_IF;
+	          END_IF;
+	        END_FOR;
+	        
+	      END_REGION
+	      
+	    ELSE  // MODE_1
+	      REGION Mode 1 (Default): From min beam
+	        
+	        FOR #i := #minBeamLimit TO #maxBeamLimit DO
+	          // Break
+	          IF NOT #data[#i] THEN
+	            EXIT;
+	          END_IF;
+	          // Add
+	          #measurement += USINT_TO_REAL(#resolution);
+	        END_FOR;
+	        
+	      END_REGION
+	      
+	  END_CASE;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION
+

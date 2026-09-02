@@ -1,0 +1,125 @@
+﻿FUNCTION_BLOCK "_mlg2pro_base"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":["mlg2proPdi-v1.0","mlg2proPdo-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/sick/mlg2'
+NAME : _mlg2pro_base
+VERSION : 1.0
+   VAR_INPUT 
+      invertBeamPairs { ExternalWritable := 'False'} : Bool;   // IR: 0=Don't invert; 1=Invert beam pairs
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Barrier status. See constants
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=STATUS_0000_OK
+      data { ExternalWritable := 'False'} : Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool;   // OR: Array of beams
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "mlg2proPdi";   // IOX: PDI
+      pdo : "mlg2proPdo";   // IOX: PDO
+   END_VAR
+
+   VAR_TEMP 
+      i : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      PDI_DATA_MIN_ARRAY : DInt := 0;
+      PDI_DATA_MAX_ARRAY : DInt := 239;
+      STATUS_0000_OK : Int := 0;
+      STATUS_8000_Q_SHORTCIRCUIT : Int := 16#8000;
+      STATUS_8001_PROCESS_DATA_INVALID : Int := 16#8001;
+      STATUS_8002_HARDWARE_ERROR : Int := 16#8002;
+      STATUS_8003_TEACH_FAIL : Int := 16#8003;
+      STATUS_8004_SYNC_ERROR : Int := 16#8004;
+      STATUS_7000_OVERTEMPERATURE : Int := 16#7000;
+      STATUS_7001_CONTAMINATION_ALARM : Int := 16#7001;
+      STATUS_7002_TEACH_ACTIVE : Int := 16#7002;
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2027-08-31 | cyanezf | First version |
+	
+	## Description
+	
+	This function handles the PDI and returns `status`, `ready` and `data` processed by `invertBeamPairs`.
+	
+	--*)
+	
+	REGION PDI Status
+	  
+	  IF #pdi.status.Qshortcircuit THEN
+	    #status := #STATUS_8000_Q_SHORTCIRCUIT;
+	    
+	  ELSIF #pdi.status.processDataInvalid THEN
+	    #status := #STATUS_8001_PROCESS_DATA_INVALID;
+	    
+	  ELSIF #pdi.status.hardwareError THEN
+	    #status := #STATUS_8002_HARDWARE_ERROR;
+	    
+	  ELSIF #pdi.status.teachFail THEN
+	    #status := #STATUS_8003_TEACH_FAIL;
+	    
+	  ELSIF #pdi.status.syncError THEN
+	    #status := #STATUS_8004_SYNC_ERROR;
+	    
+	  ELSIF #pdi.status.overtemperature THEN
+	    #status := #STATUS_7000_OVERTEMPERATURE;
+	    
+	  ELSIF #pdi.status.contaminationAlarm THEN
+	    #status := #STATUS_7001_CONTAMINATION_ALARM;
+	    
+	  ELSIF #pdi.status.teachActive THEN
+	    #status := #STATUS_7002_TEACH_ACTIVE;
+	    
+	  ELSE
+	    #status := #STATUS_0000_OK;
+	  END_IF;
+	  
+	  #ready := #status = #STATUS_0000_OK;
+	  
+	END_REGION
+	
+	REGION PDO Control
+	  
+	  #pdo.bbh :=
+	  #pdo.standby :=
+	  #pdo.teachIn :=
+	  #pdo.test := 0;
+	  
+	END_REGION
+	
+	REGION Inversion
+	
+	  FOR #i := #PDI_DATA_MIN_ARRAY TO #PDI_DATA_MAX_ARRAY BY 8 DO 
+	    
+	    #data[#i] := #pdi.data[#i + 1];
+	    #data[#i + 1] := #pdi.data[#i];
+	    
+	    #data[#i + 2] := #pdi.data[#i + 3];
+	    #data[#i + 3] := #pdi.data[#i + 2];
+	    
+	    #data[#i + 4] := #pdi.data[#i + 5];
+	    #data[#i + 5] := #pdi.data[#i + 4];
+	    
+	    #data[#i + 6] := #pdi.data[#i + 7];
+	    #data[#i + 7] := #pdi.data[#i + 6];
+	    
+	  END_FOR;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+END_FUNCTION_BLOCK
+
