@@ -1,0 +1,31 @@
+﻿TYPE "nodeLinkSourceToDest"
+TITLE = {"version":"v1.2","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":[]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.2 | 2026-09-16 | cyanezf | feat: Add full interface |
+//| v1.1 | 2023-10-20 | cyanezf | `shortCycle` added |
+//| v1.0 | 2023-10-19 | cyanezf | First version |
+// 
+//## Description
+//Node link - source to destination
+//--*)
+
+   STRUCT
+      preReadyToTransfer : Bool;   // (Optional) 1=Ready to transfer object
+      readyToTransfer : Bool;   // (Optional) 1=Ready to transfer object
+
+      transferring : Bool;   // 1=Transferring object
+      shortCycle : Bool;   // (Optional) 1=Short cycle
+      holdPicking : Bool;   // (Optional) 1=Node is holding the destination node
+      
+      transferred : Bool;   // (Optional) 1=Object transferred
+      transferringError : Bool;   // (Optional) 1=Transfer error
+      
+   END_STRUCT;
+
+END_TYPE
+

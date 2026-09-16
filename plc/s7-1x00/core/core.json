@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T08:14:55+00:00",
+  "generatedAt": "2026-09-16T07:32:11+00:00",
   "nodes": [
     {
       "id": "abstractAlarmData-v2.0",
@@ -564,9 +564,22 @@
       "name": "nodeLink",
       "base": "nodeLink",
       "version": "1.0",
+      "status": "deprecated",
+      "deprecatedBy": "nodeLink-v1.1",
+      "file": "plc/s7-1x00/core/node/nodeLink-v1.0.udt",
+      "dependencies": [
+        "nodeLinkSourceToDest-v1.1",
+        "nodeLinkDestToSource-v1.1"
+      ]
+    },
+    {
+      "id": "nodeLink-v1.1",
+      "name": "nodeLink",
+      "base": "nodeLink",
+      "version": "1.1",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/node/nodeLink-v1.0.udt",
+      "file": "plc/s7-1x00/core/node/nodeLink-v1.1.udt",
       "dependencies": [
         "nodeLinkSourceToDest-v1.1",
         "nodeLinkDestToSource-v1.1"
@@ -577,9 +590,19 @@
       "name": "nodeLinkDestToSource",
       "base": "nodeLinkDestToSource",
       "version": "1.1",
+      "status": "deprecated",
+      "deprecatedBy": "nodeLinkDestToSource-v1.2",
+      "file": "plc/s7-1x00/core/node/nodeLinkDestToSource-v1.1.udt",
+      "dependencies": []
+    },
+    {
+      "id": "nodeLinkDestToSource-v1.2",
+      "name": "nodeLinkDestToSource",
+      "base": "nodeLinkDestToSource",
+      "version": "1.2",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/node/nodeLinkDestToSource-v1.1.udt",
+      "file": "plc/s7-1x00/core/node/nodeLinkDestToSource-v1.2.udt",
       "dependencies": []
     },
     {
@@ -587,9 +610,19 @@
       "name": "nodeLinkSourceToDest",
       "base": "nodeLinkSourceToDest",
       "version": "1.1",
+      "status": "deprecated",
+      "deprecatedBy": "nodeLinkSourceToDest-v1.2",
+      "file": "plc/s7-1x00/core/node/nodeLinkSourceToDest-v1.1.udt",
+      "dependencies": []
+    },
+    {
+      "id": "nodeLinkSourceToDest-v1.2",
+      "name": "nodeLinkSourceToDest",
+      "base": "nodeLinkSourceToDest",
+      "version": "1.2",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/node/nodeLinkSourceToDest-v1.1.udt",
+      "file": "plc/s7-1x00/core/node/nodeLinkSourceToDest-v1.2.udt",
       "dependencies": []
     },
     {
@@ -3567,6 +3600,18 @@
     },
     {
       "from": "nodeLink-v1.0",
+      "to": "nodeLinkDestToSource-v1.1",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "nodeLink-v1.1",
+      "to": "nodeLinkSourceToDest-v1.1",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "nodeLink-v1.1",
       "to": "nodeLinkDestToSource-v1.1",
       "resolved": true,
       "ambiguous": false

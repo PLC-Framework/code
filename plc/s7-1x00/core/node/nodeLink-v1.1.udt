@@ -1,11 +1,12 @@
 ﻿TYPE "nodeLink"
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/node","status":"deprecated","deprecatedBy": "nodeLink-v1.1","dependencies":["nodeLinkSourceToDest-v1.1", "nodeLinkDestToSource-v1.1"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":["nodeLinkSourceToDest-v1.1", "nodeLinkDestToSource-v1.1"]}
 
 //(*--
 //# Documentation
 //## Log
 //| version | date | author | description |
 //|:-------:|:----:|:------:|:------------|
+//| v1.1 | 2026-09-16 | cyanezf | Implements new version of nodeLinkSourceToDest and nodeLinkDestToSource |
 //| v1.0 | 2023-10-19 | cyanezf | First version |
 //
 //## Description
