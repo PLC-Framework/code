@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T09:30:43+00:00",
+  "generatedAt": "2026-09-16T10:51:55+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -545,8 +545,8 @@
       "name": "_mc_positioning1Axis",
       "base": "_mc_positioning1Axis",
       "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
+      "status": "deprecated",
+      "deprecatedBy": "_mc_positioning1Axis-v1.1",
       "file": "plc/s7-1x00/core/motion-control/_mc_positioning1Axis-v1.0.scl",
       "dependencies": [
         "TO_axisBasicData-v1.0",
@@ -571,8 +571,8 @@
       "name": "_mc_positioning1Axis",
       "base": "_mc_positioning1Axis",
       "version": "1.1",
-      "status": "current",
-      "deprecatedBy": null,
+      "status": "deprecated",
+      "deprecatedBy": "_mc_positioning1Axis-v2.0",
       "file": "plc/s7-1x00/core/motion-control/_mc_positioning1Axis-v1.1.scl",
       "dependencies": [
         "TO_axisBasicData-v1.0",
