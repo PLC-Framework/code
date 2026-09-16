@@ -1,6 +1,6 @@
 # Dependency graph
 
-`run.py` builds a dependency graph between `core/` blocks (`.scl`/`.udt`), reading the JSON embedded in each file's `TITLE` line. It only reads under `--root` (`plc/` by default) — it never modifies source files.
+`run.py` builds a dependency graph between `core/` blocks (`.scl`, `.udt` and the `E*.xlsx` constant tables), reading the JSON metadata embedded in each of them. It only reads under `--root` (`plc/` by default) — it never modifies source files.
 
 Each PLC family has its own `core/` folder (e.g. `plc/s7-1x00/core/`). The script finds every folder named `core` under `--root` and builds an **independent graph per family** — blocks from different families are never mixed together. For each `core/` folder found, it writes `core.json` and `core.html` **directly inside that folder**.
 
@@ -30,6 +30,15 @@ python -m http.server 8000 --directory plc/s7-1x00/core
 
 then open `http://localhost:8000/core.html`.
 
+## Files that take part
+
+| Kind          | Becomes a node when                                     | Where its metadata lives                                             |
+| :------------ | :------------------------------------------------------ | :------------------------------------------------------------------- |
+| `.scl`/`.udt` | always                                                   | the `TITLE` line, right below the declaration                        |
+| `.xlsx`       | the file name starts with `E` (a TIA constant table)     | the `Constants` sheet, in the `Comment` cell of the row naming the table |
+
+Anything else under `core/` is ignored, workbooks included: `system-v3.0.xlsx` and `jxc-alarm-list-v1.0.xlsx` are not constant tables, so they stay out of the graph.
+
 ## Metadata expected in each file
 
 ```shell
@@ -37,18 +46,26 @@ FUNCTION "_priorityQueue" : Int
 TITLE = {"version":"v1.0","author":"cyanezf","family":"core/adt/priority-queue","status":"current","deprecatedBy":null,"dependencies":["priorityQueueInstanceAttributes-v1.0","MOVE_BLK_VARIANT"]}
 ```
 
-Every `.scl` and `.udt` under `core/` carries the same six keys, in that order:
+In an `E*.xlsx` the same object sits in the `Constants` sheet instead — usually row 2, right under the header, with the table symbol in `Name` and the metadata in `Comment`:
+
+| Name           | Path                       | Data Type | Value | Comment                                      |
+| :------------- | :------------------------- | :-------- | :---- | :------------------------------------------- |
+| `EQueueMethod` | `core\adt\queue\EQueue...` | `Bool`    | `0`   | `{"version":"v3.0","author":"cyanezf",...}`  |
+
+The script looks that row up by content, not by a fixed position, so an extra column or an extra header row does not break it.
+
+Every block under `core/` carries the same six keys, in that order:
 
 | Key            | Description                                                                                                                                                     |
 | :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`      | Version **with** the leading `v` (`"v1.0"`), matching the `-vX.Y` suffix of the file name and, in `.scl`, the native `VERSION :` attribute.                     |
+| `version`      | Version **with** the leading `v` (`"v1.0"`). Must match the `-vX.Y` suffix of the file name — the script checks it and reports a `version-mismatch` otherwise — and, in `.scl`, the native `VERSION :` attribute. |
 | `author`       | Author of the block, mirroring the `.scl` `AUTHOR :` attribute.                                                                                                 |
 | `family`       | Folder path of the block as `core/<dirs>`, mirroring the `.scl` `FAMILY :` attribute.                                                                           |
 | `status`       | `"current"` (default when omitted) or `"deprecated"`.                                                                                                           |
 | `deprecatedBy` | `id` of the file that replaces this one when `status` is `"deprecated"`, else `null`. Must match another file's `id` exactly, or it becomes a `broken-deprecation` report. |
 | `dependencies` | Names of other blocks/UDTs it depends on. May include a version (`"_foo-v1.0"`) when several versions of the same block coexist, or just the plain name when only one exists. |
 
-All six are read into a `BlockMetadata` (see [`models/`](models/)), but only `status`, `deprecatedBy` and `dependencies` reach `core.json`: `version`, `author` and `family` stay in the sources, and the node's `version` is derived from the file name instead.
+All six are read into a `BlockMetadata` (see [`models/`](models/)), but only `status`, `deprecatedBy` and `dependencies` reach `core.json`: `version`, `author` and `family` stay in the sources, and the node's `version` is derived from the file name instead. The object is read key by key with regexes rather than `json.loads`, so a hand-edited one that is not strictly valid JSON — a stray comma, a Windows path left unescaped — still yields everything it declares.
 
 ## Catalogs: `plc-system.json` / `plc-untracked.json`
 
@@ -79,7 +96,7 @@ The console only gets the `Run` / `Done` progress markers — all diagnostics li
 | Field          | Description                                                                         |
 | :------------- | :------------------------------------------------------------------------------------ |
 | `id`           | File name without extension (e.g. `_priorityQueue-v1.0`).                             |
-| `name`         | TIA symbol declared on the first line (`FUNCTION "_priorityQueue"` → `_priorityQueue`). |
+| `name`         | TIA symbol: declared on the first line (`FUNCTION "_priorityQueue"` → `_priorityQueue`), or the `Name` cell for an `E*.xlsx`. |
 | `base`         | `id` with the `-vX.Y` suffix stripped. Used to resolve unversioned dependency references. |
 | `version`      | Version extracted from the file name, **without** the leading `v` (`"1.0"`), or `null` if it has no `-vX.Y` suffix. |
 | `status`       | `"current"` or `"deprecated"`, from `TITLE` (defaults to `"current"`).                |
@@ -108,18 +125,20 @@ The console only gets the `Run` / `Done` progress markers — all diagnostics li
 | `message`      | Human-readable description of the finding.                                                               |
 | `dependency`   | The dependency name involved (`*-dependency` reports only).                                              |
 | `usedBy`       | `id`s of the nodes that declare this dependency (`*-dependency` reports only).                            |
-| `file`         | The file involved (`name-mismatch` / `broken-deprecation` reports only).                                  |
-| `base`, `name` | The two mismatched names (`name-mismatch` reports only).                                                  |
-| `deprecatedBy` | The dangling value (`broken-deprecation` reports only).                                                   |
+| `file`               | The file involved (`name-mismatch` / `version-mismatch` / `broken-deprecation` reports only).       |
+| `base`, `name`       | The two mismatched names (`name-mismatch` reports only).                                            |
+| `version`, `expected`| The version declared in the metadata and the one the file name implies (`version-mismatch` only).   |
+| `deprecatedBy`       | The dangling value (`broken-deprecation` reports only).                                             |
 
 Report types:
 
 1. **`ambiguous-dependency`** (`error`) — an unversioned name matches more than one file; needs a version pin.
 2. **`broken-deprecation`** (`error`) — a file's `deprecatedBy` doesn't match any file's `id` (typo, or the target was renamed/removed).
 3. **`name-mismatch`** (`warning`) — the declared TIA symbol doesn't match the file name (`base`).
-4. **`unknown-dependency`** (`warning`) — matches no file in the family and isn't listed in either catalog.
-5. **`system-dependency`** (`info`) — matches `plc-system.json`.
-6. **`untracked-dependency`** (`info`) — matches `plc-untracked.json`.
+4. **`version-mismatch`** (`warning`) — the `version` in the metadata doesn't match the `-vX.Y` suffix of the file name. The suffix is what the graph resolves on, so the metadata is the side that is wrong — unless the file is the one that should be renamed. Files with no `-vX.Y` suffix are not checked.
+5. **`unknown-dependency`** (`warning`) — matches no file in the family and isn't listed in either catalog.
+6. **`system-dependency`** (`info`) — matches `plc-system.json`.
+7. **`untracked-dependency`** (`info`) — matches `plc-untracked.json`.
 
 ## Consuming `core.json`
 
@@ -131,20 +150,22 @@ An edge always has exactly one of three shapes, so a consumer can branch on them
 | **ambiguous** | `false`    | `true`      | `candidates`              |
 | **external**  | `false`    | `false`     | `external: true`, `kind`  |
 
-Likewise, a report always carries `level`, `type` and `message`; the rest depend on `type` — `dependency` + `usedBy` on the four `*-dependency` types, `file` + `base` + `name` on `name-mismatch`, `file` + `deprecatedBy` on `broken-deprecation`.
+Likewise, a report always carries `level`, `type` and `message`; the rest depend on `type` — `dependency` + `usedBy` on the four `*-dependency` types, `file` + `base` + `name` on `name-mismatch`, `file` + `version` + `expected` on `version-mismatch`, `file` + `deprecatedBy` on `broken-deprecation`.
 
 The [`models/`](models/) package is the definition of this contract, and what to edit when the format changes — one dataclass per module:
 
 | Module | Class | Role |
 | :--------------------------------------------- | :---------------- | :------------------------------------------ |
 | [`common.py`](models/common.py)                 | —                 | The closed value sets shared by the rest.    |
-| [`block_metadata.py`](models/block_metadata.py) | `BlockMetadata`   | The `TITLE` object inside a source file.     |
-| [`node.py`](models/node.py)                     | `Node`            | One `.scl`/`.udt` file in the graph.         |
+| [`block_metadata.py`](models/block_metadata.py) | `BlockMetadata`   | The metadata object a block declares.        |
+| [`node.py`](models/node.py)                     | `Node`            | One block file in the graph.                 |
 | [`edge.py`](models/edge.py)                     | `Edge`            | One declared dependency.                     |
 | [`graph.py`](models/graph.py)                   | `Graph`           | The root object of `core.json`.              |
 | [`report.py`](models/report.py)                 | `Report`          | One diagnostic.                              |
 
-`run.py` fills those objects in and calls `to_json()`, which is what fixes the key order and decides which keys are omitted. The constructors `Edge.to_node` / `to_ambiguous` / `to_external` and `Report.about_dependency` / `name_mismatch` / `broken_deprecation` build exactly the shapes above, so no caller has to remember which fields go together. `Graph.from_json(json.load(f))` reads a graph back:
+Alongside them, [`xlsx.py`](xlsx.py) is a small read-only `.xlsx` reader (zip + XML, standard library only) that hands `run.py` the cells of one sheet, so reading the constant tables needs no third-party package.
+
+`run.py` fills those objects in and calls `to_json()`, which is what fixes the key order and decides which keys are omitted. The constructors `Edge.to_node` / `to_ambiguous` / `to_external` and `Report.about_dependency` / `name_mismatch` / `version_mismatch` / `broken_deprecation` build exactly the shapes above, so no caller has to remember which fields go together. `Graph.from_json(json.load(f))` reads a graph back:
 
 ```python
 import json, sys

@@ -12,6 +12,7 @@ ReportType = Literal[
     "ambiguous-dependency",
     "broken-deprecation",
     "name-mismatch",
+    "version-mismatch",
     "unknown-dependency",
     "system-dependency",
     "untracked-dependency",

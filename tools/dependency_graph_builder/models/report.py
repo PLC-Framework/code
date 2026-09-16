@@ -13,6 +13,7 @@ class Report:
         ambiguous-dependency, unknown-dependency,
         system-dependency, untracked-dependency  ->  dependency + used_by
         name-mismatch                            ->  file + base + name
+        version-mismatch                         ->  file + version + expected
         broken-deprecation                       ->  file + deprecated_by
     """
 
@@ -24,6 +25,8 @@ class Report:
     file: Optional[str] = None
     base: Optional[str] = None
     name: Optional[str] = None
+    version: Optional[str] = None
+    expected: Optional[str] = None
     deprecated_by: Optional[str] = None
 
     @classmethod
@@ -36,6 +39,11 @@ class Report:
     def name_mismatch(cls, message: str, file: str, base: str, name: str) -> "Report":
         return cls(level="warning", type="name-mismatch", message=message,
                    file=file, base=base, name=name)
+
+    @classmethod
+    def version_mismatch(cls, message: str, file: str, version: str, expected: str) -> "Report":
+        return cls(level="warning", type="version-mismatch", message=message,
+                   file=file, version=version, expected=expected)
 
     @classmethod
     def broken_deprecation(cls, message: str, file: str, deprecated_by: str) -> "Report":
@@ -53,6 +61,8 @@ class Report:
             file=data.get("file"),
             base=data.get("base"),
             name=data.get("name"),
+            version=data.get("version"),
+            expected=data.get("expected"),
             deprecated_by=data.get("deprecatedBy"),
         )
 
@@ -70,6 +80,9 @@ class Report:
         if self.base is not None:
             out["base"] = self.base
             out["name"] = self.name
+        if self.version is not None:
+            out["version"] = self.version
+            out["expected"] = self.expected
         if self.deprecated_by is not None:
             out["deprecatedBy"] = self.deprecated_by
         return out

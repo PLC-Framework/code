@@ -729,7 +729,7 @@
     { n: RAW.nodes.length, l: "Blocks" },
     { n: RAW.edges.filter(function (e) { return e.resolved; }).length, l: "Links" },
     { n: reportCount(["ambiguous-dependency", "broken-deprecation"]), l: "Need a pin", cls: "critical", reportType: ["ambiguous-dependency", "broken-deprecation"] },
-    { n: reportCount("name-mismatch"), l: "Mismatches", cls: "warn", reportType: "name-mismatch" },
+    { n: reportCount(["name-mismatch", "version-mismatch"]), l: "Mismatches", cls: "warn", reportType: ["name-mismatch", "version-mismatch"] },
     { n: reportCount("unknown-dependency"), l: "Uncataloged", cls: "warn", reportType: "unknown-dependency" },
     { n: deprecatedCount, l: "Legacy", cls: "warn" },
     { n: reportCount(["system-dependency", "untracked-dependency"]), l: "External", cls: "info", reportType: ["system-dependency", "untracked-dependency"] }
@@ -771,7 +771,9 @@
   }
 
   function fileEmoji(file) {
-    return /\.udt$/i.test(file) ? "📜" : "🔩";
+    if (/\.udt$/i.test(file)) return "📜";
+    if (/\.xlsx$/i.test(file)) return "📊";
+    return "🔩";
   }
 
   // Renders a name (split into lines on "-"/space) plus a count line,

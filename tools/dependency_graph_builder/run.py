@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """Build a dependency graph for PLC Framework core blocks.
 
-Parses the TITLE metadata embedded in each .scl/.udt file under a core
-folder and resolves the declared "dependencies" against the other files
-in the library. Read-only: never edits any source file under --root.
+Parses the metadata embedded in each block under a core folder and
+resolves the declared "dependencies" against the other files in the
+library. Read-only: never edits any source file under --root.
+
+Three kinds of file take part, each carrying the same metadata object:
+
+    .scl / .udt   on the TITLE line, right below the declaration
+    E*.xlsx       in the "Constants" sheet, on the row naming the table
+                  (constant tables exported from TIA; workbooks whose
+                  name does not start with "E" are ignored)
+
+The version declared in that metadata is checked against the -vX.Y
+suffix of the file name, which is what the graph resolves on; a
+disagreement is reported as "version-mismatch" (warning).
 
 The shape of that metadata and of the graph written out lives in
 the models package — this script only fills those objects in and
@@ -34,10 +45,17 @@ import shutil
 from pathlib import Path
 from collections import defaultdict
 
+import xlsx
 from models import BlockMetadata, Edge, ExternalKind, Graph, Node, Report
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 VIEWER_TEMPLATE = SCRIPT_DIR / "core.html"
+
+SOURCE_SUFFIXES = (".scl", ".udt")
+WORKBOOK_SUFFIX = ".xlsx"
+WORKBOOK_PREFIX = "E"          # only the E* constant tables are part of the graph
+CONSTANTS_SHEET = "Constants"
+NAME_COLUMN = 1                # "Name" — holds the table symbol, e.g. "EQueueMethod"
 
 NAME_RE = re.compile(
     r'^\s*(FUNCTION_BLOCK|FUNCTION|TYPE|DATA_BLOCK|ORGANIZATION_BLOCK)\s+"([^"]+)"',
@@ -53,27 +71,42 @@ QUOTED_RE = re.compile(r'"([^"]+)"')
 VERSION_SUFFIX_RE = re.compile(r'^(?P<base>.+?)-v(?P<version>[0-9][\w.\-]*)$')
 
 
-def parse_title(lines) -> BlockMetadata:
-    """Read the TITLE line field by field instead of with json.loads, so a
-    hand-edited object with a stray comma still yields what it declares."""
+def parse_metadata(text: str) -> BlockMetadata:
+    """Read the metadata object field by field instead of with json.loads, so
+    a hand-edited one — a stray comma, a Windows path left unescaped — still
+    yields everything it declares."""
     meta = BlockMetadata()
-    for line in lines[:10]:
-        if "TITLE" not in line:
-            continue
-        dep_match = DEP_ARRAY_RE.search(line)
-        if dep_match:
-            meta.dependencies = QUOTED_RE.findall(dep_match.group(1))
-        for rx, attr in ((VERSION_RE, "version"), (AUTHOR_RE, "author"),
-                         (FAMILY_RE, "family"), (STATUS_RE, "status"),
-                         (DEPRECATED_BY_RE, "deprecated_by")):
-            m = rx.search(line)
-            if m:
-                setattr(meta, attr, m.group(1))
-        break
+    dep_match = DEP_ARRAY_RE.search(text)
+    if dep_match:
+        meta.dependencies = QUOTED_RE.findall(dep_match.group(1))
+    for rx, attr in ((VERSION_RE, "version"), (AUTHOR_RE, "author"),
+                     (FAMILY_RE, "family"), (STATUS_RE, "status"),
+                     (DEPRECATED_BY_RE, "deprecated_by")):
+        m = rx.search(text)
+        if m:
+            setattr(meta, attr, m.group(1))
     return meta
 
 
-def parse_file(path: Path):
+def make_node(path: Path, name: str, meta: BlockMetadata) -> Node:
+    """Assemble a node: the id and version come from the file name, the rest
+    from the metadata the file declares."""
+    stem = path.stem
+    ver_match = VERSION_SUFFIX_RE.match(stem)
+    return Node(
+        id=stem,
+        name=name,
+        base=ver_match.group("base") if ver_match else stem,
+        version=ver_match.group("version") if ver_match else None,
+        status=meta.status,
+        deprecated_by=meta.deprecated_by,
+        file=path.as_posix(),
+        dependencies=meta.dependencies,
+    )
+
+
+def parse_source(path: Path):
+    """.scl/.udt: the symbol sits on the declaration line, the metadata on TITLE."""
     try:
         lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
     except OSError:
@@ -88,23 +121,48 @@ def parse_file(path: Path):
     if name is None:
         return None
 
-    meta = parse_title(lines)
+    title = next((line for line in lines[:10] if "TITLE" in line), "")
+    meta = parse_metadata(title)
+    return make_node(path, name, meta), meta
 
-    stem = path.stem
-    ver_match = VERSION_SUFFIX_RE.match(stem)
-    base = ver_match.group("base") if ver_match else stem
-    version = ver_match.group("version") if ver_match else None
 
-    return Node(
-        id=stem,
-        name=name,
-        base=base,
-        version=version,
-        status=meta.status,
-        deprecated_by=meta.deprecated_by,
-        file=path.as_posix(),
-        dependencies=meta.dependencies,
-    )
+def parse_workbook(path: Path):
+    """E*.xlsx: in the Constants sheet, the row that names the table also
+    carries the metadata in its Comment cell — usually row 2, right under
+    the header. Look it up by content rather than by a fixed column, so a
+    table with an extra column still works."""
+    try:
+        rows = xlsx.sheet_rows(path, CONSTANTS_SHEET)
+    except xlsx.XlsxError:
+        return None
+
+    meta_row, meta_text = None, ""
+    for row_number in sorted(rows):
+        for _, value in sorted(rows[row_number].items()):
+            candidate = value.strip()
+            if candidate.startswith("{") and '"dependencies"' in candidate:
+                meta_row, meta_text = row_number, candidate
+                break
+        if meta_text:
+            break
+
+    row = rows.get(meta_row) if meta_row else rows.get(2)
+    name = (row or {}).get(NAME_COLUMN, "").strip()
+    if not name:
+        return None
+
+    meta = parse_metadata(meta_text)
+    return make_node(path, name, meta), meta
+
+
+def parse_file(path: Path):
+    """(Node, BlockMetadata) for a file that belongs in the graph, else None."""
+    suffix = path.suffix.lower()
+    if suffix in SOURCE_SUFFIXES:
+        return parse_source(path)
+    if suffix == WORKBOOK_SUFFIX and path.name.startswith(WORKBOOK_PREFIX):
+        return parse_workbook(path)
+    return None
 
 
 def build_index(nodes: list[Node]):
@@ -158,7 +216,7 @@ def resolve(nodes: list[Node], by_stem, by_base, system_names, untracked_names):
     return edges, unresolved, ambiguous
 
 
-def build_reports(nodes: list[Node], ambiguous, unresolved) -> list[Report]:
+def build_reports(nodes: list[Node], ambiguous, unresolved, declared_versions) -> list[Report]:
     reports: list[Report] = []
 
     for dep, users in sorted(ambiguous.items()):
@@ -174,6 +232,15 @@ def build_reports(nodes: list[Node], ambiguous, unresolved) -> list[Report]:
             f'File name "{n.base}" does not match declared TIA symbol "{n.name}".',
             n.file, n.base, n.name,
         ))
+
+    for n in nodes:
+        declared = declared_versions.get(n.id)
+        if declared and n.version and declared != f"v{n.version}":
+            reports.append(Report.version_mismatch(
+                f'"{n.id}" declares version "{declared}" in its metadata, '
+                f'but the file name says "v{n.version}".',
+                n.file, declared, f"v{n.version}",
+            ))
 
     all_ids = {x.id for x in nodes}
     for n in nodes:
@@ -208,14 +275,17 @@ def find_core_dirs(root: Path):
 
 
 def build_for_core(core_dir: Path) -> Graph:
-    files = [p for p in core_dir.rglob("*") if p.suffix.lower() in (".scl", ".udt")]
+    files = core_dir.rglob("*")          # parse_file skips whatever is not a block
     system_names = load_name_list(core_dir, "plc-system.json")
     untracked_names = load_name_list(core_dir, "plc-untracked.json")
 
-    nodes = [n for n in (parse_file(f) for f in files) if n]
+    parsed = [p for p in (parse_file(f) for f in files) if p]
+    nodes = [node for node, _ in parsed]
+    declared_versions = {node.id: meta.version for node, meta in parsed if meta.version}
+
     by_stem, by_base = build_index(nodes)
     edges, unresolved, ambiguous = resolve(nodes, by_stem, by_base, system_names, untracked_names)
-    reports = build_reports(nodes, ambiguous, unresolved)
+    reports = build_reports(nodes, ambiguous, unresolved, declared_versions)
 
     graph = Graph(generated_at=Graph.now(), nodes=nodes, edges=edges, reports=reports)
 
