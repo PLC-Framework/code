@@ -552,7 +552,7 @@
       <div class="crumb" id="crumb"></div>
       <div class="legend" id="legend">
         <span class="legend-item"><span class="dot critical"></span>Needs attention (pin, mismatch, broken link)</span>
-        <span class="legend-item"><span class="dot warn"></span>Depends on a deprecated / uncataloged block</span>
+        <span class="legend-item"><span class="dot warn"></span>Deprecated, or depends on a deprecated / uncataloged block</span>
         <span class="legend-item"><span class="dot" style="background:var(--status-info)"></span>Only external dependencies</span>
         <span class="legend-item"><span class="dot ok"></span>No issues</span>
       </div>
@@ -640,7 +640,7 @@
     });
     var onlyKnownExternal = n.outEdges.length > 0 && n.outEdges.every(function (e) { return e.external && e.kind !== "unknown"; });
     n.severity = (n.hasAmbiguous || n.isMismatch || n.hasBrokenDeprecation) ? "critical"
-      : (n.dependsOnDeprecated || n.hasUnknownDep) ? "warn"
+      : (n.isLegacy || n.dependsOnDeprecated || n.hasUnknownDep) ? "warn"
       : onlyKnownExternal ? "info"
       : "ok";
   });
@@ -1064,7 +1064,7 @@
       icon.textContent = fileEmoji(ref.file);
       g.appendChild(icon);
       var label = el("text", { class: "node-label", x: n.x + renderR + 4, y: n.y + 3 });
-      label.textContent = ref.name;
+      label.textContent = ref.version ? ref.name + " v" + ref.version : ref.name;
       g.appendChild(label);
 
       g.addEventListener("click", function () { selectNode(ref.id); });

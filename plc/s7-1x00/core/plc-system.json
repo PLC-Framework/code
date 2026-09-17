@@ -38,5 +38,7 @@
     "TOF_TIME",
     "TONR_TIME",
     "TON_TIME",
-    "TP_TIME"
+    "TP_TIME",
+    "Chars_TO_Strg"
+
 ]

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T10:51:55+00:00",
+  "generatedAt": "2026-09-17T14:50:03+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -74,37 +74,6 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/alarm/_alarmBitWithOM-v2.0.scl",
       "dependencies": []
-    },
-    {
-      "id": "_configNetworkAdapter-v1.2",
-      "name": "_configNetworkAdapter",
-      "base": "_configNetworkAdapter",
-      "version": "1.2",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/communication/_configNetworkAdapter-v1.2.scl",
-      "dependencies": [
-        "IP_V4",
-        "T_CONFIG",
-        "RDREC",
-        "IF_CONF_Header",
-        "IF_CONF_v4",
-        "TON_TIME",
-        "RESET_TIMER"
-      ]
-    },
-    {
-      "id": "_stringToIPv4Address-v1.0",
-      "name": "_stringToIPv4Address",
-      "base": "_stringToIPv4Address",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/communication/_stringToIPv4Address-v1.0.scl",
-      "dependencies": [
-        "IP_V4",
-        "STRG_VAL"
-      ]
     },
     {
       "id": "_hydraulicTable-v1.0",
@@ -641,8 +610,8 @@
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/node/nodeLink-v1.1.udt",
       "dependencies": [
-        "nodeLinkSourceToDest-v1.1",
-        "nodeLinkDestToSource-v1.1"
+        "nodeLinkSourceToDest-v1.2",
+        "nodeLinkDestToSource-v1.2"
       ]
     },
     {
@@ -1347,6 +1316,69 @@
       ]
     },
     {
+      "id": "_configNetworkAdapter-v1.2",
+      "name": "_configNetworkAdapter",
+      "base": "_configNetworkAdapter",
+      "version": "1.2",
+      "status": "deprecated",
+      "deprecatedBy": "_configNetworkAdapter-v2.0",
+      "file": "plc/s7-1x00/core/communication/network-adapter/_configNetworkAdapter-v1.2.scl",
+      "dependencies": [
+        "IP_V4",
+        "T_CONFIG",
+        "RDREC",
+        "IF_CONF_Header",
+        "IF_CONF_v4",
+        "TON_TIME",
+        "RESET_TIMER"
+      ]
+    },
+    {
+      "id": "_configNetworkAdapter-v2.0",
+      "name": "_configNetworkAdapter",
+      "base": "_configNetworkAdapter",
+      "version": "2.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/communication/network-adapter/_configNetworkAdapter-v2.0.scl",
+      "dependencies": [
+        "IP_V4",
+        "_getNetworkAdapterInfo-v1.0",
+        "_setNetworkAdapterConfig-v1.0",
+        "TON_TIME"
+      ]
+    },
+    {
+      "id": "_getNetworkAdapterInfo-v1.0",
+      "name": "_getNetworkAdapterInfo",
+      "base": "_getNetworkAdapterInfo",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/communication/network-adapter/_getNetworkAdapterInfo-v1.0.scl",
+      "dependencies": [
+        "IP_V4",
+        "RDREC",
+        "Chars_TO_Strg",
+        "TON_TIME"
+      ]
+    },
+    {
+      "id": "_setNetworkAdapterConfig-v1.0",
+      "name": "_setNetworkAdapterConfig",
+      "base": "_setNetworkAdapterConfig",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/communication/network-adapter/_setNetworkAdapterConfig-v1.0.scl",
+      "dependencies": [
+        "IP_V4",
+        "T_CONFIG",
+        "Strg_TO_Chars",
+        "TON_TIME"
+      ]
+    },
+    {
       "id": "tcpCommunicationControl-v1.0",
       "name": "tcpCommunicationControl",
       "base": "tcpCommunicationControl",
@@ -1387,6 +1419,19 @@
       "dependencies": [
         "tcpCommunicationControl-v1.0",
         "TSEND"
+      ]
+    },
+    {
+      "id": "_stringToIPv4Address-v1.0",
+      "name": "_stringToIPv4Address",
+      "base": "_stringToIPv4Address",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/communication/util/_stringToIPv4Address-v1.0.scl",
+      "dependencies": [
+        "IP_V4",
+        "STRG_VAL"
       ]
     },
     {
@@ -3055,78 +3100,6 @@
       "ambiguous": false
     },
     {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "IP_V4",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "T_CONFIG",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "RDREC",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "IF_CONF_Header",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "IF_CONF_v4",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "TON_TIME",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_configNetworkAdapter-v1.2",
-      "to": "RESET_TIMER",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_stringToIPv4Address-v1.0",
-      "to": "IP_V4",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
-      "from": "_stringToIPv4Address-v1.0",
-      "to": "STRG_VAL",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
       "from": "_hydraulicTable-v1.0",
       "to": "TP_TIME",
       "resolved": false,
@@ -3756,13 +3729,13 @@
     },
     {
       "from": "nodeLink-v1.1",
-      "to": "nodeLinkSourceToDest-v1.1",
+      "to": "nodeLinkSourceToDest-v1.2",
       "resolved": true,
       "ambiguous": false
     },
     {
       "from": "nodeLink-v1.1",
-      "to": "nodeLinkDestToSource-v1.1",
+      "to": "nodeLinkDestToSource-v1.2",
       "resolved": true,
       "ambiguous": false
     },
@@ -4041,6 +4014,154 @@
       "kind": "system"
     },
     {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "IP_V4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "T_CONFIG",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "RDREC",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "IF_CONF_Header",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "IF_CONF_v4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v1.2",
+      "to": "RESET_TIMER",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v2.0",
+      "to": "IP_V4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_configNetworkAdapter-v2.0",
+      "to": "_getNetworkAdapterInfo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_configNetworkAdapter-v2.0",
+      "to": "_setNetworkAdapterConfig-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_configNetworkAdapter-v2.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_getNetworkAdapterInfo-v1.0",
+      "to": "IP_V4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_getNetworkAdapterInfo-v1.0",
+      "to": "RDREC",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_getNetworkAdapterInfo-v1.0",
+      "to": "Chars_TO_Strg",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_getNetworkAdapterInfo-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_setNetworkAdapterConfig-v1.0",
+      "to": "IP_V4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_setNetworkAdapterConfig-v1.0",
+      "to": "T_CONFIG",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_setNetworkAdapterConfig-v1.0",
+      "to": "Strg_TO_Chars",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_setNetworkAdapterConfig-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
       "from": "_tcpCommunication-v2.2",
       "to": "tcpCommunicationControl-v1.0",
       "resolved": true,
@@ -4119,6 +4240,22 @@
     {
       "from": "_tcpCommunicationTx-v1.0",
       "to": "TSEND",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_stringToIPv4Address-v1.0",
+      "to": "IP_V4",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_stringToIPv4Address-v1.0",
+      "to": "STRG_VAL",
       "resolved": false,
       "ambiguous": false,
       "external": true,
@@ -5117,6 +5254,15 @@
     {
       "level": "info",
       "type": "system-dependency",
+      "message": "\"Chars_TO_Strg\" is a Siemens/TIA system block (listed in plc-system.json).",
+      "dependency": "Chars_TO_Strg",
+      "usedBy": [
+        "_getNetworkAdapterInfo-v1.0"
+      ]
+    },
+    {
+      "level": "info",
+      "type": "system-dependency",
       "message": "\"DPRD_DAT\" is a Siemens/TIA system block (listed in plc-system.json).",
       "dependency": "DPRD_DAT",
       "usedBy": [
@@ -5176,6 +5322,9 @@
       "dependency": "IP_V4",
       "usedBy": [
         "_configNetworkAdapter-v1.2",
+        "_configNetworkAdapter-v2.0",
+        "_getNetworkAdapterInfo-v1.0",
+        "_setNetworkAdapterConfig-v1.0",
         "_stringToIPv4Address-v1.0"
       ]
     },
@@ -5321,6 +5470,7 @@
       "dependency": "RDREC",
       "usedBy": [
         "_configNetworkAdapter-v1.2",
+        "_getNetworkAdapterInfo-v1.0",
         "_jxc-v1.1"
       ]
     },
@@ -5370,6 +5520,7 @@
       "message": "\"Strg_TO_Chars\" is a Siemens/TIA system block (listed in plc-system.json).",
       "dependency": "Strg_TO_Chars",
       "usedBy": [
+        "_setNetworkAdapterConfig-v1.0",
         "_sick_dwordToHexAscii-v1.1"
       ]
     },
@@ -5442,7 +5593,6 @@
       "message": "\"TON_TIME\" is a Siemens/TIA system block (listed in plc-system.json).",
       "dependency": "TON_TIME",
       "usedBy": [
-        "_configNetworkAdapter-v1.2",
         "_hydraulicTable-v1.0",
         "_activatePnioDevice-v1.0",
         "_activatePnioDevice-v1.1",
@@ -5462,6 +5612,10 @@
         "_background-v4.0",
         "_background-v4.1",
         "_plcLogSender-v1.0",
+        "_configNetworkAdapter-v1.2",
+        "_configNetworkAdapter-v2.0",
+        "_getNetworkAdapterInfo-v1.0",
+        "_setNetworkAdapterConfig-v1.0",
         "_tcpCommunication-v2.2",
         "_accumulatorConveyorFilling-v1.0",
         "_collectorConveyorFilling-v1.0",
@@ -5547,7 +5701,8 @@
       "message": "\"T_CONFIG\" is a Siemens/TIA system block (listed in plc-system.json).",
       "dependency": "T_CONFIG",
       "usedBy": [
-        "_configNetworkAdapter-v1.2"
+        "_configNetworkAdapter-v1.2",
+        "_setNetworkAdapterConfig-v1.0"
       ]
     },
     {

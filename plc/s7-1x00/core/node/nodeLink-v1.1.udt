@@ -1,5 +1,5 @@
 ﻿TYPE "nodeLink"
-TITLE = {"version":"v1.1","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":["nodeLinkSourceToDest-v1.1", "nodeLinkDestToSource-v1.1"]}
+TITLE = {"version":"v1.1","author":"cyanezf","family":"core/node","status":"current","deprecatedBy": null,"dependencies":["nodeLinkSourceToDest-v1.2", "nodeLinkDestToSource-v1.2"]}
 
 //(*--
 //# Documentation
