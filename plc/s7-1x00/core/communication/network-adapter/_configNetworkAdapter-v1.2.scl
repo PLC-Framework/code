@@ -1,8 +1,8 @@
 ﻿FUNCTION_BLOCK "_configNetworkAdapter"
-TITLE = {"version":"v1.2","author":"cyanezf","family":"core/communication","status":"current","deprecatedBy": null,"dependencies" : ["IP_V4", "T_CONFIG", "RDREC", "IF_CONF_Header", "IF_CONF_v4", "TON_TIME", "RESET_TIMER"]}
+TITLE = {"version":"v1.2","author":"cyanezf","family":"core/communication/network-adapter","status":"deprecated","deprecatedBy":"_configNetworkAdapter-v2.0","dependencies":["IP_V4","T_CONFIG","RDREC","IF_CONF_Header","IF_CONF_v4", "TON_TIME","RESET_TIMER"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/communication'
+FAMILY : 'core/communication/network-adapter'
 NAME : _configNetworkAdapter
 VERSION : 1.2
 

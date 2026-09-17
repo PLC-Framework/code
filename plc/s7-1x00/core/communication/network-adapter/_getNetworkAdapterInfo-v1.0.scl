@@ -1,0 +1,308 @@
+﻿FUNCTION_BLOCK "_getNetworkAdapterInfo"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/network-adapter","status":"current","deprecatedBy":null,"dependencies":["IP_V4","RDREC","Chars_TO_Strg","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/network-adapter'
+NAME : _getNetworkAdapterInfo
+VERSION : 1.0
+   VAR_INPUT 
+      Local_PNIO_IFCE { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw interface
+      request { ExternalWritable := 'False'} : Bool;   // IR: 1=Force set
+      watchdogTime { ExternalWritable := 'False'} : Time := T#2s;   // IR: Watchdog time
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Status. See constants
+      busy { ExternalWritable := 'False'} : Bool;   // OR: 1=Busy
+      done { ExternalWritable := 'False'} : Bool;   // OR: 1=Done
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+      ip {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'} : IP_V4;   // OR: Valid IP when done is true
+      mask {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'} : IP_V4;   // OR: Valid Mask when done is true
+      router {InstructionName := 'IP_V4'; LibVersion := '1.0'; ExternalWritable := 'False'} : IP_V4;   // OR: Valid Router when done is true
+      mac { ExternalWritable := 'False'} : Array[0..5] of Byte;   // OR: Valid MAC when done is true
+      deviceName { ExternalWritable := 'False'} : String[240];   // OR: Valid PROFINET Device name when done is true
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int := #STATE_0_WAIT;   // SR: State
+      get {InstructionName := 'RDREC'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : RDREC;   // SX: Get config
+      got { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Got buffer
+         length { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UInt;   // SX: Received data length
+         buffer { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..4176] of Byte;   // SX: Received data buffer
+      END_STRUCT;
+      stats { ExternalWritable := 'False'} : Struct   // SR: Statistics
+         dones { ExternalWritable := 'False'} : UDInt;   // SR: Get dones
+         errors { ExternalWritable := 'False'} : UDInt;   // SR: Get errors
+         lastStatus { ExternalWritable := 'False'} : DWord;   // SR: Get status
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         watchdogTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      found : Bool;
+      i : UInt;
+      j : UInt;
+      k : UInt;
+      blockType : Word;
+      blockLength : UInt;
+      subblockType : Word;
+      subblockLength : UInt;
+      subblockVersion : Word;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_0_WAIT : Int := 0;
+      STATE_1_GET : Int := 1;
+      STATE_2_DECODE : Int := 2;
+      STATE_3_DONE : Int := 3;
+      STATE_8000_ERROR : Int := 16#8000;
+      STATUS_0000_DONE : Int := 0;
+      STATUS_7000_WAITING : Int := 16#7000;
+      STATUS_7001_BUSY : Int := 16#7001;
+      STATUS_8000_ERROR : Int := 16#8000;
+      STATUS_8001_WATCHDOG : Int := 16#8001;
+      STATUS_8002_DATA_NOT_FOUNTD : Int := 16#8002;
+      BLOCK_HEADER : Word := 16#0400;
+      SUBBLOCK_0240_TYPE : Word := 16#0240;
+      SUBBLOCK_0240_VERSION : Word := 16#0100;
+      HEADER_FIX_PART : UInt := 4;
+      BLOCK_FIX_PART : UInt := 16;
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2026-09-16 | cyanezf | First version |
+	
+	## Description
+	
+	This asynchronous function gets `IP`, `MASK`, `ROUTER`, `MAC` and `PROFINET Device Name` from a given `HW_INTERFACE`.
+	
+	```mermaid
+	stateDiagram-v2
+	[*] --> S0
+	S0 --> S1
+	S1 --> S2
+	S1 --> S8000
+	S2 --> S3
+	S2 --> S8000
+	S3 --> S0
+	S8000 --> S0
+	
+	S0: S0 Wait
+	S1: S1 Get
+	S2: S2 Decode
+	S3: S3 Done
+	S8000: S8000 Error
+	```
+	> to see mermaid, visit [link](https://mermaid.live/edit)
+	
+	--*)
+	
+	#private.watchdogTon(IN:=#state = #STATE_1_GET,
+	                     PT:=#watchdogTime);
+	IF #private.watchdogTon.Q THEN
+	  #status := #STATUS_8001_WATCHDOG;
+	  #state := #STATE_8000_ERROR;
+	END_IF;
+	
+	 REGION S0: Wait --> S1
+	   
+	   IF #state = #STATE_0_WAIT THEN
+	     
+	     // Status
+	     #status := #STATUS_7000_WAITING;
+	     #busy := FALSE;
+	     #done := false;
+	     #error := false;
+	     
+	     // Transition
+	     IF #request THEN
+	       #get.REQ := 1;
+	       #state := #STATE_1_GET;
+	     END_IF;
+	   END_IF;
+	 END_REGION
+	 
+	 REGION S1: Get --> S2 | S8000
+	   
+	   #get(ID := #Local_PNIO_IFCE,
+	        INDEX := 16#F841,
+	        MLEN := 0,
+	        RECORD := #got.buffer);
+	   #get.REQ := 0; // Reset request
+	   
+	   IF #state = #STATE_1_GET THEN
+	     
+	     // Status
+	     #status := #STATUS_7001_BUSY;
+	     #busy := true;
+	     #done := false;
+	     #error := false;
+	     
+	     // Transition
+	     IF #get.VALID THEN
+	       #stats.dones += 1;
+	       #state := #STATE_2_DECODE;
+	       
+	     ELSIF #get.ERROR THEN
+	       #stats.errors += 1;
+	       #stats.lastStatus := #get.STATUS;
+	       #status := #STATUS_8000_ERROR;
+	       #state := #STATE_8000_ERROR;
+	     END_IF;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION S2: Decode --> S3 | S8000
+	   IF #state = #STATE_2_DECODE THEN
+	     
+	     #got.length := #get.LEN;
+	     
+	     // Iterate blocks
+	     #i := 0;
+	     #found := false;
+	     WHILE #i < #got.length DO
+	       
+	       // Looking for a header
+	       #blockType.%B1 := #got.buffer[#i];
+	       #blockType.%B0 := #got.buffer[#i+1];
+	       
+	       IF #blockType <> #BLOCK_HEADER THEN
+	         #i += #HEADER_FIX_PART;
+	         CONTINUE;
+	       END_IF;
+	       
+	       // Block length
+	       #blockLength.%B1 := #got.buffer[#i];
+	       #blockLength.%B0 := #got.buffer[#i + 1];
+	       #blockLength += #HEADER_FIX_PART;
+	       
+	       // Subblocks
+	       #j += #i + #BLOCK_FIX_PART;
+	       WHILE #j < #i + #blockLength DO
+	         
+	         // Type
+	         #subblockType.%B1 := #got.buffer[#j + 0];
+	         #subblockType.%B0 := #got.buffer[#j + 1];
+	         // Length
+	         #subblockLength.%B1 := #got.buffer[#j + 2];
+	         #subblockLength.%B0 := #got.buffer[#j + 3];
+	         #subblockLength += #HEADER_FIX_PART;
+	         // Version
+	         #subblockVersion.%B1 := #got.buffer[#j + 4];
+	         #subblockVersion.%B0 := #got.buffer[#j + 5];
+	         
+	         // Check if it's expected type
+	         IF #subblockType = #SUBBLOCK_0240_TYPE AND #subblockVersion = #SUBBLOCK_0240_VERSION THEN
+	           
+	           // Get device name
+	           Chars_TO_Strg(Chars:=#got.buffer,
+	                         pChars:=#j+7,
+	                         Cnt:=#got.buffer[#j+6],
+	                         Strg=>#deviceName);
+	           
+	           #k := #j + #subblockLength - 20;
+	           // Get mac
+	           #mac[0] := #got.buffer[#k];
+	           #mac[1] := #got.buffer[#k+1];
+	           #mac[2] := #got.buffer[#k+2];
+	           #mac[3] := #got.buffer[#k+3];
+	           #mac[4] := #got.buffer[#k+4];
+	           #mac[5] := #got.buffer[#k+5];
+	           // Get IP
+	           #ip.ADDR[1] := #got.buffer[#k + 8];
+	           #ip.ADDR[2] := #got.buffer[#k + 9];
+	           #ip.ADDR[3] := #got.buffer[#k + 10];
+	           #ip.ADDR[4] := #got.buffer[#k + 11];
+	           // Get mask
+	           #mask.ADDR[1] := #got.buffer[#k + 12];
+	           #mask.ADDR[2] := #got.buffer[#k + 13];
+	           #mask.ADDR[3] := #got.buffer[#k + 14];
+	           #mask.ADDR[4] := #got.buffer[#k + 15];
+	           // Get router
+	           #router.ADDR[1] := #got.buffer[#k + 16];
+	           #router.ADDR[2] := #got.buffer[#k + 17];
+	           #router.ADDR[3] := #got.buffer[#k + 18];
+	           #router.ADDR[4] := #got.buffer[#k + 19];
+	           
+	           // Exit subblock while
+	           #found := true;
+	           EXIT;
+	         END_IF;
+	         
+	         // Next subblock
+	         #j += #subblockLength;
+	         
+	       END_WHILE;
+	       
+	       // Exit block while
+	       IF #found THEN
+	         EXIT;
+	       END_IF;
+	       
+	       // Next block
+	       #i += #blockLength;
+	       
+	     END_WHILE;
+	     
+	     // Transition
+	     IF #found THEN
+	       #state := #STATE_3_DONE;
+	     ELSE
+	       #status := #STATUS_8002_DATA_NOT_FOUNTD;
+	       #state := #STATE_8000_ERROR;
+	     END_IF;
+	   END_IF;
+	 END_REGION
+	 
+	 REGION S3: Done --> S0
+	   
+	   IF #state = #STATE_3_DONE THEN
+	     // Status
+	     #status := #STATUS_0000_DONE;
+	     #busy := FALSE;
+	     #done := true;
+	     #error := false;
+	     
+	     // Transition
+	     IF NOT #request THEN
+	       #state := #STATE_0_WAIT;
+	     END_IF;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION S8000: Error --> S0
+	   
+	   IF #state = #STATE_8000_ERROR THEN
+	     // Status
+	     // Status variable is an incoming event, it must be set in the triggered event!
+	     #busy := FALSE;
+	     #done := false;
+	     #error := TRUE;
+	     
+	     // Transitions
+	     IF NOT #request THEN
+	       #state := #STATE_0_WAIT;
+	     END_IF;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION Save RLO
+	   
+	   ENO := true;
+	   
+	 END_REGION
+	 
+END_FUNCTION_BLOCK
+

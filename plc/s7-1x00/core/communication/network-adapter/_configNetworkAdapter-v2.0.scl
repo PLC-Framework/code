@@ -1,0 +1,237 @@
+﻿FUNCTION_BLOCK "_configNetworkAdapter"
+TITLE = {"version":"v2.0","author":"cyanezf","family":"core/communication/network-adapter","status":"current","deprecatedBy":null,"dependencies":["IP_V4","_getNetworkAdapterInfo-v1.0", "_setNetworkAdapterConfig-v1.0","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : 'core/communication/network-adapter'
+FAMILY : cyanezf
+NAME : _configNetworkAdapter
+VERSION : 2.0
+   VAR_INPUT 
+      Local_PNIO_IFCE { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw interface
+      ipV4_saveMode { ExternalWritable := 'False'} : UInt := #SAVE_MODE_2_TEMPORARILY;   // IR: IPv4 - 0=No task; 1=Save permanently; 2=Save temporarily
+      deviceName_saveMode { ExternalWritable := 'False'} : UInt := #SAVE_MODE_0_NIL;   // IR: Device name - 0=No task; 1=Save permanently; 2=Save temporarily
+      forceLoad { ExternalWritable := 'False'} : Bool;   // IR: 1=Force load
+   END_VAR
+
+   VAR_OUTPUT 
+      ipv4_loaded { ExternalWritable := 'False'} : Bool;   // OR: 1=IPv4 loaded
+      deviceName_loaded { ExternalWritable := 'False'} : Bool;   // OR: 1=Device name loaded
+   END_VAR
+
+   VAR_IN_OUT 
+      "network" : Struct   // iOX: Read only - Network settings
+         ip {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - IP to be set
+         mask {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - Mask to be set
+         router {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - Router to be set
+      END_STRUCT;
+      deviceName : String;   // IOX: Read only - PROFINET Device name (until 240 chars) to be set
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int;   // SR: State
+      getter { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "_getNetworkAdapterInfo";   // SR: Getter
+      setter { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "_setNetworkAdapterConfig";   // SR: Setter
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SR: Private static variables
+         forceLoad { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+         delayTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      ipv4_save : Bool;
+      deviceName_save : Bool;
+      saveOn : Bool;
+      forceLoad_pulseOn : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      SAVE_MODE_0_NIL : UInt := 0;
+      SAVE_MODE_1_PERMANENTLY : UInt := 1;
+      SAVE_MODE_2_TEMPORARILY : UInt := 2;
+      STATE_0_WAIT : Int := 0;
+      STATE_1_GET : Int := 1;
+      STATE_2_CHECK : Int := 2;
+      STATE_3_SET : Int := 3;
+      STATE_4_DELAY : Int := 4;
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v2.0 | 2026-09-17 | cyanezf | fix/refactor: Full refactor to fix the getter event! We strongly recommend updating to this version |
+	| v1.2 | 2025-08-01 | cyanezf | Added bufferOffset input because each CPU has different address.<br>Added loaded to know IP was loaded |
+	| v1.1 | 2025-06-10 | cyanezf | Refactor to scl |
+	| v1.0 | 2025-03-24 | cyanezf | First version |
+	
+	## Description
+	
+	This asynchronous function gets and sets the `IP`, `MASK`, `ROUTER`, and `PROFINET Device Name` in a given `HW_INTERFACE`.
+	
+	- The setting event is triggered when `IP`, `MASK`, `ROUTER` or `PROFINET Device Name' are changed.
+	
+	- User can force the setting event with forceLoad
+	
+	- User must select the save mode for `IP` and `Device name`
+	
+	| Save mode | Action |
+	| --------- | ------ |
+	| 0         | No action |
+	| 1         | Save permanently |
+	| 2         | Save temporarily |
+	
+	```mermaid
+	stateDiagram-v2
+	[*] --> S0
+	S0 --> S1
+	S0 --> S3
+	S1 --> S2
+	S2 --> S3
+	S2 --> S4
+	S3 --> S0
+	S3 --> S4
+	S4 --> S0
+	
+	S0: S0 Wait
+	S1: S1 Get
+	S2: S2 Check
+	S3: S3 Set
+	S4: S4 Delay
+	```
+	> to see mermaid, visit [link](https://mermaid.live/edit)
+	
+	--*)
+	
+	
+	REGION General
+	
+	  #ipv4_save :=
+	  #ipV4_saveMode = #SAVE_MODE_1_PERMANENTLY OR
+	  #ipV4_saveMode = #SAVE_MODE_2_TEMPORARILY;
+	  
+	  #ipv4_loaded :=
+	  #getter.ip.ADDR[1] = #network.ip.ADDR[1] AND
+	  #getter.ip.ADDR[2] = #network.ip.ADDR[2] AND
+	  #getter.ip.ADDR[3] = #network.ip.ADDR[3] AND
+	  #getter.ip.ADDR[4] = #network.ip.ADDR[4] AND
+	  
+	  #getter.mask.ADDR[1] = #network.mask.ADDR[1] AND
+	  #getter.mask.ADDR[2] = #network.mask.ADDR[2] AND
+	  #getter.mask.ADDR[3] = #network.mask.ADDR[3] AND
+	  #getter.mask.ADDR[4] = #network.mask.ADDR[4] AND
+	  
+	  #getter.router.ADDR[1] = #network.router.ADDR[1] AND
+	  #getter.router.ADDR[2] = #network.router.ADDR[2] AND
+	  #getter.router.ADDR[3] = #network.router.ADDR[3] AND
+	  #getter.router.ADDR[4] = #network.router.ADDR[4];
+	  
+	  #deviceName_save :=
+	  #deviceName_saveMode = #SAVE_MODE_1_PERMANENTLY OR
+	  #deviceName_saveMode = #SAVE_MODE_2_TEMPORARILY;
+	  
+	  #deviceName_loaded := #getter.deviceName = #deviceName;
+	  
+	  #forceLoad_pulseOn := #forceLoad AND NOT #private.forceLoad;
+	  #private.forceLoad := #forceLoad;
+	  
+	  #saveOn := #ipv4_save OR #deviceName_save;
+	  
+	END_REGION
+	
+	REGION S0: Wait --> S3 | S1
+	  
+	  IF #state = #STATE_0_WAIT THEN
+	    
+	    // Transitions
+	    IF (#saveOn AND #forceLoad_pulseOn) THEN
+	      
+	      #setter.request := true;
+	      #state := #STATE_3_SET;
+	      
+	    ELSIF (NOT #ipv4_loaded AND #ipv4_save) OR
+	      (NOT #deviceName_loaded AND #deviceName_save) THEN
+	      
+	      #getter.request := true;
+	      #state := #STATE_1_GET;
+	        
+	    END_IF;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION S1: Get --> S2 | S4 & S2: Check --> S3 | S4
+	  
+	  #getter(Local_PNIO_IFCE := #Local_PNIO_IFCE);
+	  #getter.request := false;
+	  
+	  IF #state = #STATE_1_GET THEN
+	    
+	    // Transitions
+	    IF #getter.done THEN
+	      #state := #STATE_2_CHECK;
+	      
+	    ELSIF #getter.error THEN
+	      #state := #STATE_4_DELAY;
+	    END_IF;
+	    
+	  ELSIF #state = #STATE_2_CHECK THEN
+	    
+	    // Transitions
+	    IF (NOT #ipv4_loaded AND #ipv4_save) OR
+	      (NOT #deviceName_loaded AND #deviceName_save) THEN
+	      
+	      #setter.request := true;
+	      #state := #STATE_3_SET;
+	      
+	    ELSE
+	      #state := #STATE_4_DELAY;
+	    END_IF;
+	  END_IF;
+	END_REGION
+	
+	REGION S3: Set --> S0 | S4
+	  
+	  #setter(Local_PNIO_IFCE:=#Local_PNIO_IFCE,
+	          ipV4_saveMode:=#ipV4_saveMode,
+	          deviceName_saveMode:=#deviceName_saveMode,
+	          ip:=#network.ip,
+	          mask:=#network.mask,
+	          router:=#network.router,
+	          deviceName:=#deviceName);
+	  #setter.request := false;
+	  
+	  IF #state = #STATE_3_SET THEN
+	    
+	    // Transitions
+	    IF #setter.done THEN
+	      #state := #STATE_0_WAIT;
+	      
+	    ELSIF #setter.error THEN
+	      #state := #STATE_4_DELAY;
+	      
+	    END_IF;
+	  END_IF;
+	END_REGION
+	
+	REGION S4: Delay --> S0
+	  
+	  #private.delayTon(IN:=#state = #STATE_4_DELAY,
+	                    PT:=t#1s);
+	  
+	  // Transition
+	  IF #private.delayTon.Q THEN
+	    #state := #STATE_0_WAIT;
+	  END_IF;
+	  
+	END_REGION
+	
+	REGION Save RLO
+	  ENO := true;
+	  
+	END_REGION
+	
+END_FUNCTION_BLOCK
+

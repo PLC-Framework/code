@@ -1,0 +1,318 @@
+﻿FUNCTION_BLOCK "_setNetworkAdapterConfig"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/network-adapter","status":"current","deprecatedBy":null,"dependencies":["IP_V4","T_CONFIG","Strg_TO_Chars","TON_TIME"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/communication/network-adapter'
+NAME : _setNetworkAdapterConfig
+VERSION : 1.0
+   VAR_INPUT 
+      Local_PNIO_IFCE { ExternalWritable := 'False'} : HW_INTERFACE;   // IR: Hw interface
+      request { ExternalWritable := 'False'} : Bool;   // IR: 1=Force set
+      ipV4_saveMode { ExternalWritable := 'False'} : UInt := #SAVE_MODE_2_TEMPORARILY;   // IR: IPv4 - 0=No task; 1=Save permanently; 2=Save temporarily
+      deviceName_saveMode { ExternalWritable := 'False'} : UInt := #SAVE_MODE_0_NIL;   // IR: Device name - 0=No task; 1=Save permanently; 2=Save temporarily
+      watchdogTime { ExternalWritable := 'False'} : Time := T#2s;   // IR: Watchdog time
+   END_VAR
+
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Status. See constants
+      busy { ExternalWritable := 'False'} : Bool;   // OR: 1=Busy
+      done { ExternalWritable := 'False'} : Bool;   // OR: 1=Done
+      error { ExternalWritable := 'False'} : Bool;   // OR: 1=Error
+   END_VAR
+
+   VAR_IN_OUT 
+      ip {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - IP to be set
+      mask {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - Mask to be set
+      router {InstructionName := 'IP_V4'; LibVersion := '1.0'} : IP_V4;   // IOX: Read only - Router to be set
+      deviceName : String;   // IOX: Read only - PROFINET Device name (until 240 chars) to be set
+   END_VAR
+
+   VAR 
+      state { ExternalWritable := 'False'} : Int;   // SR: State
+      set {InstructionName := 'T_CONFIG'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : T_CONFIG;   // SX: Set config
+      configData { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..269] of Byte;   // SX: CONF_DATA
+      stats { ExternalWritable := 'False'} : Struct   // SR: Statistics
+         dones { ExternalWritable := 'False'} : UDInt;   // SR: Set dones
+         errors { ExternalWritable := 'False'} : UDInt;   // SR: Set errors
+         lastStatus { ExternalWritable := 'False'} : DWord;   // SR: Last status after error
+         lastErrorLoc { ExternalWritable := 'False'} : DWord;   // SR: Last error loc
+      END_STRUCT;
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private static variables
+         watchdogTon {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      END_STRUCT;
+   END_VAR
+
+   VAR_TEMP 
+      someCommand : Bool;
+      deviceNameLength : UInt;
+      i : UInt;
+      j : Int;
+      k : Int;
+      tmp : UInt;
+      subfieldCount : UInt;
+   END_VAR
+
+   VAR CONSTANT 
+      STATE_0_WAIT : Int := 0;
+      STATE_1_CODE : Int := 1;
+      STATE_2_SET : Int := 2;
+      STATE_3_DONE : Int := 3;
+      STATE_8000_ERROR : Int := 16#8000;
+      STATUS_0000_DONE : Int := 0;
+      STATUS_7000_WAITING : Int := 16#7000;
+      STATUS_7001_BUSY : Int := 16#7001;
+      STATUS_8000_ERROR : Int := 16#8000;
+      STATUS_8001_WATCHDOG : Int := 16#8001;
+      STATUS_8002_NO_SAVE_MODE_SELECTED : Int := 16#8002;
+      CONF_DATA_HEADER_FIELD_TYPE : UInt := 0;
+      CONF_DATA_HEADER_FIELD_ID : UInt := 0;
+      CONF_DATA_HEADER_LENGTH : UInt := 6;
+      CONF_DATA_IP_V4_ID : UInt := 30;
+      CONF_DATA_IP_V4_LENGTH : UInt := 18;
+      CONF_DATA_NOS_ID : UInt := 40;
+      CONF_DATA_NOS_LENGTH : UInt := 246;
+      SAVE_MODE_0_NIL : UInt := 0;
+      SAVE_MODE_1_PERMANENTLY : UInt := 1;
+      SAVE_MODE_2_TEMPORARILY : UInt := 2;
+   END_VAR
+
+
+BEGIN
+	(*--
+	# Documentation
+	
+	## Log
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2026-09-17 | cyanezf | First version |
+	
+	## Description
+	
+	This asynchronous function sets `IP`, `MASK`, `ROUTER`, `MAC` and `PROFINET Device Name` to a given `HW_INTERFACE`.
+	
+	```mermaid
+	stateDiagram-v2
+	[*] --> S0
+	S0 --> S1
+	S0 --> S8000
+	S1 --> S2
+	S2 --> S3
+	S2 --> S8000
+	S3 --> S0
+	S8000 --> S0
+	
+	S0: S0 Wait
+	S1: S1 Code
+	S2: S2 Set
+	S3: S3 Done
+	S8000: S8000 Error
+	```
+	> to see mermaid, visit [link](https://mermaid.live/edit)
+	
+	--*)
+	
+	#private.watchdogTon(IN := #state = #STATE_2_SET,
+	                     PT := #watchdogTime);
+	IF #private.watchdogTon.Q THEN
+	  #status := #STATUS_8001_WATCHDOG;
+	  #state := #STATE_8000_ERROR;
+	END_IF;
+	
+	// some command
+	#someCommand :=
+	#ipV4_saveMode = #SAVE_MODE_1_PERMANENTLY OR #ipV4_saveMode = #SAVE_MODE_2_TEMPORARILY OR
+	#deviceName_saveMode = #SAVE_MODE_1_PERMANENTLY OR #deviceName_saveMode = #SAVE_MODE_2_TEMPORARILY;
+	
+	 REGION S0: Wait --> S1 | S88000
+	   
+	   IF #state = #STATE_0_WAIT THEN
+	     
+	     // Status
+	     #status := #STATUS_7000_WAITING;
+	     #busy := FALSE;
+	     #done := false;
+	     #error := false;
+	     
+	     // Transition
+	     IF #request AND #someCommand THEN
+	       #state := #STATE_1_CODE;
+	       
+	     ELSIF #request AND NOT #someCommand THEN
+	       #status := #STATUS_8002_NO_SAVE_MODE_SELECTED;
+	       #state := #STATE_8000_ERROR;
+	     END_IF;
+	   END_IF;
+	 END_REGION
+	 
+	 REGION S1: Code --> S2
+	   
+	   IF #state = #STATE_1_CODE THEN
+	     
+	     // This functions doesn't use "IF_CONF_Header","IF_CONF_v4","IF_CONF_NOS" structures
+	     // because it sends a raw array.
+	     
+	     // Status
+	     #status := #STATUS_7001_BUSY;
+	     #busy := true;
+	     #done := false;
+	     #error := false;
+	     
+	     // Init subfiled count
+	     #subfieldCount := 0;
+	     #i := 6; // length in byte of header
+	     
+	     REGION Set IP v4
+	       IF #ipV4_saveMode = #SAVE_MODE_1_PERMANENTLY OR #ipV4_saveMode = #SAVE_MODE_2_TEMPORARILY THEN
+	         
+	         // 0: Id
+	         #tmp := #CONF_DATA_IP_V4_ID;
+	         #configData[#i + 0] := #tmp.%B1;
+	         #configData[#i + 1] := #tmp.%B0;
+	         // 2: Length
+	         #tmp := #CONF_DATA_IP_V4_LENGTH;
+	         #configData[#i + 2] := #tmp.%B1;
+	         #configData[#i + 3] := #tmp.%B0;
+	         // 4: Mode
+	         #configData[#i + 4] := #ipV4_saveMode.%B1;
+	         #configData[#i + 5] := #ipV4_saveMode.%B0;
+	         // 6: IP
+	         #configData[#i + 6] := #ip.ADDR[1];
+	         #configData[#i + 7] := #ip.ADDR[2];
+	         #configData[#i + 8] := #ip.ADDR[3];
+	         #configData[#i + 9] := #ip.ADDR[4];
+	         // 10: Mask
+	         #configData[#i + 10] := #mask.ADDR[1];
+	         #configData[#i + 11] := #mask.ADDR[2];
+	         #configData[#i + 12] := #mask.ADDR[3];
+	         #configData[#i + 13] := #mask.ADDR[4];
+	         // 14: Gateway
+	         #configData[#i + 14] := #router.ADDR[1];
+	         #configData[#i + 15] := #router.ADDR[2];
+	         #configData[#i + 16] := #router.ADDR[3];
+	         #configData[#i + 17] := #router.ADDR[4];
+	         
+	         // Updte subfield count and byte offset
+	         #subfieldCount += 1;
+	         #i += #CONF_DATA_IP_V4_LENGTH;
+	       END_IF;
+	     END_REGION
+	     
+	     REGION Set Device Name
+	       IF #deviceName_saveMode = #SAVE_MODE_1_PERMANENTLY OR #deviceName_saveMode = #SAVE_MODE_2_TEMPORARILY THEN
+	         
+	         // 0: Id
+	         #tmp := #CONF_DATA_NOS_ID;
+	         #configData[#i + 0] := #tmp.%B1;
+	         #configData[#i + 1] := #tmp.%B0;
+	         // 2: Length
+	         #tmp := #CONF_DATA_NOS_LENGTH;
+	         #configData[#i + 2] := #tmp.%B1;
+	         #configData[#i + 3] := #tmp.%B0;
+	         // 4: Mode
+	         #configData[#i + 4] := #deviceName_saveMode.%B1;
+	         #configData[#i + 5] := #deviceName_saveMode.%B0;
+	         // 6: Data
+	         #k := UINT_TO_INT(#i) + 5; // i (index of array) + 6 (offset for nos) - 1 (because NOS[] begins in 1)
+	         FOR #j := 1 TO 240 DO
+	           IF #j <= LEN(#deviceName) THEN
+	             #configData[#j + #k] := #deviceName[#j];
+	           ELSE
+	             #configData[#j + #k] := 0;
+	             EXIT;
+	           END_IF;
+	         END_FOR;
+	         
+	         // Updte subfield count and byte offset
+	         #subfieldCount += 1;
+	         #i += #CONF_DATA_NOS_LENGTH;
+	       END_IF;
+	       
+	     END_REGION
+	     
+	     // Heasder
+	     // 0 : field type
+	     #tmp := #CONF_DATA_HEADER_FIELD_TYPE;
+	     #configData[0] := #tmp.%B1;
+	     #configData[1] := #tmp.%B0;
+	     // 2 : field id
+	     #tmp := #CONF_DATA_HEADER_FIELD_ID;
+	     #configData[2] := #tmp.%B1;
+	     #configData[3] := #tmp.%B0;
+	     // 4 : subfield count
+	     #configData[4] := #subfieldCount.%B1;
+	     #configData[5] := #subfieldCount.%B0;
+	     
+	     // Transitions
+	     #set.Req := 1;
+	     #state := #STATE_2_SET;
+	     
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION S2: Set --> S3 | S8000
+	   
+	   #set(Interface := #Local_PNIO_IFCE,
+	        Conf_Data := #configData);
+	   #set.Req := 0; // Reset request
+	   
+	   IF #state = #STATE_2_SET THEN
+	     // Transitions
+	     IF #set.Done THEN
+	       #stats.dones += 1;
+	       #state := #STATE_3_DONE;
+	       
+	     ELSIF #set.Error THEN
+	       #stats.errors += 1;
+	       #stats.lastStatus := #set.Status;
+	       #stats.lastErrorLoc := #set.Err_Loc;
+	       #status := #STATUS_8000_ERROR;
+	       #state := #STATE_8000_ERROR;
+	     END_IF;
+	     
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION S3: Done --> S0
+	   
+	   IF #state = #STATE_3_DONE THEN
+	     // Status
+	     #status := #STATUS_0000_DONE;
+	     #busy := FALSE;
+	     #done := true;
+	     #error := false;
+	     
+	     // Transition
+	     IF NOT #request THEN
+	       #state := #STATE_0_WAIT;
+	     END_IF;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION S8000: Error --> S0
+	   
+	   IF #state = #STATE_8000_ERROR THEN
+	     // Status
+	     // Status variable is an incoming event, it must be set in the triggered event!
+	     #busy := FALSE;
+	     #done := false;
+	     #error := TRUE;
+	     
+	     // Transitions
+	     IF NOT #request THEN
+	       #state := #STATE_0_WAIT;
+	     END_IF;
+	   END_IF;
+	   
+	 END_REGION
+	 
+	 REGION Save RLO
+	   
+	   ENO := true;
+	   
+	 END_REGION
+	 
+END_FUNCTION_BLOCK
+

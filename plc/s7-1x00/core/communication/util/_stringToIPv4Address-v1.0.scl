@@ -1,8 +1,8 @@
 ﻿FUNCTION "_stringToIPv4Address" : Int
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication","status":"current","deprecatedBy": null,"dependencies" : ["IP_V4", "STRG_VAL"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/communication/util","status":"current","deprecatedBy": null,"dependencies" : ["IP_V4", "STRG_VAL"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/communication'
+FAMILY : 'core/communication/util'
 NAME : _stringToIPv4Address
 VERSION : 1.0
 
