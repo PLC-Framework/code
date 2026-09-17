@@ -1,8 +1,8 @@
 ﻿FUNCTION_BLOCK "_configNetworkAdapter"
 TITLE = {"version":"v2.0","author":"cyanezf","family":"core/communication/network-adapter","status":"current","deprecatedBy":null,"dependencies":["IP_V4","_getNetworkAdapterInfo-v1.0", "_setNetworkAdapterConfig-v1.0","TON_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
-AUTHOR : 'core/communication/network-adapter'
-FAMILY : cyanezf
+AUTHOR : cyanezf
+FAMILY : 'core/communication/network-adapter'
 NAME : _configNetworkAdapter
 VERSION : 2.0
    VAR_INPUT 
