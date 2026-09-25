@@ -103,6 +103,22 @@ The console only gets the `Run` / `Done` progress markers — all diagnostics li
 | `deprecatedBy` | `id` of the file that replaces this one, or `null`.                                   |
 | `file`         | Relative path to the file.                                                            |
 | `dependencies` | Raw dependency list as it appears in `TITLE`.                                         |
+| `interface`    | How an FB or FC is called — see below — or `null` for a UDT, a constant table, or a block whose interface could not be read. |
+
+### Interface fields
+
+```json
+"interface": { "input": ["method"], "output": [], "inout": ["instance", "data", "buffer"], "return": "Int" }
+```
+
+| Field    | Description                                                                                          |
+| :------- | :------------------------------------------------------------------------------------------------------|
+| `input`  | Names in `VAR_INPUT`, in the order the block declares them.                                           |
+| `output` | Names in `VAR_OUTPUT`, in declaration order.                                                          |
+| `inout`  | Names in `VAR_IN_OUT`, in declaration order.                                                          |
+| `return` | An FC's return type as written on its first line (`Int`, `Void`), or `null` for an FB.                |
+
+**Names only**: writing a call needs a parameter's name and its section — `:=` for an input or an in-out, `=>` for an output — and TIA takes each parameter's type from the block being called. Only the top level is listed: a parameter declared `Struct` (or `Array[..] of Struct`) is one name to a caller, and its members are stepped over. Attributes after a name (`{InstructionName := 'DTL'; ...}`) are dropped; `VAR`, `VAR_TEMP` and `VAR CONSTANT` are not read at all.
 
 ### Edge fields
 
@@ -125,7 +141,7 @@ The console only gets the `Run` / `Done` progress markers — all diagnostics li
 | `message`      | Human-readable description of the finding.                                                               |
 | `dependency`   | The dependency name involved (`*-dependency` reports only).                                              |
 | `usedBy`       | `id`s of the nodes that declare this dependency (`*-dependency` reports only).                            |
-| `file`               | The file involved (`name-mismatch` / `version-mismatch` / `broken-deprecation` reports only).       |
+| `file`               | The file involved (`name-mismatch` / `version-mismatch` / `broken-deprecation` / `interface-unreadable` reports only). |
 | `base`, `name`       | The two mismatched names (`name-mismatch` reports only).                                            |
 | `version`, `expected`| The version declared in the metadata and the one the file name implies (`version-mismatch` only).   |
 | `deprecatedBy`       | The dangling value (`broken-deprecation` reports only).                                             |
@@ -139,6 +155,7 @@ Report types:
 5. **`unknown-dependency`** (`warning`) — matches no file in the family and isn't listed in either catalog.
 6. **`system-dependency`** (`info`) — matches `plc-system.json`.
 7. **`untracked-dependency`** (`info`) — matches `plc-untracked.json`.
+8. **`interface-unreadable`** (`warning`) — an FB or FC whose `VAR_INPUT` / `VAR_OUTPUT` / `VAR_IN_OUT` has a line the parser cannot place, or a `Struct` it cannot close. The node stays in the graph with `interface: null`: a parameter silently missing from the list would produce a call that looks right and is not, so it refuses rather than guesses.
 
 ## Consuming `core.json`
 
@@ -150,7 +167,7 @@ An edge always has exactly one of three shapes, so a consumer can branch on them
 | **ambiguous** | `false`    | `true`      | `candidates`              |
 | **external**  | `false`    | `false`     | `external: true`, `kind`  |
 
-Likewise, a report always carries `level`, `type` and `message`; the rest depend on `type` — `dependency` + `usedBy` on the four `*-dependency` types, `file` + `base` + `name` on `name-mismatch`, `file` + `version` + `expected` on `version-mismatch`, `file` + `deprecatedBy` on `broken-deprecation`.
+Likewise, a report always carries `level`, `type` and `message`; the rest depend on `type` — `dependency` + `usedBy` on the four `*-dependency` types, `file` + `base` + `name` on `name-mismatch`, `file` + `version` + `expected` on `version-mismatch`, `file` + `deprecatedBy` on `broken-deprecation`, `file` alone on `interface-unreadable`.
 
 The [`models/`](models/) package is the definition of this contract, and what to edit when the format changes — one dataclass per module:
 
@@ -158,6 +175,7 @@ The [`models/`](models/) package is the definition of this contract, and what to
 | :--------------------------------------------- | :---------------- | :------------------------------------------ |
 | [`common.py`](models/common.py)                 | —                 | The closed value sets shared by the rest.    |
 | [`block_metadata.py`](models/block_metadata.py) | `BlockMetadata`   | The metadata object a block declares.        |
+| [`interface.py`](models/interface.py)           | `BlockInterface`  | How an FB or FC is called.                   |
 | [`node.py`](models/node.py)                     | `Node`            | One block file in the graph.                 |
 | [`edge.py`](models/edge.py)                     | `Edge`            | One declared dependency.                     |
 | [`graph.py`](models/graph.py)                   | `Graph`           | The root object of `core.json`.              |
@@ -165,7 +183,7 @@ The [`models/`](models/) package is the definition of this contract, and what to
 
 Alongside them, [`xlsx.py`](xlsx.py) is a small read-only `.xlsx` reader (zip + XML, standard library only) that hands `run.py` the cells of one sheet, so reading the constant tables needs no third-party package.
 
-`run.py` fills those objects in and calls `to_json()`, which is what fixes the key order and decides which keys are omitted. The constructors `Edge.to_node` / `to_ambiguous` / `to_external` and `Report.about_dependency` / `name_mismatch` / `version_mismatch` / `broken_deprecation` build exactly the shapes above, so no caller has to remember which fields go together. `Graph.from_json(json.load(f))` reads a graph back:
+`run.py` fills those objects in and calls `to_json()`, which is what fixes the key order and decides which keys are omitted. The constructors `Edge.to_node` / `to_ambiguous` / `to_external` and `Report.about_dependency` / `name_mismatch` / `version_mismatch` / `broken_deprecation` / `interface_unreadable` build exactly the shapes above, so no caller has to remember which fields go together. `Graph.from_json(json.load(f))` reads a graph back:
 
 ```python
 import json, sys
@@ -176,4 +194,4 @@ graph = Graph.from_json(json.load(open("plc/s7-1x00/core/core.json", encoding="u
 broken = [r for r in graph.reports if r.level == "error"]
 ```
 
-Consumers written in another language should mirror this package: every key listed in the tables above is always present except `version` and `deprecatedBy` on a node, which are nullable, and the per-shape keys of `Edge` and `Report`, which are absent rather than null when they don't apply.
+Consumers written in another language should mirror this package: every key listed in the tables above is always present except `version`, `deprecatedBy` and `interface` on a node, which are nullable — `interface` is also absent from a `core.json` written before it existed, and a reader should take that as null — and the per-shape keys of `Edge` and `Report`, which are absent rather than null when they don't apply.

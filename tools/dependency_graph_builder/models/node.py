@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from .common import DEPRECATED, Status
+from .interface import BlockInterface
 
 
 @dataclass(slots=True)
@@ -17,6 +18,7 @@ class Node:
     deprecated_by: Optional[str]            # id of the replacement file
     file: str                               # forward-slash path, relative to run.py's working directory
     dependencies: list[str]                 # raw names as written in TITLE, before resolution
+    interface: Optional[BlockInterface] = None  # how an FB or FC is called; None on a UDT, a table, or one that would not read
 
     @property
     def is_deprecated(self) -> bool:
@@ -24,6 +26,9 @@ class Node:
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "Node":
+        # .get for "interface": a core.json written before the key existed
+        # still reads, as a graph whose nodes say nothing about how they are called.
+        interface = data.get("interface")
         return cls(
             id=data["id"],
             name=data["name"],
@@ -33,6 +38,7 @@ class Node:
             deprecated_by=data["deprecatedBy"],
             file=data["file"],
             dependencies=list(data["dependencies"]),
+            interface=BlockInterface.from_json(interface) if interface is not None else None,
         )
 
     def to_json(self) -> dict[str, Any]:
@@ -45,4 +51,5 @@ class Node:
             "deprecatedBy": self.deprecated_by,
             "file": self.file,
             "dependencies": self.dependencies,
+            "interface": self.interface.to_json() if self.interface is not None else None,
         }

@@ -16,6 +16,7 @@ ReportType = Literal[
     "unknown-dependency",
     "system-dependency",
     "untracked-dependency",
+    "interface-unreadable",
 ]
 
 CURRENT: Status = "current"

@@ -15,6 +15,7 @@ class Report:
         name-mismatch                            ->  file + base + name
         version-mismatch                         ->  file + version + expected
         broken-deprecation                       ->  file + deprecated_by
+        interface-unreadable                     ->  file
     """
 
     level: Level
@@ -49,6 +50,13 @@ class Report:
     def broken_deprecation(cls, message: str, file: str, deprecated_by: str) -> "Report":
         return cls(level="error", type="broken-deprecation", message=message,
                    file=file, deprecated_by=deprecated_by)
+
+    @classmethod
+    def interface_unreadable(cls, message: str, file: str) -> "Report":
+        """An FB or FC whose call interface could not be read. Its node stays in
+        the graph with interface None: the graph is about dependencies, and a
+        block nobody can call from a template is still a block others depend on."""
+        return cls(level="warning", type="interface-unreadable", message=message, file=file)
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "Report":

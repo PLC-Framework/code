@@ -1,8 +1,0 @@
-{##
-.plct is a format for PLC components to be rendered with jinja2.
-#}
-
-Test document
-
-User: {{ user }}
-Message: {{ message }}

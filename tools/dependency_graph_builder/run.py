@@ -44,9 +44,10 @@ import re
 import shutil
 from pathlib import Path
 from collections import defaultdict
+from typing import Optional
 
 import xlsx
-from models import BlockMetadata, Edge, ExternalKind, Graph, Node, Report
+from models import BlockInterface, BlockMetadata, Edge, ExternalKind, Graph, Node, Report
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 VIEWER_TEMPLATE = SCRIPT_DIR / "core.html"
@@ -70,6 +71,99 @@ DEPRECATED_BY_RE = re.compile(r'"deprecatedBy"\s*:\s*"([^"]+)"')
 QUOTED_RE = re.compile(r'"([^"]+)"')
 VERSION_SUFFIX_RE = re.compile(r'^(?P<base>.+?)-v(?P<version>[0-9][\w.\-]*)$')
 
+# The call interface: the three sections a caller fills in, and an FC's return type.
+CALLABLE_RE = re.compile(r'^\s*(FUNCTION_BLOCK|FUNCTION)\s+"[^"]+"\s*(?::\s*(?P<returns>[^/]+?))?\s*(?://.*)?$',
+                         re.IGNORECASE)
+CALL_SECTIONS = {"VAR_INPUT": "input", "VAR_OUTPUT": "output", "VAR_IN_OUT": "inout"}
+SECTION_RE = re.compile(r'^\s*(VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR)\b', re.IGNORECASE)
+END_VAR_RE = re.compile(r'^\s*END_VAR\b', re.IGNORECASE)
+BEGIN_RE = re.compile(r'^\s*BEGIN\b', re.IGNORECASE)
+# name, then optional attributes ({InstructionName := 'DTL'; ...}), then the colon.
+MEMBER_RE = re.compile(r'^\s*(?P<name>"[^"]+"|[A-Za-z_]\w*)\s*(?:\{[^}]*\})?\s*:(?P<rest>.*)$')
+END_STRUCT_RE = re.compile(r'^\s*END_STRUCT\b', re.IGNORECASE)
+
+
+class InterfaceError(Exception):
+    """A call interface that does not read the way this parser expects."""
+
+
+def strip_comment(line: str) -> str:
+    """Everything before a // comment. A // inside a quoted name is not a comment,
+    but no name in a call interface carries one, and a string initial value would
+    be on a line the parser does not need to look inside."""
+    return line.split("//", 1)[0]
+
+
+def parse_interface(lines: list[str]) -> Optional[BlockInterface]:
+    """The call interface of an FB or FC, or None for anything else.
+
+    Only the top level of VAR_INPUT, VAR_OUTPUT and VAR_IN_OUT is read: a
+    parameter typed Struct (or Array of Struct) is one name to a caller, so its
+    members are stepped over by counting Struct against END_STRUCT. Every other
+    section - VAR, VAR_TEMP, VAR CONSTANT, VAR RETAIN - is walked past unread.
+
+    Raises InterfaceError on a line it cannot place, rather than guessing: a
+    parameter silently missing from the list would produce a call that looks
+    right and is not.
+    """
+    header = next((CALLABLE_RE.match(line) for line in lines[:5] if CALLABLE_RE.match(line)), None)
+    if header is None:
+        return None
+
+    interface = BlockInterface()
+    if header.group(1).upper() == "FUNCTION":
+        interface.returns = (header.group("returns") or "").strip() or None
+
+    section = None      # the key in CALL_SECTIONS while inside one of the three, else "other"
+    depth = 0           # Struct nesting inside the current section
+
+    for number, raw in enumerate(lines, start=1):
+        if BEGIN_RE.match(raw):
+            break
+
+        line = strip_comment(raw).strip()
+        if not line or line.startswith("{"):
+            continue
+
+        if section is None:
+            opened = SECTION_RE.match(line)
+            if opened:
+                keyword = opened.group(1).upper()
+                section = CALL_SECTIONS.get(keyword, "other")
+                depth = 0
+            continue
+
+        if END_VAR_RE.match(line):
+            if depth != 0:
+                raise InterfaceError(f"line {number}: END_VAR inside an unfinished Struct")
+            section = None
+            continue
+
+        if END_STRUCT_RE.match(line):
+            depth -= 1
+            if depth < 0:
+                raise InterfaceError(f"line {number}: END_STRUCT with no Struct open")
+            continue
+
+        member = MEMBER_RE.match(line)
+        if member is None:
+            if section == "other" or depth > 0:
+                continue        # not read, only walked past
+            raise InterfaceError(f"line {number}: not a declaration - {raw.strip()}")
+
+        if depth == 0 and section != "other":
+            getattr(interface, section).append(member.group("name").strip('"'))
+
+        # A declaration of type Struct, or Array[..] of Struct, opens members of its own;
+        # it is the only kind that ends without a semicolon.
+        if member.group("rest").strip().lower().endswith("struct"):
+            depth += 1
+
+    if section is not None:
+        raise InterfaceError("a VAR section is never closed")
+
+    return interface
+
 
 def parse_metadata(text: str) -> BlockMetadata:
     """Read the metadata object field by field instead of with json.loads, so
@@ -88,7 +182,8 @@ def parse_metadata(text: str) -> BlockMetadata:
     return meta
 
 
-def make_node(path: Path, name: str, meta: BlockMetadata) -> Node:
+def make_node(path: Path, name: str, meta: BlockMetadata,
+              interface: Optional[BlockInterface] = None) -> Node:
     """Assemble a node: the id and version come from the file name, the rest
     from the metadata the file declares."""
     stem = path.stem
@@ -102,11 +197,13 @@ def make_node(path: Path, name: str, meta: BlockMetadata) -> Node:
         deprecated_by=meta.deprecated_by,
         file=path.as_posix(),
         dependencies=meta.dependencies,
+        interface=interface,
     )
 
 
 def parse_source(path: Path):
-    """.scl/.udt: the symbol sits on the declaration line, the metadata on TITLE."""
+    """.scl/.udt: the symbol sits on the declaration line, the metadata on TITLE,
+    and an FB's or FC's call interface in its VAR sections."""
     try:
         lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
     except OSError:
@@ -123,7 +220,14 @@ def parse_source(path: Path):
 
     title = next((line for line in lines[:10] if "TITLE" in line), "")
     meta = parse_metadata(title)
-    return make_node(path, name, meta), meta
+
+    problem = None
+    try:
+        interface = parse_interface(lines)
+    except InterfaceError as unread:
+        interface, problem = None, str(unread)
+
+    return make_node(path, name, meta, interface), meta, problem
 
 
 def parse_workbook(path: Path):
@@ -152,11 +256,12 @@ def parse_workbook(path: Path):
         return None
 
     meta = parse_metadata(meta_text)
-    return make_node(path, name, meta), meta
+    return make_node(path, name, meta), meta, None
 
 
 def parse_file(path: Path):
-    """(Node, BlockMetadata) for a file that belongs in the graph, else None."""
+    """(Node, BlockMetadata, interface problem or None) for a file that belongs
+    in the graph, else None."""
     suffix = path.suffix.lower()
     if suffix in SOURCE_SUFFIXES:
         return parse_source(path)
@@ -216,8 +321,14 @@ def resolve(nodes: list[Node], by_stem, by_base, system_names, untracked_names):
     return edges, unresolved, ambiguous
 
 
-def build_reports(nodes: list[Node], ambiguous, unresolved, declared_versions) -> list[Report]:
+def build_reports(nodes: list[Node], ambiguous, unresolved, declared_versions,
+                  unreadable=()) -> list[Report]:
     reports: list[Report] = []
+
+    for n, problem in unreadable:
+        reports.append(Report.interface_unreadable(
+            f'"{n.id}": its call interface could not be read - {problem}', n.file,
+        ))
 
     for dep, users in sorted(ambiguous.items()):
         reports.append(Report.about_dependency(
@@ -280,12 +391,13 @@ def build_for_core(core_dir: Path) -> Graph:
     untracked_names = load_name_list(core_dir, "plc-untracked.json")
 
     parsed = [p for p in (parse_file(f) for f in files) if p]
-    nodes = [node for node, _ in parsed]
-    declared_versions = {node.id: meta.version for node, meta in parsed if meta.version}
+    nodes = [node for node, _, _ in parsed]
+    declared_versions = {node.id: meta.version for node, meta, _ in parsed if meta.version}
+    unreadable = [(node, problem) for node, _, problem in parsed if problem]
 
     by_stem, by_base = build_index(nodes)
     edges, unresolved, ambiguous = resolve(nodes, by_stem, by_base, system_names, untracked_names)
-    reports = build_reports(nodes, ambiguous, unresolved, declared_versions)
+    reports = build_reports(nodes, ambiguous, unresolved, declared_versions, unreadable)
 
     graph = Graph(generated_at=Graph.now(), nodes=nodes, edges=edges, reports=reports)
 
