@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T15:47:05+00:00",
+  "generatedAt": "2026-09-25T16:12:19+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -1452,52 +1452,6 @@
           "bit"
         ],
         "return": "Void"
-      }
-    },
-    {
-      "id": "linkedListAttributes",
-      "name": "linkedListAttributes",
-      "base": "linkedListAttributes",
-      "version": null,
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/adt/linked-list/linkedListAttributes.udt",
-      "dependencies": [],
-      "interface": null
-    },
-    {
-      "id": "linkedListMetadata",
-      "name": "linkedListMetadata",
-      "base": "linkedListMetadata",
-      "version": null,
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/adt/linked-list/linkedListMetadata.udt",
-      "dependencies": [],
-      "interface": null
-    },
-    {
-      "id": "_linkedList",
-      "name": "_linkedList",
-      "base": "_linkedList",
-      "version": null,
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/adt/linked-list/_linkedList.scl",
-      "dependencies": [],
-      "interface": {
-        "input": [
-          "method",
-          "index"
-        ],
-        "output": [],
-        "inout": [
-          "instance",
-          "metadata",
-          "data",
-          "buffer"
-        ],
-        "return": "Int"
       }
     },
     {
@@ -3636,45 +3590,6 @@
         "inout": [
           "command",
           "TO_axis"
-        ],
-        "return": null
-      }
-    },
-    {
-      "id": "_sinapos-v1.0",
-      "name": "_sinapos",
-      "base": "_sinapos",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/controller/motion-control/_sinapos-v1.0.scl",
-      "dependencies": [],
-      "interface": {
-        "input": [
-          "controlOn",
-          "emrgStopOk",
-          "enable",
-          "brakeTime",
-          "profile",
-          "ackn",
-          "config",
-          "pdio"
-        ],
-        "output": [
-          "driveEnabled",
-          "actualCommand",
-          "actualPosition",
-          "actualVelocity",
-          "isRunning",
-          "direction",
-          "lockout",
-          "isHomed",
-          "inPosition",
-          "error",
-          "warning"
-        ],
-        "inout": [
-          "command"
         ],
         "return": null
       }
