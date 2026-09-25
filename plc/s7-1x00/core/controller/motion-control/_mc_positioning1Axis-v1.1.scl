@@ -1,16 +1,22 @@
 ﻿FUNCTION_BLOCK "_mc_positioning1Axis"
-TITLE = {"version":"v2.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies" : ["mc_profile-v1.0", "TO_axisBasicData-v1.0", "TO_PositioningAxis", "MC_POWER", "MC_RESET", "MC_STOP", "MC_HALT", "MC_HOME",	"MC_MOVEJOG", "MC_MOVEVELOCITY", "MC_MOVEABSOLUTE", "MC_MOVERELATIVE", "MC_TORQUERANGE", "MC_TORQUELIMITING", "TON_TIME", "TOF_TIME"]}
+TITLE = {"version":"v1.1","author":"cyanezf","family":"core/controller/motion-control","status":"deprecated","deprecatedBy":"_mc_positioning1Axis-v2.0","dependencies":["TO_axisBasicData-v1.0", "TO_PositioningAxis", "MC_POWER", "MC_RESET", "MC_STOP", "MC_HALT", "MC_HOME",	"MC_MOVEJOG", "MC_MOVEVELOCITY", "MC_MOVEABSOLUTE", "MC_MOVERELATIVE", "MC_TORQUERANGE", "MC_TORQUELIMITING", "TON_TIME", "TOF_TIME"]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/motion-control'
+FAMILY : 'core/controller/motion-control'
 NAME : _mc_positioning1Axis
-VERSION : 2.0
+VERSION : 1.1
    VAR_INPUT 
       controlOn { ExternalWritable := 'False'} : Bool;   // IR: 1=Control On
       emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency stop ok
       enable { ExternalWritable := 'False'} : Bool;   // IR: 1=Enable drive
-      brakeTime { ExternalWritable := 'False'} : Time;   // IR: 0=No break; 1..Ns=Delay time to brake
-      profile { ExternalWritable := 'False'} : "mc_profile";   // IR: Profile
+      position { ExternalWritable := 'False'} : LReal;   // IR: Setpoint position
+      velocity { ExternalWritable := 'False'} : LReal;   // IR: Setpoint velocity
+      acceleration { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint acceleration
+      deceleration { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint deceleration
+      jerk { ExternalWritable := 'False'} : LReal := -1.0;   // IR: Setpoint jerk
+      torqueMode { ExternalWritable := 'False'} : Int := 0;   // IR: Torque mode, 0=Disabled; 10=Torque range; 20=Torque/force limiting; 21=Fixed stop limiting
+      torqueUpperLimit { ExternalWritable := 'False'} : LReal := 0.0;   // IR: Torque upper limit in mode 1, Torque limit in mode 2
+      torqueLowerLimit { ExternalWritable := 'False'} : LReal := 0.0;   // IR: Torque lower limit in mode 1
       isPositionControlled { ExternalWritable := 'False'} : Bool := 1;   // IR: 0=Not position-controlled, 1=Position-controlled
       homingMode { ExternalWritable := 'False'} : Int := #MC_HOME_MODE_5_ACTIVE_NO_POS;   // IR: Home mode (use STATIC homing.POSITION)
       ackn { ExternalWritable := 'False'} : Bool;   // IR: FP=Ackn.
@@ -27,8 +33,9 @@ VERSION : 2.0
       actualVelocity { ExternalWritable := 'False'} : LReal;   // OR: Current velocity (It's calculated, if it's not homed or not syncOk, this value must not be used)
       actualTorque { ExternalWritable := 'False'} : LReal;   // OR: Current torque (it's calculated, if it's not homed or not syncOk, this value must not be used)
       isRunning { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running
-      direction { ExternalWritable := 'False'} : Bool;   // OR: 0=Forward; 1=Backward
-      isHomed { ExternalWritable := 'False'} : Bool;   // OR: 1=All axis are homed (To see individual bits, addess to FB.axis2.homed, axis2.homed, axisV.homes
+      isRunningForward { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running forward
+      isRunningBackward { ExternalWritable := 'False'} : Bool;   // OR: 1=Axis is running backward
+      homed { ExternalWritable := 'False'} : Bool;   // OR: 1=All axis are homed (To see individual bits, addess to FB.axis2.homed, axis2.homed, axisV.homes
       inVelocity { ExternalWritable := 'False'} : Bool;   // OR: 1=MC_MOVEVELOCITY current velocity reached SP
       inClamping { ExternalWritable := 'False'} : Bool;   // OR: 1=Torque - some axis in clamping
       inLimitation { ExternalWritable := 'False'} : Bool;   // OR: 1=Torque - some axis in limitation
@@ -73,12 +80,10 @@ VERSION : 2.0
          command { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // SX: Previous command
          axis_absFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
          axis_relFp { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
-         brakeTof {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TOF_TIME;
       END_STRUCT;
    END_VAR
 
    VAR_TEMP 
-      on : Bool;
       enableDrive : Bool;
    END_VAR
 
@@ -128,7 +133,6 @@ VERSION : 2.0
       TORQUE_MODE_21_FIXED_STOP : Int := 21;
    END_VAR
 
-
 BEGIN
 (*--
 # Documentation
@@ -137,12 +141,10 @@ BEGIN
 
 | version | date | author | description |
 |:-------:|:----:|:------:|:------------|
-| v2.0 | 2026-06-17 | cyanezf | feat: Adapt SP inputs as profile,<br>feat: Add brake delay control |
 | v1.1 | 2026-03-25 | cyanezf | feat: Ackn of restart and homing status |
 | v1.0 | 2024-05-12 | cyanezf | First version |
-		
+  
 ## Description
-
 Motion control for 1 Axis positioning
 
 --*)
@@ -239,7 +241,7 @@ Motion control for 1 Axis positioning
 	
 	REGION All axis are homed
 	  
-	  #isHomed := #axis.status.to_bits.homingDone;
+	  #homed := #axis.status.to_bits.homingDone;
 	  
 	END_REGION
 	
@@ -257,12 +259,7 @@ Motion control for 1 Axis positioning
 	
 	REGION Enable drive
 	  
-	  #private.brakeTof(IN:=#command <> #CMD_0_NIL,
-	                    PT:=#brakeTime);
-	  
-	  #on := #enable AND (#private.brakeTof.Q OR #brakeTime <= t#0s);
-	  
-	  #enableDrive := #controlOn AND #emrgStopOk AND #on AND NOT #axis_absolute.Error;
+	  #enableDrive := #controlOn AND #emrgStopOk AND #enable AND NOT #axis_absolute.Error;
 	  
 	END_REGION
 	
@@ -360,8 +357,8 @@ Motion control for 1 Axis positioning
 	    #axis_stop(Axis := #TO_axis,
 	               Execute := #driveEnabled AND #command = #CMD_1_STOP,
 	               Mode := #MC_STOP_3_USE_DEC_AND_JERK,
-	               Deceleration := #profile.deceleration,
-	               Jerk := #profile.jerk);
+	               Deceleration := #deceleration,
+	               Jerk := #jerk);
 	    
 	    IF #axis_stop.Done THEN
 	      #actualCommand := #CMD_1_STOP;
@@ -378,8 +375,8 @@ Motion control for 1 Axis positioning
 	    #command = #CMD_2_HALT);
 	    
 	    #axis_halt(Axis := #TO_axis,
-	               Deceleration := #profile.deceleration,
-	               Jerk := #profile.jerk);
+	               Deceleration := #deceleration,
+	               Jerk := #jerk);
 	    
 	    // Clear command
 	    IF #command = #CMD_2_HALT AND (#axis_halt.Done OR #axis_halt.Error OR #axis_halt.CommandAborted) THEN
@@ -462,10 +459,10 @@ Motion control for 1 Axis positioning
 	    #axis_jog(Axis := #TO_axis,
 	              JogForward := #driveEnabled AND #command = #CMD_4_JOG_FWD,
 	              JogBackward := #driveEnabled AND #command = #CMD_5_JOG_BWD,
-	              Velocity := #profile.velocity,
-	              Acceleration := #profile.acceleration,
-	              Deceleration := #profile.deceleration,
-	              Jerk := #profile.jerk,
+	              Velocity := #velocity,
+	              Acceleration := #acceleration,
+	              Deceleration := #deceleration,
+	              Jerk := #jerk,
 	              PositionControlled := #isPositionControlled);
 	    
 	    IF #axis_jog.Busy THEN
@@ -483,10 +480,10 @@ Motion control for 1 Axis positioning
 	    
 	    #axis_velocity(Axis := #TO_axis,
 	                   Execute := #driveEnabled AND NOT #axis_velocity.Busy AND #command = #CMD_6_VELOCITY,
-	                   Velocity := #profile.velocity,
-	                   Acceleration := #profile.acceleration,
-	                   Deceleration := #profile.deceleration,
-	                   Jerk := #profile.jerk,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk,
 	                   Direction := #MC_DIRECTION_0_DYNAMIC,
 	                   Current := 0,
 	                   PositionControlled := #isPositionControlled);
@@ -504,15 +501,15 @@ Motion control for 1 Axis positioning
 	    
 	    #axis_relative(Axis := #TO_axis,
 	                   Execute := #driveEnabled AND NOT #axis_relative.Busy AND #command = #CMD_7_RELATIVE_POS,
-	                   Distance := #profile.position,
-	                   Velocity := #profile.velocity,
-	                   Acceleration := #profile.acceleration,
-	                   Deceleration := #profile.deceleration,
-	                   Jerk := #profile.jerk,
+	                   Distance := #position,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk,
 	                   BufferMode := 0);
 	    
 	    IF #axis_relative.Busy AND NOT #private.axis_relFp THEN
-	      #targetPosition := #axis.actualPosition + #profile.position;
+	      #targetPosition := #axis.actualPosition + #position;
 	    END_IF;
 	    #private.axis_relFp := #axis_relative.Busy;
 	    
@@ -529,14 +526,14 @@ Motion control for 1 Axis positioning
 	    
 	    #axis_absolute(Axis := #TO_axis,
 	                   Execute := #driveEnabled AND NOT #axis_absolute.Busy AND #command = #CMD_8_ABSOLUTE_POS,
-	                   Position := #profile.position,
-	                   Velocity := #profile.velocity,
-	                   Acceleration := #profile.acceleration,
-	                   Deceleration := #profile.deceleration,
-	                   Jerk := #profile.jerk);
+	                   Position := #position,
+	                   Velocity := #velocity,
+	                   Acceleration := #acceleration,
+	                   Deceleration := #deceleration,
+	                   Jerk := #jerk);
 	    
 	    IF #axis_absolute.Busy AND NOT #private.axis_absFp THEN
-	      #targetPosition := #profile.position;
+	      #targetPosition := #position;
 	    END_IF;
 	    #private.axis_absFp := #axis_absolute.Busy;
 	    
@@ -555,23 +552,23 @@ Motion control for 1 Axis positioning
 	  
 	  REGION Axis 1 - Range
 	    #axis_torqueRange(Axis := #TO_axis,
-	                      Enable := #profile.torqueMode = #TORQUE_MODE_10_RANGE,
-	                      UpperLimit := #profile.torqueUpperLimit,
-	                      LowerLimit := #profile.torqueLowerLimit);
+	                      Enable := #torqueMode = #TORQUE_MODE_10_RANGE,
+	                      UpperLimit := #torqueUpperLimit,
+	                      LowerLimit := #torqueLowerLimit);
 	    
 	  END_REGION
 	  
 	  REGION Axis 1 - Limiting
 	    
-	    IF #profile.torqueMode = #TORQUE_MODE_21_FIXED_STOP THEN
+	    IF #torqueMode = #TORQUE_MODE_21_FIXED_STOP THEN
 	      #axis_torqueLimiting.Mode := #MC_TORQUELIMITING_MODE_1_FIXED_STOP;
 	    ELSE
 	      #axis_torqueLimiting.Mode := #MC_TORQUELIMITING_MODE_0_FORCE;
 	    END_IF;
 	    
 	    #axis_torqueLimiting(Axis := #TO_axis,
-	                         Enable := #profile.torqueMode = #TORQUE_MODE_20_LIMITING OR #profile.torqueMode = #TORQUE_MODE_21_FIXED_STOP,
-	                         Limit := #profile.torqueUpperLimit,
+	                         Enable := #torqueMode = #TORQUE_MODE_20_LIMITING OR #torqueMode = #TORQUE_MODE_21_FIXED_STOP,
+	                         Limit := #torqueUpperLimit,
 	                         InClamping => #inClamping,
 	                         InLimitation => #inLimitation);
 	    
@@ -590,8 +587,8 @@ Motion control for 1 Axis positioning
 	  #actualTorque := #axis.actualTorque;
 	  
 	  #isRunning := #axis.status.isRunning;
-	  #direction := #axis.status.isRunningBackward;
-	  //#isRunningForward := #axis.status.isRunningForward;
+	  #isRunningBackward := #axis.status.isRunningBackward;
+	  #isRunningForward := #axis.status.isRunningForward;
 	  
 	  #private.command := #command;
 	  

@@ -1,8 +1,8 @@
 ﻿FUNCTION "_calculateAccelerationPulses" : LReal
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control/util","status":"current","deprecatedBy": null,"dependencies":[]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/control/util","status":"current","deprecatedBy": null,"dependencies":[]}
 { S7_Optimized_Access := 'TRUE' }
 AUTHOR : cyanezf
-FAMILY : 'core/motion-control/util'
+FAMILY : 'core/control/util'
 NAME : _calculateAccelerationPulses
 VERSION : 1.0
 

@@ -1,5 +1,5 @@
 ﻿TYPE "TO_axisBasicData"
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":["TO_positioningAxis_error-v1.0", "TO_positioningAxis_warning-v1.0", "TO_positioningAxis_status-v1.1"]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/motion-control","status":"current","deprecatedBy": null,"dependencies":["TO_positioningAxis_error-v1.0", "TO_positioningAxis_warning-v1.0", "TO_positioningAxis_status-v1.1"]}
 
 //(*--
 //# Documentation

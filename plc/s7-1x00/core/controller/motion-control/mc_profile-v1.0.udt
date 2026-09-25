@@ -1,5 +1,5 @@
 ﻿TYPE "mc_profile"
-TITLE = {"version":"v1.0","author":"cyanezf","family":"core/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/controller/motion-control","status":"current","deprecatedBy": null,"dependencies":[]}
 
 //(*--
 //# Documentation
