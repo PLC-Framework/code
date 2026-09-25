@@ -724,12 +724,16 @@
     return RAW.reports.filter(function (r) { return list.indexOf(r.type) !== -1; }).length;
   }
 
+  // What a source says about itself disagreeing - its name, its TITLE, its header.
+  var COHERENCE = ["missing-version", "missing-title", "version-mismatch", "header-mismatch"];
+
   var statRow = document.getElementById("stat-row");
   [
     { n: RAW.nodes.length, l: "Blocks" },
     { n: RAW.edges.filter(function (e) { return e.resolved; }).length, l: "Links" },
     { n: reportCount(["ambiguous-dependency", "broken-deprecation"]), l: "Need a pin", cls: "critical", reportType: ["ambiguous-dependency", "broken-deprecation"] },
-    { n: reportCount(["name-mismatch", "version-mismatch"]), l: "Mismatches", cls: "warn", reportType: ["name-mismatch", "version-mismatch"] },
+    { n: reportCount(COHERENCE), l: "Inconsistent", cls: "critical", reportType: COHERENCE },
+    { n: reportCount("name-mismatch"), l: "Mismatches", cls: "warn", reportType: "name-mismatch" },
     { n: reportCount("unknown-dependency"), l: "Uncataloged", cls: "warn", reportType: "unknown-dependency" },
     { n: deprecatedCount, l: "Legacy", cls: "warn" },
     { n: reportCount(["system-dependency", "untracked-dependency"]), l: "External", cls: "info", reportType: ["system-dependency", "untracked-dependency"] }
@@ -1156,6 +1160,11 @@
   var REPORT_TYPE_LABEL = {
     "ambiguous-dependency": "Needs a version pin",
     "name-mismatch": "Name doesn't match file",
+    "version-mismatch": "TITLE version doesn't match file",
+    "missing-version": "No version in the file name",
+    "missing-title": "No TITLE metadata",
+    "header-mismatch": "Header doesn't match",
+    "interface-unreadable": "Interface not readable",
     "broken-deprecation": "Broken deprecatedBy",
     "unknown-dependency": "Uncataloged dependencies",
     "system-dependency": "System dependencies",

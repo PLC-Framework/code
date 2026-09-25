@@ -1,6 +1,6 @@
 ﻿TYPE "mlg2proPdi"
 TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":[]}
-VERSION : 0.1
+
 //(*--
 //# Documentation
 //## Log

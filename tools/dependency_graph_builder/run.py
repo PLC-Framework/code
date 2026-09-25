@@ -12,9 +12,17 @@ Three kinds of file take part, each carrying the same metadata object:
                   (constant tables exported from TIA; workbooks whose
                   name does not start with "E" are ignored)
 
-The version declared in that metadata is checked against the -vX.Y
-suffix of the file name, which is what the graph resolves on; a
-disagreement is reported as "version-mismatch" (warning).
+What a source says about itself has to agree, and every disagreement
+is an error. The -vX.Y suffix of the file name is the reference for the
+version, being what the graph resolves on: the TITLE's "version" must
+be "vX.Y" and, in an .scl, the native VERSION attribute "X.Y". An .scl's
+native AUTHOR and FAMILY must also equal the TITLE's "author" and
+"family". A .udt is held to its name and TITLE only; a constant table,
+to its name and the version in its metadata.
+
+core.json is written whatever it found, so every finding can be read
+there; the console names each error, and the script exits with 1 when
+there is any.
 
 The shape of that metadata and of the graph written out lives in
 the models package — this script only fills those objects in and
@@ -70,6 +78,14 @@ STATUS_RE = re.compile(r'"status"\s*:\s*"([^"]+)"')
 DEPRECATED_BY_RE = re.compile(r'"deprecatedBy"\s*:\s*"([^"]+)"')
 QUOTED_RE = re.compile(r'"([^"]+)"')
 VERSION_SUFFIX_RE = re.compile(r'^(?P<base>.+?)-v(?P<version>[0-9][\w.\-]*)$')
+
+# An .scl's native header, between the declaration and its first VAR section:
+#     AUTHOR : cyanezf
+#     FAMILY : 'core/adt/queue'
+#     VERSION : 3.0
+HEADER_RE = re.compile(r'^\s*(?P<key>AUTHOR|FAMILY|VERSION)\s*:\s*(?P<value>.*?)\s*;?\s*$', re.IGNORECASE)
+HEADER_END_RE = re.compile(r'^\s*(VAR\b|VAR_|BEGIN\b|STRUCT\b)', re.IGNORECASE)
+HEADER_KEYS = ("VERSION", "AUTHOR", "FAMILY")
 
 # The call interface: the three sections a caller fills in, and an FC's return type.
 CALLABLE_RE = re.compile(r'^\s*(FUNCTION_BLOCK|FUNCTION)\s+"[^"]+"\s*(?::\s*(?P<returns>[^/]+?))?\s*(?://.*)?$',
@@ -182,6 +198,88 @@ def parse_metadata(text: str) -> BlockMetadata:
     return meta
 
 
+def parse_header(lines: list[str]) -> dict[str, str]:
+    """An .scl's native AUTHOR, FAMILY and VERSION, keyed in upper case, with the
+    single quotes TIA writes around a FAMILY taken off. Stops at the first VAR
+    section, BEGIN or STRUCT, so a parameter called "version" is never read as
+    the block's own. The first line of each wins."""
+    header: dict[str, str] = {}
+    for raw in lines:
+        line = strip_comment(raw).strip()
+        if HEADER_END_RE.match(line):
+            break
+        m = HEADER_RE.match(line)
+        if m:
+            header.setdefault(m.group("key").upper(), m.group("value").strip("'"))
+    return header
+
+
+def said(value: Optional[str]) -> str:
+    return f'"{value}"' if value is not None else "nothing"
+
+
+def check_source(node: Node, meta: BlockMetadata, has_title: bool,
+                 header: Optional[dict[str, str]]) -> list[Report]:
+    """What an .scl or .udt says about itself, held together.
+
+    The version is written up to three times - the file name, the TITLE and an
+    .scl's VERSION attribute - and the name is the reference, being what the
+    graph resolves on: each of the others is compared with it rather than with
+    each other, so the report names the one that is wrong. AUTHOR and FAMILY
+    exist in two places only, and the TITLE is the reference. header is None
+    for a .udt, whose TITLE is the only metadata it is held to.
+
+    BlockMetadata keeps a key the TITLE does not declare as "", which is taken
+    here as absent: the scan never reads an empty value.
+    """
+    findings: list[Report] = []
+    who = f'"{node.id}"'
+    version, author, family = meta.version or None, meta.author or None, meta.family or None
+
+    if node.version is None:
+        findings.append(Report.missing_version(
+            f'{who}: the file name carries no -vX.Y version.', node.file))
+
+    if not has_title:
+        findings.append(Report.missing_title(
+            f'{who}: there is no TITLE metadata.', node.file))
+    elif version is None:
+        findings.append(Report.missing_title(
+            f'{who}: its TITLE declares no "version".', node.file))
+    elif node.version is not None and version != f"v{node.version}":
+        findings.append(Report.version_mismatch(
+            f'{who}: the TITLE says version "{version}", the file name "v{node.version}".',
+            node.file, version, f"v{node.version}"))
+
+    if header is None:
+        return findings
+
+    expected = {
+        "VERSION": (node.version, "the file name", node.version is not None),
+        "AUTHOR": (author, "the TITLE", has_title),
+        "FAMILY": (family, "the TITLE", has_title),
+    }
+    for key in HEADER_KEYS:
+        reference, source, checkable = expected[key]
+        found = header.get(key)
+        if checkable and found != reference:
+            findings.append(Report.header_mismatch(
+                f'{who}: the header says {key} {said(found)}, {source} {said(reference)}.',
+                node.file, key, found, reference))
+
+    return findings
+
+
+def check_workbook(node: Node, meta: BlockMetadata) -> list[Report]:
+    """A constant table keeps the one check it always had: the version in its
+    metadata against its file name, when it has both."""
+    if meta.version and node.version and meta.version != f"v{node.version}":
+        return [Report.version_mismatch(
+            f'"{node.id}": the metadata says version "{meta.version}", the file name "v{node.version}".',
+            node.file, meta.version, f"v{node.version}")]
+    return []
+
+
 def make_node(path: Path, name: str, meta: BlockMetadata,
               interface: Optional[BlockInterface] = None) -> Node:
     """Assemble a node: the id and version come from the file name, the rest
@@ -203,7 +301,8 @@ def make_node(path: Path, name: str, meta: BlockMetadata,
 
 def parse_source(path: Path):
     """.scl/.udt: the symbol sits on the declaration line, the metadata on TITLE,
-    and an FB's or FC's call interface in its VAR sections."""
+    an .scl's native AUTHOR, FAMILY and VERSION below it, and an FB's or FC's
+    call interface in its VAR sections."""
     try:
         lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
     except OSError:
@@ -227,7 +326,14 @@ def parse_source(path: Path):
     except InterfaceError as unread:
         interface, problem = None, str(unread)
 
-    return make_node(path, name, meta, interface), meta, problem
+    node = make_node(path, name, meta, interface)
+    header = parse_header(lines) if path.suffix.lower() == ".scl" else None
+    findings = check_source(node, meta, "{" in title, header)
+    if problem:
+        findings.append(Report.interface_unreadable(
+            f'"{node.id}": its call interface could not be read - {problem}', node.file))
+
+    return node, meta, findings
 
 
 def parse_workbook(path: Path):
@@ -256,12 +362,13 @@ def parse_workbook(path: Path):
         return None
 
     meta = parse_metadata(meta_text)
-    return make_node(path, name, meta), meta, None
+    node = make_node(path, name, meta)
+    return node, meta, check_workbook(node, meta)
 
 
 def parse_file(path: Path):
-    """(Node, BlockMetadata, interface problem or None) for a file that belongs
-    in the graph, else None."""
+    """(Node, BlockMetadata, the file's own findings) for a file that belongs in
+    the graph, else None."""
     suffix = path.suffix.lower()
     if suffix in SOURCE_SUFFIXES:
         return parse_source(path)
@@ -321,14 +428,11 @@ def resolve(nodes: list[Node], by_stem, by_base, system_names, untracked_names):
     return edges, unresolved, ambiguous
 
 
-def build_reports(nodes: list[Node], ambiguous, unresolved, declared_versions,
-                  unreadable=()) -> list[Report]:
-    reports: list[Report] = []
-
-    for n, problem in unreadable:
-        reports.append(Report.interface_unreadable(
-            f'"{n.id}": its call interface could not be read - {problem}', n.file,
-        ))
+def build_reports(nodes: list[Node], ambiguous, unresolved, findings=()) -> list[Report]:
+    """The graph's reports: each file's own findings first, ordered by file so
+    that two runs over one folder write the same list, then what only the whole
+    graph can say."""
+    reports: list[Report] = sorted(findings, key=lambda r: r.file or "")
 
     for dep, users in sorted(ambiguous.items()):
         reports.append(Report.about_dependency(
@@ -343,15 +447,6 @@ def build_reports(nodes: list[Node], ambiguous, unresolved, declared_versions,
             f'File name "{n.base}" does not match declared TIA symbol "{n.name}".',
             n.file, n.base, n.name,
         ))
-
-    for n in nodes:
-        declared = declared_versions.get(n.id)
-        if declared and n.version and declared != f"v{n.version}":
-            reports.append(Report.version_mismatch(
-                f'"{n.id}" declares version "{declared}" in its metadata, '
-                f'but the file name says "v{n.version}".',
-                n.file, declared, f"v{n.version}",
-            ))
 
     all_ids = {x.id for x in nodes}
     for n in nodes:
@@ -392,12 +487,11 @@ def build_for_core(core_dir: Path) -> Graph:
 
     parsed = [p for p in (parse_file(f) for f in files) if p]
     nodes = [node for node, _, _ in parsed]
-    declared_versions = {node.id: meta.version for node, meta, _ in parsed if meta.version}
-    unreadable = [(node, problem) for node, _, problem in parsed if problem]
+    findings = [report for _, _, found in parsed for report in found]
 
     by_stem, by_base = build_index(nodes)
     edges, unresolved, ambiguous = resolve(nodes, by_stem, by_base, system_names, untracked_names)
-    reports = build_reports(nodes, ambiguous, unresolved, declared_versions, unreadable)
+    reports = build_reports(nodes, ambiguous, unresolved, findings)
 
     graph = Graph(generated_at=Graph.now(), nodes=nodes, edges=edges, reports=reports)
 
@@ -408,6 +502,22 @@ def build_for_core(core_dir: Path) -> Graph:
         shutil.copyfile(VIEWER_TEMPLATE, core_dir / "core.html")
 
     return graph
+
+
+def plural(count: int, word: str) -> str:
+    return f"{count} {word}" + ("" if count == 1 else "s")
+
+
+def summarise(core_dir: Path, graph: Graph) -> int:
+    """One line per family, then every error by name - the reports array holds the
+    rest. Returns how many errors there were."""
+    errors = [r for r in graph.reports if r.level == "error"]
+    warnings = sum(1 for r in graph.reports if r.level == "warning")
+    print(f"{core_dir.as_posix()}: {plural(len(graph.nodes), 'node')}, "
+          f"{plural(len(errors), 'error')}, {plural(warnings, 'warning')}")
+    for r in errors:
+        print(f"  error  {r.type}  {r.message}")
+    return len(errors)
 
 
 def main():
@@ -422,9 +532,10 @@ def main():
     if not core_dirs:
         raise SystemExit(f'No "core" folder found under {root}')
 
-    for core_dir in core_dirs:
-        build_for_core(core_dir)
+    errors = sum(summarise(core_dir, build_for_core(core_dir)) for core_dir in core_dirs)
     print("Done")
+    if errors:
+        raise SystemExit(1)
 
 # To execute:
 # python tools\dependency_graph_builder\run.py --root plc\s7-1x00\core
