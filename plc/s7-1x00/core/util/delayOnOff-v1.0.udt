@@ -1,0 +1,21 @@
+﻿TYPE "delayOnOff"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/util","status":"current","deprecatedBy": null,"dependencies":["TON_TIME","TOF_TIME"]}
+
+//(*--
+//# Documentation
+//## Log
+//| version | date | author | description |
+//|:-------:|:----:|:------:|:------------|
+//| v1.0 | 2026-09-30 | cyanezf | First version |
+//
+//## Description
+//TON, TOF structure for `_delayOnOff` function.
+//--*)
+
+   STRUCT
+      on {InstructionName := 'TON_TIME'; LibVersion := '1.0'; S7_SetPoint := 'False'} : TON_TIME;   // On timer (TON)
+      off {InstructionName := 'TOF_TIME'; LibVersion := '1.0'; S7_SetPoint := 'False'} : TOF_TIME;   // Off timer (TOF)
+   END_STRUCT;
+
+END_TYPE
+
