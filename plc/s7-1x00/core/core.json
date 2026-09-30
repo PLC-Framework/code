@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T16:12:19+00:00",
+  "generatedAt": "2026-09-30T10:16:23+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -1390,6 +1390,46 @@
           "tmp_loadFactory"
         ],
         "return": null
+      }
+    },
+    {
+      "id": "delayOnOff-v1.0",
+      "name": "delayOnOff",
+      "base": "delayOnOff",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/util/delayOnOff-v1.0.udt",
+      "dependencies": [
+        "TON_TIME",
+        "TOF_TIME"
+      ],
+      "interface": null
+    },
+    {
+      "id": "_delayOnOff-v1.0",
+      "name": "_delayOnOff",
+      "base": "_delayOnOff",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/util/_delayOnOff-v1.0.scl",
+      "dependencies": [
+        "TON_TIME",
+        "TOF_TIME",
+        "delayOnOff-v1.0"
+      ],
+      "interface": {
+        "input": [
+          "in",
+          "delayOn",
+          "delayOff"
+        ],
+        "output": [],
+        "inout": [
+          "delay"
+        ],
+        "return": "Bool"
       }
     },
     {
@@ -6334,6 +6374,44 @@
       "kind": "system"
     },
     {
+      "from": "delayOnOff-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "delayOnOff-v1.0",
+      "to": "TOF_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_delayOnOff-v1.0",
+      "to": "TON_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_delayOnOff-v1.0",
+      "to": "TOF_TIME",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "system"
+    },
+    {
+      "from": "_delayOnOff-v1.0",
+      "to": "delayOnOff-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
       "from": "_priorityQueue-v1.0",
       "to": "priorityQueueInstanceAttributes-v1.0",
       "resolved": true,
@@ -8488,6 +8566,8 @@
       "message": "\"TOF_TIME\" is a Siemens/TIA system block (listed in plc-system.json).",
       "dependency": "TOF_TIME",
       "usedBy": [
+        "delayOnOff-v1.0",
+        "_delayOnOff-v1.0",
         "_standBy-v2.0",
         "_mc_positioning1Axis-v1.0",
         "_mc_positioning1Axis-v1.1",
@@ -8531,6 +8611,8 @@
         "_background-v3.1",
         "_background-v4.0",
         "_background-v4.1",
+        "delayOnOff-v1.0",
+        "_delayOnOff-v1.0",
         "_plcLogSender-v1.0",
         "_configNetworkAdapter-v1.2",
         "_configNetworkAdapter-v2.0",
