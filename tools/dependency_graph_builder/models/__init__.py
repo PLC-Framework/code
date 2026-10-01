@@ -11,7 +11,8 @@ One class per module:
 
     common.py           the closed value sets shared by the rest
     block_metadata.py   BlockMetadata — the TITLE object inside a source file
-    interface.py        BlockInterface — how an FB or FC is called: parameter names per section
+    interface.py        BlockInterface — how an FB or FC is called: its parameters per section
+    parameter.py        Parameter     — one of them: a name and its type as the source declares it
     node.py             Node          — one .scl/.udt file in the graph
     edge.py             Edge          — one declared dependency
     report.py           Report        — one diagnostic
@@ -22,11 +23,12 @@ Two spellings of the same version coexist, on purpose:
     Node.version            "1.0"   — parsed off the file name, without it
 """
 from .block_metadata import BlockMetadata
-from .common import CURRENT, DEPRECATED, ExternalKind, Level, ReportType, Status
+from .common import CURRENT, DEPRECATED, ExternalKind, Kind, Level, ReportType, Status
 from .edge import Edge
 from .graph import Graph
 from .interface import BlockInterface
 from .node import Node
+from .parameter import Parameter
 from .report import Report
 
 __all__ = [
@@ -37,8 +39,10 @@ __all__ = [
     "Edge",
     "ExternalKind",
     "Graph",
+    "Kind",
     "Level",
     "Node",
+    "Parameter",
     "Report",
     "ReportType",
     "Status",

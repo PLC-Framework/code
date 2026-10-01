@@ -132,6 +132,7 @@ Done
 | :------------- | :------------------------------------------------------------------------------------ |
 | `id`           | File name without extension (e.g. `_priorityQueue-v1.0`).                             |
 | `name`         | TIA symbol: declared on the first line (`FUNCTION "_priorityQueue"` → `_priorityQueue`), or the `Name` cell for an `E*.xlsx`. |
+| `kind`         | What the node is, from its declaration: `"FB"` (`FUNCTION_BLOCK`), `"FC"` (`FUNCTION`), `"OB"` (`ORGANIZATION_BLOCK`), `"DB"` (`DATA_BLOCK`), `"PlcStruct"` (`TYPE`), or `"PlcTagTable"` for an `E*.xlsx`. The TIA Portal Add-Ins' own words for an object's kind. Not to be confused with an edge's `kind`, which says what an unresolved dependency is. |
 | `base`         | `id` with the `-vX.Y` suffix stripped. Used to resolve unversioned dependency references. |
 | `version`      | Version extracted from the file name, **without** the leading `v` (`"1.0"`), or `null` if it has no `-vX.Y` suffix. |
 | `status`       | `"current"` or `"deprecated"`, from `TITLE` (defaults to `"current"`).                |
@@ -143,17 +144,28 @@ Done
 ### Interface fields
 
 ```json
-"interface": { "input": ["method"], "output": [], "inout": ["instance", "data", "buffer"], "return": "Int" }
+"interface": {
+  "input":  [ { "name": "method", "type": "Int" } ],
+  "output": [],
+  "inout":  [ { "name": "instance", "type": "\"queueInstanceAttributes\"" },
+              { "name": "data",     "type": "Variant" },
+              { "name": "buffer",   "type": "Variant" } ],
+  "return": "Int"
+}
 ```
 
 | Field    | Description                                                                                          |
 | :------- | :------------------------------------------------------------------------------------------------------|
-| `input`  | Names in `VAR_INPUT`, in the order the block declares them.                                           |
-| `output` | Names in `VAR_OUTPUT`, in declaration order.                                                          |
-| `inout`  | Names in `VAR_IN_OUT`, in declaration order.                                                          |
+| `input`  | The parameters in `VAR_INPUT`, in the order the block declares them.                                  |
+| `output` | The parameters in `VAR_OUTPUT`, in declaration order.                                                 |
+| `inout`  | The parameters in `VAR_IN_OUT`, in declaration order.                                                 |
 | `return` | An FC's return type as written on its first line (`Int`, `Void`), or `null` for an FB.                |
 
-**Names only**: writing a call needs a parameter's name and its section — `:=` for an input or an in-out, `=>` for an output — and TIA takes each parameter's type from the block being called. Only the top level is listed: a parameter declared `Struct` (or `Array[..] of Struct`) is one name to a caller, and its members are stepped over. Attributes after a name (`{InstructionName := 'DTL'; ...}`) are dropped; `VAR`, `VAR_TEMP` and `VAR CONSTANT` are not read at all.
+Each parameter is a `name` and a `type`. **The type is written as the source declares it**, after the colon and without an initial value or the closing semicolon — `Bool`, `Time`, `Array[0..9] of Byte`, and a PLC data type in its quotes, `"queueInstanceAttributes"`. That is TIA's own spelling, and the one a call in SimaticML writes in its `<Parameter Type="...">`.
+
+**Types were added on 2026-09-30, and the reason was measured.** The first version listed names only, on the reasoning that TIA takes a parameter's type from the block being called; on the VM, a LAD call whose `<Parameter>` has no `Type` is refused on import. A template that only names a core function has to write the whole call out of this. A `core.json` written before then lists names alone, and a reader should take each as a parameter whose type is not known.
+
+Only the top level is listed: a parameter declared `Struct` (or `Array[..] of Struct`) is one parameter to a caller, typed `Struct`, and its members are stepped over. Attributes after a name (`{InstructionName := 'DTL'; ...}`) are dropped; `VAR`, `VAR_TEMP` and `VAR CONSTANT` are not read at all.
 
 ### Edge fields
 
@@ -217,6 +229,7 @@ The [`models/`](models/) package is the definition of this contract, and what to
 | [`common.py`](models/common.py)                 | —                 | The closed value sets shared by the rest.    |
 | [`block_metadata.py`](models/block_metadata.py) | `BlockMetadata`   | The metadata object a block declares.        |
 | [`interface.py`](models/interface.py)           | `BlockInterface`  | How an FB or FC is called.                   |
+| [`parameter.py`](models/parameter.py)           | `Parameter`       | One of its parameters: a name and a type.    |
 | [`node.py`](models/node.py)                     | `Node`            | One block file in the graph.                 |
 | [`edge.py`](models/edge.py)                     | `Edge`            | One declared dependency.                     |
 | [`graph.py`](models/graph.py)                   | `Graph`           | The root object of `core.json`.              |
@@ -235,4 +248,4 @@ graph = Graph.from_json(json.load(open("plc/s7-1x00/core/core.json", encoding="u
 broken = [r for r in graph.reports if r.level == "error"]
 ```
 
-Consumers written in another language should mirror this package: every key listed in the tables above is always present except `version`, `deprecatedBy` and `interface` on a node, which are nullable — `interface` is also absent from a `core.json` written before it existed, and a reader should take that as null — and the per-shape keys of `Edge` and `Report`, which are absent rather than null when they don't apply.
+Consumers written in another language should mirror this package: every key listed in the tables above is always present except `version`, `deprecatedBy` and `interface` on a node, which are nullable, and the per-shape keys of `Edge` and `Report`, which are absent rather than null when they don't apply. **An older `core.json` is still worth reading**, and three things in it differ: `kind` is absent (2026-09-30), `interface` is absent (2026-09-25), and a parameter is a bare name rather than `{name, type}` (2026-09-30). A reader should take the first two as null and the third as a parameter whose type is not known — which is what `Graph.from_json` does.

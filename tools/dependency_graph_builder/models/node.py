@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from .common import DEPRECATED, Status
+from .common import DEPRECATED, Kind, Status
 from .interface import BlockInterface
 
 
@@ -12,6 +12,7 @@ class Node:
 
     id: str                                 # file name without extension, unique within a family
     name: str                               # TIA symbol declared on the first line
+    kind: Optional[Kind]                    # FB, FC, OB, DB, PlcStruct or PlcTagTable; None only when read from an older core.json
     base: str                               # id without the -vX.Y suffix; unversioned deps resolve against this
     version: Optional[str]                  # "1.0", no leading "v"; None when the name has no suffix
     status: Status                          # verbatim from TITLE, "current" when omitted
@@ -26,12 +27,13 @@ class Node:
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "Node":
-        # .get for "interface": a core.json written before the key existed
-        # still reads, as a graph whose nodes say nothing about how they are called.
+        # .get for "kind" and "interface": a core.json written before either key
+        # existed still reads, as a graph whose nodes say nothing about them.
         interface = data.get("interface")
         return cls(
             id=data["id"],
             name=data["name"],
+            kind=data.get("kind"),
             base=data["base"],
             version=data["version"],
             status=data["status"],
@@ -45,6 +47,7 @@ class Node:
         return {
             "id": self.id,
             "name": self.name,
+            "kind": self.kind,
             "base": self.base,
             "version": self.version,
             "status": self.status,

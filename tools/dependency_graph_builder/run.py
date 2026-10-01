@@ -55,7 +55,7 @@ from collections import defaultdict
 from typing import Optional
 
 import xlsx
-from models import BlockInterface, BlockMetadata, Edge, ExternalKind, Graph, Node, Report
+from models import BlockInterface, BlockMetadata, Edge, ExternalKind, Graph, Kind, Node, Parameter, Report
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 VIEWER_TEMPLATE = SCRIPT_DIR / "core.html"
@@ -70,6 +70,15 @@ NAME_RE = re.compile(
     r'^\s*(FUNCTION_BLOCK|FUNCTION|TYPE|DATA_BLOCK|ORGANIZATION_BLOCK)\s+"([^"]+)"',
     re.IGNORECASE,
 )
+# What each declaration makes a node, in the TIA Portal Add-Ins' own words for a kind.
+KIND_BY_DECLARATION: dict[str, Kind] = {
+    "FUNCTION_BLOCK": "FB",
+    "FUNCTION": "FC",
+    "ORGANIZATION_BLOCK": "OB",
+    "DATA_BLOCK": "DB",
+    "TYPE": "PlcStruct",
+}
+WORKBOOK_KIND: Kind = "PlcTagTable"
 DEP_ARRAY_RE = re.compile(r'"dependencies"\s*:\s*\[(.*?)\]', re.DOTALL)
 VERSION_RE = re.compile(r'"version"\s*:\s*"([^"]+)"')
 AUTHOR_RE = re.compile(r'"author"\s*:\s*"([^"]+)"')
@@ -110,13 +119,22 @@ def strip_comment(line: str) -> str:
     return line.split("//", 1)[0]
 
 
+def declared_type(rest: str) -> str:
+    """The type of a declaration, from what follows its colon: without the initial
+    value and without the closing semicolon - "Bool", "Time", "Array[0..9] of Byte",
+    '"delayOnOff"' in its quotes, "Struct". TIA's own spelling, which is what a
+    call in SimaticML writes in its <Parameter Type="...">."""
+    return rest.split(":=", 1)[0].strip().rstrip(";").strip()
+
+
 def parse_interface(lines: list[str]) -> Optional[BlockInterface]:
     """The call interface of an FB or FC, or None for anything else.
 
     Only the top level of VAR_INPUT, VAR_OUTPUT and VAR_IN_OUT is read: a
-    parameter typed Struct (or Array of Struct) is one name to a caller, so its
-    members are stepped over by counting Struct against END_STRUCT. Every other
-    section - VAR, VAR_TEMP, VAR CONSTANT, VAR RETAIN - is walked past unread.
+    parameter typed Struct (or Array of Struct) is one parameter to a caller, so
+    its members are stepped over by counting Struct against END_STRUCT. Every
+    other section - VAR, VAR_TEMP, VAR CONSTANT, VAR RETAIN - is walked past unread.
+    Each parameter keeps its declared type, which a call cannot be written without.
 
     Raises InterfaceError on a line it cannot place, rather than guessing: a
     parameter silently missing from the list would produce a call that looks
@@ -168,7 +186,10 @@ def parse_interface(lines: list[str]) -> Optional[BlockInterface]:
             raise InterfaceError(f"line {number}: not a declaration - {raw.strip()}")
 
         if depth == 0 and section != "other":
-            getattr(interface, section).append(member.group("name").strip('"'))
+            getattr(interface, section).append(Parameter(
+                name=member.group("name").strip('"'),
+                type=declared_type(member.group("rest")),
+            ))
 
         # A declaration of type Struct, or Array[..] of Struct, opens members of its own;
         # it is the only kind that ends without a semicolon.
@@ -280,15 +301,16 @@ def check_workbook(node: Node, meta: BlockMetadata) -> list[Report]:
     return []
 
 
-def make_node(path: Path, name: str, meta: BlockMetadata,
+def make_node(path: Path, name: str, kind: Kind, meta: BlockMetadata,
               interface: Optional[BlockInterface] = None) -> Node:
-    """Assemble a node: the id and version come from the file name, the rest
-    from the metadata the file declares."""
+    """Assemble a node: the id and version come from the file name, the kind from
+    its declaration, the rest from the metadata the file declares."""
     stem = path.stem
     ver_match = VERSION_SUFFIX_RE.match(stem)
     return Node(
         id=stem,
         name=name,
+        kind=kind,
         base=ver_match.group("base") if ver_match else stem,
         version=ver_match.group("version") if ver_match else None,
         status=meta.status,
@@ -308,11 +330,11 @@ def parse_source(path: Path):
     except OSError:
         return None
 
-    name = None
+    name, kind = None, None
     for line in lines[:5]:
         m = NAME_RE.match(line)
         if m:
-            name = m.group(2)
+            name, kind = m.group(2), KIND_BY_DECLARATION[m.group(1).upper()]
             break
     if name is None:
         return None
@@ -326,7 +348,7 @@ def parse_source(path: Path):
     except InterfaceError as unread:
         interface, problem = None, str(unread)
 
-    node = make_node(path, name, meta, interface)
+    node = make_node(path, name, kind, meta, interface)
     header = parse_header(lines) if path.suffix.lower() == ".scl" else None
     findings = check_source(node, meta, "{" in title, header)
     if problem:
@@ -362,7 +384,7 @@ def parse_workbook(path: Path):
         return None
 
     meta = parse_metadata(meta_text)
-    node = make_node(path, name, meta)
+    node = make_node(path, name, WORKBOOK_KIND, meta)
     return node, meta, check_workbook(node, meta)
 
 
