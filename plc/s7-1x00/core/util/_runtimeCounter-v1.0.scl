@@ -1,0 +1,73 @@
+﻿FUNCTION_BLOCK "_runtimeCounter"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/util","status":"current","deprecatedBy":null,"dependencies":[]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/util'
+NAME : _runtimeCounter
+VERSION : 1.0
+
+   VAR_INPUT 
+      isRunning { ExternalWritable := 'False'} : Bool;   // IR: 1=Is running
+      reset { ExternalWritable := 'False'} : Bool;   // IR: 1=Reset runtime
+      limit { ExternalWritable := 'False'} : UDInt := 1000;   // IR: limit hours to set limit reached
+   END_VAR
+
+   VAR_OUTPUT 
+      limitReached { ExternalWritable := 'False'} : Bool;   // OR: 1=hours >= limit
+   END_VAR
+   VAR_OUTPUT RETAIN
+      hours { ExternalWritable := 'False'} : UDInt;   // OR: Runtime hours
+   END_VAR
+
+   VAR_IN_OUT 
+      cycleTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // IOX: Cycle time
+   END_VAR
+
+   VAR RETAIN
+      private { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // SX: Private statuc variables
+         hour { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;
+      END_STRUCT;
+   END_VAR
+
+   VAR CONSTANT 
+      HOUR : Time := T#1H;
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-10-29 | cyanezf | First version |
+
+## Description
+
+This function counts the runtime hours.
+
+--*)
+	
+	// Update hour
+	IF #isRunning THEN
+	  #private.hour += #cycleTime;
+	END_IF;
+	
+	// Updatre hours
+	IF #private.hour >= #HOUR THEN
+	  #hours += 1;
+	  #private.hour -= #HOUR;
+	END_IF;
+	
+	// Reset counter
+	IF #reset THEN
+	  #private.hour := T#0S;
+	  #hours := 0;
+	END_IF;
+	
+	// Save RLO
+	ENO := TRUE;
+END_FUNCTION_BLOCK
+

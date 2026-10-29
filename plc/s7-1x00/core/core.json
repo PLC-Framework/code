@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T17:15:58+00:00",
+  "generatedAt": "2026-10-29T17:34:44+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -2497,6 +2497,50 @@
           }
         ],
         "return": "Void"
+      }
+    },
+    {
+      "id": "_runtimeCounter-v1.0",
+      "name": "_runtimeCounter",
+      "kind": "FB",
+      "base": "_runtimeCounter",
+      "version": "1.0",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/util/_runtimeCounter-v1.0.scl",
+      "dependencies": [],
+      "interface": {
+        "input": [
+          {
+            "name": "isRunning",
+            "type": "Bool"
+          },
+          {
+            "name": "reset",
+            "type": "Bool"
+          },
+          {
+            "name": "limit",
+            "type": "UDInt"
+          }
+        ],
+        "output": [
+          {
+            "name": "limitReached",
+            "type": "Bool"
+          },
+          {
+            "name": "hours",
+            "type": "UDInt"
+          }
+        ],
+        "inout": [
+          {
+            "name": "cycleTime",
+            "type": "Time"
+          }
+        ],
+        "return": null
       }
     },
     {
@@ -9933,257 +9977,6 @@
       }
     },
     {
-      "id": "mlg2proPdi-v1.0",
-      "name": "mlg2proPdi",
-      "kind": "PlcStruct",
-      "base": "mlg2proPdi",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/mlg2proPdi-v1.0.udt",
-      "dependencies": [],
-      "interface": null
-    },
-    {
-      "id": "mlg2proPdo-v1.0",
-      "name": "mlg2proPdo",
-      "kind": "PlcStruct",
-      "base": "mlg2proPdo",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/mlg2proPdo-v1.0.udt",
-      "dependencies": [],
-      "interface": null
-    },
-    {
-      "id": "_mlg2pro_base-v1.0-toCheck",
-      "name": "_mlg2pro_base",
-      "kind": "FB",
-      "base": "_mlg2pro_base",
-      "version": "1.0-toCheck",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
-      "dependencies": [
-        "mlg2proPdi-v1.0",
-        "mlg2proPdo-v1.0"
-      ],
-      "interface": {
-        "input": [],
-        "output": [
-          {
-            "name": "status",
-            "type": "Int"
-          },
-          {
-            "name": "ready",
-            "type": "Bool"
-          },
-          {
-            "name": "data",
-            "type": "Array[0..239] of Bool"
-          }
-        ],
-        "inout": [
-          {
-            "name": "pdi",
-            "type": "\"mlg2proPdi\""
-          },
-          {
-            "name": "pdo",
-            "type": "\"mlg2proPdo\""
-          }
-        ],
-        "return": null
-      }
-    },
-    {
-      "id": "_mlg2pro_base-v1.0",
-      "name": "_mlg2pro_base",
-      "kind": "FB",
-      "base": "_mlg2pro_base",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0.scl",
-      "dependencies": [
-        "mlg2proPdi-v1.0",
-        "mlg2proPdo-v1.0"
-      ],
-      "interface": {
-        "input": [
-          {
-            "name": "invertBeamPairs",
-            "type": "Bool"
-          }
-        ],
-        "output": [
-          {
-            "name": "status",
-            "type": "Int"
-          },
-          {
-            "name": "ready",
-            "type": "Bool"
-          },
-          {
-            "name": "data",
-            "type": "Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool"
-          }
-        ],
-        "inout": [
-          {
-            "name": "pdi",
-            "type": "\"mlg2proPdi\""
-          },
-          {
-            "name": "pdo",
-            "type": "\"mlg2proPdo\""
-          }
-        ],
-        "return": null
-      }
-    },
-    {
-      "id": "_mlg2pro_objectMotionDetection-v1.0",
-      "name": "_mlg2pro_objectMotionDetection",
-      "kind": "FB",
-      "base": "_mlg2pro_objectMotionDetection",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_objectMotionDetection-v1.0.scl",
-      "dependencies": [
-        "TON_TIME"
-      ],
-      "interface": {
-        "input": [
-          {
-            "name": "check",
-            "type": "Bool"
-          },
-          {
-            "name": "minBeamRange",
-            "type": "DInt"
-          },
-          {
-            "name": "maxBeamRange",
-            "type": "DInt"
-          },
-          {
-            "name": "waitingTime",
-            "type": "Time"
-          }
-        ],
-        "output": [
-          {
-            "name": "status",
-            "type": "Int"
-          },
-          {
-            "name": "objectIsStill",
-            "type": "Bool"
-          }
-        ],
-        "inout": [
-          {
-            "name": "data",
-            "type": "Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool"
-          }
-        ],
-        "return": null
-      }
-    },
-    {
-      "id": "_mlg2pro_singleMeasurement-v1.0",
-      "name": "_mlg2pro_singleMeasurement",
-      "kind": "FC",
-      "base": "_mlg2pro_singleMeasurement",
-      "version": "1.0",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_singleMeasurement-v1.0.scl",
-      "dependencies": [],
-      "interface": {
-        "input": [
-          {
-            "name": "maxBeams",
-            "type": "USInt"
-          },
-          {
-            "name": "resolution",
-            "type": "USInt"
-          },
-          {
-            "name": "mode",
-            "type": "Int"
-          },
-          {
-            "name": "center",
-            "type": "USInt"
-          }
-        ],
-        "output": [
-          {
-            "name": "measurement",
-            "type": "Real"
-          }
-        ],
-        "inout": [
-          {
-            "name": "data",
-            "type": "Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool"
-          }
-        ],
-        "return": "Void"
-      }
-    },
-    {
-      "id": "_mlg2pro_singleMeasurement-v1.1",
-      "name": "_mlg2pro_singleMeasurement",
-      "kind": "FC",
-      "base": "_mlg2pro_singleMeasurement",
-      "version": "1.1",
-      "status": "current",
-      "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_singleMeasurement-v1.1.scl",
-      "dependencies": [],
-      "interface": {
-        "input": [
-          {
-            "name": "maxBeams",
-            "type": "USInt"
-          },
-          {
-            "name": "resolution",
-            "type": "USInt"
-          },
-          {
-            "name": "mode",
-            "type": "Int"
-          },
-          {
-            "name": "center",
-            "type": "USInt"
-          }
-        ],
-        "output": [
-          {
-            "name": "measurement",
-            "type": "Real"
-          }
-        ],
-        "inout": [
-          {
-            "name": "data",
-            "type": "Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool"
-          }
-        ],
-        "return": "Void"
-      }
-    },
-    {
       "id": "ex600Lab1Pqi-v1.0",
       "name": "ex600Lab1Pqi",
       "kind": "PlcStruct",
@@ -12872,38 +12665,6 @@
       "kind": "system"
     },
     {
-      "from": "_mlg2pro_base-v1.0-toCheck",
-      "to": "mlg2proPdi-v1.0",
-      "resolved": true,
-      "ambiguous": false
-    },
-    {
-      "from": "_mlg2pro_base-v1.0-toCheck",
-      "to": "mlg2proPdo-v1.0",
-      "resolved": true,
-      "ambiguous": false
-    },
-    {
-      "from": "_mlg2pro_base-v1.0",
-      "to": "mlg2proPdi-v1.0",
-      "resolved": true,
-      "ambiguous": false
-    },
-    {
-      "from": "_mlg2pro_base-v1.0",
-      "to": "mlg2proPdo-v1.0",
-      "resolved": true,
-      "ambiguous": false
-    },
-    {
-      "from": "_mlg2pro_objectMotionDetection-v1.0",
-      "to": "TON_TIME",
-      "resolved": false,
-      "ambiguous": false,
-      "external": true,
-      "kind": "system"
-    },
-    {
       "from": "_clearDeltatime-v1.0",
       "to": "unnormalizedDeltatime-v1.0",
       "resolved": true,
@@ -13083,23 +12844,6 @@
     }
   ],
   "reports": [
-    {
-      "level": "error",
-      "type": "version-mismatch",
-      "message": "\"_mlg2pro_base-v1.0-toCheck\": the TITLE says version \"v1.0\", the file name \"v1.0-toCheck\".",
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
-      "version": "v1.0",
-      "expected": "v1.0-toCheck"
-    },
-    {
-      "level": "error",
-      "type": "header-mismatch",
-      "message": "\"_mlg2pro_base-v1.0-toCheck\": the header says VERSION \"1.0\", the file name \"1.0-toCheck\".",
-      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
-      "attribute": "VERSION",
-      "found": "1.0",
-      "expected": "1.0-toCheck"
-    },
     {
       "level": "info",
       "type": "system-dependency",
@@ -13499,7 +13243,6 @@
         "__jxd1_stop-v1.0",
         "_sick_clv6xx_cmd-v1.2",
         "_sick_cola-v1.2",
-        "_mlg2pro_objectMotionDetection-v1.0",
         "_esc-v5.4",
         "_esc-v6.0"
       ]
