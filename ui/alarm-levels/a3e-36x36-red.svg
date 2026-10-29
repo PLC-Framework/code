@@ -7,8 +7,8 @@
    viewBox="0 0 9.5249998 9.5249999"
    version="1.1"
    id="svg1"
-   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
-   sodipodi:docname="a3e_36x36.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="a3e-36x36-red.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -23,15 +23,15 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="mm"
-     inkscape:zoom="11.313709"
-     inkscape:cx="11.75565"
-     inkscape:cy="21.345786"
-     inkscape:window-width="1856"
-     inkscape:window-height="897"
-     inkscape:window-x="54"
-     inkscape:window-y="-8"
+     inkscape:zoom="30.325661"
+     inkscape:cx="19.092741"
+     inkscape:cy="16.372273"
+     inkscape:window-width="2560"
+     inkscape:window-height="1494"
+     inkscape:window-x="1000"
+     inkscape:window-y="1614"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="svg1" />
   <defs
      id="defs1">
     <pattern
@@ -56,26 +56,8 @@
        x="0"
        y="0" />
   </defs>
-  <g
-     inkscape:label="Capa 1"
-     inkscape:groupmode="layer"
-     id="layer1"
-     transform="translate(-100.0125,-60.060417)">
-    <rect
-       style="fill:#ff0000;fill-opacity:1;stroke-width:3.05245"
-       id="rect1-8"
-       width="0.926"
-       height="7.4083333"
-       x="119.41063"
-       y="-32.07724"
-       transform="rotate(45)" />
-    <rect
-       style="fill:#ff0000;fill-opacity:1;stroke-width:3.05245"
-       id="rect1-8-5"
-       width="0.926"
-       height="7.4083333"
-       x="-28.713388"
-       y="116.21963"
-       transform="matrix(-0.70710678,0.70710678,0.70710678,0.70710678,0,0)" />
-  </g>
+  <path
+     id="path1"
+     style="fill:#da3633;stroke-width:1.32956;stroke-linecap:square;paint-order:stroke fill markers;fill-opacity:1"
+     d="M 4.7625,0 A 4.7625,4.7625 0 0 0 0,4.7625 4.7625,4.7625 0 0 0 4.7625,9.525 4.7625,4.7625 0 0 0 9.525,4.7625 4.7625,4.7625 0 0 0 4.7625,0 Z M 2.540004,1.905 4.7625,4.1274996 6.984996,1.905 7.62,2.5400004 5.397504,4.7625 7.62,6.9849996 6.984996,7.62 4.7625,5.3975004 2.540004,7.62 1.905,6.9849996 4.127496,4.7625 1.905,2.5400004 Z" />
 </svg>
