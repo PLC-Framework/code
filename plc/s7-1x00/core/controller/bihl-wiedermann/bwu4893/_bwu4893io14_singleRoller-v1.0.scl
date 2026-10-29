@@ -11,12 +11,11 @@ VERSION : 1.0
       emrgStopOk { ExternalWritable := 'False'} : Bool;   // IR: 1=Emergency ok
       runForward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run forward
       runBackward { ExternalWritable := 'False'} : Bool;   // IR: 1=Run backward
-      ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Clock wise - 1=Counter clock wise
       speed { ExternalWritable := 'False'} : Real;   // IR: Setpoint speed +-%
       rampUp { ExternalWritable := 'False'} : Time := T#100ms;   // IR: Setpoint ramp up from 0 to 25.5s
       rampDown { ExternalWritable := 'False'} : Time := T#100ms;   // IR: Setpoint ramp down from 0 to 25.5s
       config { ExternalWritable := 'False'} : Struct   // IR: Configuration
-         maxCurrent { ExternalWritable := 'False'} : UInt;   // IR: Min. current to know if motor is running
+         ccw { ExternalWritable := 'False'} : Bool;   // IR: 0=Clock wise - 1=Counter clock wise
          maxSpeed { ExternalWritable := 'False'} : Real := 100.0;   // IR: Max real speed
       END_STRUCT;
    END_VAR
@@ -109,7 +108,7 @@ BEGIN
 	// | 1          | 0           | 1   || 1         | Forward is counter clock wise |
 	// | 0          | 1           | 0   || 0         | Backward is counter clock wise |
 	// | 0          | 1           | 1   || 1         | Backward is clock wise |
-	#motor.direction := #motor.run AND ((#runBackward AND NOT #ccw) OR (#runForward AND #ccw)); // 0=cw; 1=ccw
+	#motor.direction := #motor.run AND ((#runBackward AND NOT #config.ccw) OR (#runForward AND #config.ccw)); // 0=cw; 1=ccw
 	
 	// Ramp
 	IF #motor.run AND NOT #private.run THEN

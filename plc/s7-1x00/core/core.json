@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T17:34:44+00:00",
+  "generatedAt": "2026-10-29T18:48:57+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -6713,10 +6713,6 @@
           },
           {
             "name": "runBackward",
-            "type": "Bool"
-          },
-          {
-            "name": "ccw",
             "type": "Bool"
           },
           {
