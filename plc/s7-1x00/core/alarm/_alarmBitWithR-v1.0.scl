@@ -1,0 +1,58 @@
+﻿FUNCTION "_alarmBitWithR" : Void
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/alarm","status": "current", "deprecatedBy":null, "dependencies":[]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/alarm'
+NAME : _alarmBitWithR
+VERSION : 1.0
+   VAR_INPUT 
+      incoming : Bool;   // 1=Alarm triggered
+      outcoming : Bool;   // 1=No alarm
+      acknNeeded : Bool;   // 0=Auto ackn; 1=Use ackn
+      ackn : Bool;   // 1=Ackn
+   END_VAR
+
+   VAR_IN_OUT 
+      alarm : Bool;   // 1=Alarm triggered bit
+      triggered : UInt;   // Set local alarm
+      r_ready : Bool;   // Reset ready
+   END_VAR
+
+
+BEGIN
+(*--
+# Documentation
+
+## Log
+
+| version | date | author | description |
+|:-------:|:----:|:------:|:------------|
+| v1.0 | 2026-10-29 | cyanezf | First version |
+
+## Description
+
+Alarm bit #u_thisAlarm is triggered when #incoming is true.
+Alarm bit #u_thisAlarm is reset when #incoming is false, #outcoming is true and #ackn is true or #acknNeeded is false.
+
+
+--*)
+  
+// Set/Reset alarm
+IF #incoming THEN
+  #alarm := true;
+  
+ELSIF #outcoming AND (NOT #acknNeeded OR #ackn) THEN
+  #alarm := false;
+END_IF;
+
+// Set/Reset Flags
+IF #alarm THEN
+  #triggered += 1;
+  #r_ready := false;
+END_IF;
+
+// Save RLO
+ENO := NOT #alarm;
+	 
+END_FUNCTION
+
