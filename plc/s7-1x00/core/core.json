@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T13:47:53+00:00",
+  "generatedAt": "2026-10-29T17:15:58+00:00",
   "nodes": [
     {
       "id": "EAdtConstants-v1.1",
@@ -6613,41 +6613,48 @@
       "interface": null
     },
     {
-      "id": "bwu4893Input14bytes-v1.0",
-      "name": "bwu4893Input14bytes",
+      "id": "bwu4893io14pdi-v1.0",
+      "name": "bwu4893io14pdi",
       "kind": "PlcStruct",
-      "base": "bwu4893Input14bytes",
+      "base": "bwu4893io14pdi",
       "version": "1.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893Input14bytes-v1.0.udt",
+      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893io14pdi-v1.0.udt",
       "dependencies": [],
       "interface": null
     },
     {
-      "id": "bwu4893Output14bytes-v1.0",
-      "name": "bwu4893Output14bytes",
+      "id": "bwu4893io14pdo-v1.0",
+      "name": "bwu4893io14pdo",
       "kind": "PlcStruct",
-      "base": "bwu4893Output14bytes",
+      "base": "bwu4893io14pdo",
       "version": "1.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893Output14bytes-v1.0.udt",
+      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/bwu4893io14pdo-v1.0.udt",
       "dependencies": [],
       "interface": null
     },
     {
-      "id": "_bwu4893_singleRoller-v1.0",
-      "name": "_bwu4893_singleRoller",
+      "id": "_bwu4893io14_singleRoller-v1.0",
+      "name": "_bwu4893io14_singleRoller",
       "kind": "FB",
-      "base": "_bwu4893_singleRoller",
+      "base": "_bwu4893io14_singleRoller",
       "version": "1.0",
       "status": "current",
       "deprecatedBy": null,
-      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/_bwu4893_singleRoller-v1.0.scl",
-      "dependencies": [],
+      "file": "plc/s7-1x00/core/controller/bihl-wiedermann/bwu4893/_bwu4893io14_singleRoller-v1.0.scl",
+      "dependencies": [
+        "bwu4893io14pdi-v1.0",
+        "bwu4893io14pdO-v1.0"
+      ],
       "interface": {
         "input": [
+          {
+            "name": "motorNr",
+            "type": "USInt"
+          },
           {
             "name": "controlOn",
             "type": "Bool"
@@ -6669,27 +6676,31 @@
             "type": "Bool"
           },
           {
-            "name": "SP_speed",
+            "name": "speed",
             "type": "Real"
           },
           {
-            "name": "SP_ramp",
+            "name": "rampUp",
             "type": "Time"
           },
           {
-            "name": "AI_current",
-            "type": "UInt"
+            "name": "rampDown",
+            "type": "Time"
           },
           {
-            "name": "MIN_CURRENT",
-            "type": "UInt"
-          },
-          {
-            "name": "MAX_SPEED",
-            "type": "Real"
+            "name": "config",
+            "type": "Struct"
           }
         ],
         "output": [
+          {
+            "name": "ready",
+            "type": "Bool"
+          },
+          {
+            "name": "status",
+            "type": "Int"
+          },
           {
             "name": "isRunning",
             "type": "Bool"
@@ -6699,19 +6710,24 @@
             "type": "Bool"
           },
           {
-            "name": "speed",
+            "name": "actualCurrent",
             "type": "Real"
           },
           {
-            "name": "AO_speed",
-            "type": "SInt"
-          },
-          {
-            "name": "AO_ramp",
-            "type": "USInt"
+            "name": "actualSpeed",
+            "type": "Real"
           }
         ],
-        "inout": [],
+        "inout": [
+          {
+            "name": "pdi",
+            "type": "\"bwu4893io14pdi\""
+          },
+          {
+            "name": "pdo",
+            "type": "\"bwu4893io14pdo\""
+          }
+        ],
         "return": null
       }
     },
@@ -9941,6 +9957,48 @@
       "interface": null
     },
     {
+      "id": "_mlg2pro_base-v1.0-toCheck",
+      "name": "_mlg2pro_base",
+      "kind": "FB",
+      "base": "_mlg2pro_base",
+      "version": "1.0-toCheck",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
+      "dependencies": [
+        "mlg2proPdi-v1.0",
+        "mlg2proPdo-v1.0"
+      ],
+      "interface": {
+        "input": [],
+        "output": [
+          {
+            "name": "status",
+            "type": "Int"
+          },
+          {
+            "name": "ready",
+            "type": "Bool"
+          },
+          {
+            "name": "data",
+            "type": "Array[0..239] of Bool"
+          }
+        ],
+        "inout": [
+          {
+            "name": "pdi",
+            "type": "\"mlg2proPdi\""
+          },
+          {
+            "name": "pdo",
+            "type": "\"mlg2proPdo\""
+          }
+        ],
+        "return": null
+      }
+    },
+    {
       "id": "_mlg2pro_base-v1.0",
       "name": "_mlg2pro_base",
       "kind": "FB",
@@ -10046,6 +10104,50 @@
       "status": "current",
       "deprecatedBy": null,
       "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_singleMeasurement-v1.0.scl",
+      "dependencies": [],
+      "interface": {
+        "input": [
+          {
+            "name": "maxBeams",
+            "type": "USInt"
+          },
+          {
+            "name": "resolution",
+            "type": "USInt"
+          },
+          {
+            "name": "mode",
+            "type": "Int"
+          },
+          {
+            "name": "center",
+            "type": "USInt"
+          }
+        ],
+        "output": [
+          {
+            "name": "measurement",
+            "type": "Real"
+          }
+        ],
+        "inout": [
+          {
+            "name": "data",
+            "type": "Array[#PDI_DATA_MIN_ARRAY..#PDI_DATA_MAX_ARRAY] of Bool"
+          }
+        ],
+        "return": "Void"
+      }
+    },
+    {
+      "id": "_mlg2pro_singleMeasurement-v1.1",
+      "name": "_mlg2pro_singleMeasurement",
+      "kind": "FC",
+      "base": "_mlg2pro_singleMeasurement",
+      "version": "1.1",
+      "status": "current",
+      "deprecatedBy": null,
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_singleMeasurement-v1.1.scl",
       "dependencies": [],
       "interface": {
         "input": [
@@ -12086,6 +12188,20 @@
       "kind": "untracked"
     },
     {
+      "from": "_bwu4893io14_singleRoller-v1.0",
+      "to": "bwu4893io14pdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_bwu4893io14_singleRoller-v1.0",
+      "to": "bwu4893io14pdO-v1.0",
+      "resolved": false,
+      "ambiguous": false,
+      "external": true,
+      "kind": "unknown"
+    },
+    {
       "from": "_vabx_a_s_ve_vbl-v1.0",
       "to": "vabx_a_s_ve_vbl_pdi-v1.0",
       "resolved": true,
@@ -12756,6 +12872,18 @@
       "kind": "system"
     },
     {
+      "from": "_mlg2pro_base-v1.0-toCheck",
+      "to": "mlg2proPdi-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
+      "from": "_mlg2pro_base-v1.0-toCheck",
+      "to": "mlg2proPdo-v1.0",
+      "resolved": true,
+      "ambiguous": false
+    },
+    {
       "from": "_mlg2pro_base-v1.0",
       "to": "mlg2proPdi-v1.0",
       "resolved": true,
@@ -12955,6 +13083,23 @@
     }
   ],
   "reports": [
+    {
+      "level": "error",
+      "type": "version-mismatch",
+      "message": "\"_mlg2pro_base-v1.0-toCheck\": the TITLE says version \"v1.0\", the file name \"v1.0-toCheck\".",
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
+      "version": "v1.0",
+      "expected": "v1.0-toCheck"
+    },
+    {
+      "level": "error",
+      "type": "header-mismatch",
+      "message": "\"_mlg2pro_base-v1.0-toCheck\": the header says VERSION \"1.0\", the file name \"1.0-toCheck\".",
+      "file": "plc/s7-1x00/core/dad/sick/mlg2/_mlg2pro_base-v1.0-toCheck.scl",
+      "attribute": "VERSION",
+      "found": "1.0",
+      "expected": "1.0-toCheck"
+    },
     {
       "level": "info",
       "type": "system-dependency",
@@ -13443,6 +13588,15 @@
       "dependency": "WRREC",
       "usedBy": [
         "_jxc-v1.1"
+      ]
+    },
+    {
+      "level": "warning",
+      "type": "unknown-dependency",
+      "message": "\"bwu4893io14pdO-v1.0\" is not defined in the repo and not listed in plc-system.json or plc-untracked.json.",
+      "dependency": "bwu4893io14pdO-v1.0",
+      "usedBy": [
+        "_bwu4893io14_singleRoller-v1.0"
       ]
     },
     {
