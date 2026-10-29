@@ -1,0 +1,159 @@
+﻿FUNCTION_BLOCK "_mlg2pro_base"
+TITLE = {"version":"v1.0","author":"cyanezf","family":"core/dad/sick/mlg2","status":"current","deprecatedBy":null,"dependencies":["mlg2proPdi-v1.0","mlg2proPdo-v1.0"]}
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : cyanezf
+FAMILY : 'core/dad/sick/mlg2'
+NAME : _mlg2pro_base
+VERSION : 1.0
+   VAR_OUTPUT 
+      status { ExternalWritable := 'False'} : Int;   // OR: Barrier status. See constants
+      ready { ExternalWritable := 'False'} : Bool;   // OR: 1=STATUS_0000_OK
+      data { ExternalWritable := 'False'} : Array[0..239] of Bool;   // OR: Array of beams
+   END_VAR
+
+   VAR_IN_OUT 
+      pdi : "mlg2proPdi";   // IOX: PDI
+      pdo : "mlg2proPdo";   // IOX: PDO
+   END_VAR
+
+   VAR_TEMP 
+      i : DInt;
+      x : DInt;
+   END_VAR
+
+   VAR CONSTANT 
+      PDI_DATA_MIN_ARRAY : DInt := 0;
+      PDI_DATA_MAX_ARRAY : DInt := 14;
+      WORD_LENGTH : DInt := 16;
+      STATUS_0000_OK : Int := 0;
+      STATUS_8000_Q_SHORTCIRCUIT : Int := 16#8000;
+      STATUS_8001_PROCESS_DATA_INVALID : Int := 16#8001;
+      STATUS_8002_HARDWARE_ERROR : Int := 16#8002;
+      STATUS_8003_TEACH_FAIL : Int := 16#8003;
+      STATUS_8004_SYNC_ERROR : Int := 16#8004;
+      STATUS_7000_OVERTEMPERATURE : Int := 16#7000;
+      STATUS_7001_CONTAMINATION_ALARM : Int := 16#7001;
+      STATUS_7002_TEACH_ACTIVE : Int := 16#7002;
+   END_VAR
+
+
+BEGIN
+	
+	(*--
+	# Documentation
+	
+	## Log
+	
+	| version | date | author | description |
+	|:-------:|:----:|:------:|:------------|
+	| v1.0 | 2027-08-31 | cyanezf | First version |
+	
+	## Description
+	
+	This function handles the PDI and returns `status`, `ready` and `data` processed by `invertBeamPairs`.
+	
+	--*)
+	
+	REGION PDI Status
+	  
+	  IF #pdi.status.Qshortcircuit THEN
+	    #status := #STATUS_8000_Q_SHORTCIRCUIT;
+	    
+	  ELSIF #pdi.status.processDataInvalid THEN
+	    #status := #STATUS_8001_PROCESS_DATA_INVALID;
+	    
+	  ELSIF #pdi.status.hardwareError THEN
+	    #status := #STATUS_8002_HARDWARE_ERROR;
+	    
+	  ELSIF #pdi.status.teachFail THEN
+	    #status := #STATUS_8003_TEACH_FAIL;
+	    
+	  ELSIF #pdi.status.syncError THEN
+	    #status := #STATUS_8004_SYNC_ERROR;
+	    
+	  ELSIF #pdi.status.overtemperature  THEN
+	    #status := #STATUS_7000_OVERTEMPERATURE;
+	    
+	  ELSIF #pdi.status.contaminationAlarm THEN
+	    #status := #STATUS_7001_CONTAMINATION_ALARM;
+	    
+	  ELSIF #pdi.status.teachActive THEN
+	    #status := #STATUS_7002_TEACH_ACTIVE;
+	    
+	  ELSE
+	    #status := #STATUS_0000_OK;
+	  END_IF;
+	  
+	  #ready := #status = #STATUS_0000_OK;
+	  
+	END_REGION
+	
+	REGION PDO Control
+	  
+	  #pdo.bbh :=
+	  #pdo.standby :=
+	  #pdo.teachIn :=
+	  #pdo.test := 0;
+	  
+	END_REGION
+	
+	REGION Inversion
+	  
+	  FOR #i := #PDI_DATA_MIN_ARRAY TO #PDI_DATA_MAX_ARRAY DO
+	     
+	    #x := #i * 16;
+	    
+	    // With Invesion
+	    (*
+	    // First byte
+	    #data[#x + 0] := #pdi.data[#i].%X8;
+	    #data[#x + 1] := #pdi.data[#i].%X9;
+	    #data[#x + 2] := #pdi.data[#i].%X10;
+	    #data[#x + 3] := #pdi.data[#i].%X11;
+	    #data[#x + 4] := #pdi.data[#i].%X12;
+	    #data[#x + 5] := #pdi.data[#i].%X13;
+	    #data[#x + 6] := #pdi.data[#i].%X14;
+	    #data[#x + 7] := #pdi.data[#i].%X15;
+	    
+	    // Second byte
+	    #data[#x + 8] := #pdi.data[#i].%X0;
+	    #data[#x + 9] := #pdi.data[#i].%X1;
+	    #data[#x + 10] := #pdi.data[#i].%X2;
+	    #data[#x + 11] := #pdi.data[#i].%X3;
+	    #data[#x + 12] := #pdi.data[#i].%X4;
+	    #data[#x + 13] := #pdi.data[#i].%X5;
+	    #data[#x + 14] := #pdi.data[#i].%X6;
+	    #data[#x + 15] := #pdi.data[#i].%X7;
+	   *) 
+	    
+	    // Without Inversion = Direct
+	    // First byte
+	    #data[#x + 0] := #pdi.data[#i].%X0;
+	    #data[#x + 1] := #pdi.data[#i].%X1;
+	    #data[#x + 2] := #pdi.data[#i].%X2;
+	    #data[#x + 3] := #pdi.data[#i].%X3;
+	    #data[#x + 4] := #pdi.data[#i].%X4;
+	    #data[#x + 5] := #pdi.data[#i].%X5;
+	    #data[#x + 6] := #pdi.data[#i].%X6;
+	    #data[#x + 7] := #pdi.data[#i].%X7;
+	    
+	    // Second byte
+	    #data[#x + 8] := #pdi.data[#i].%X8;
+	    #data[#x + 9] := #pdi.data[#i].%X9;
+	    #data[#x + 10] := #pdi.data[#i].%X10;
+	    #data[#x + 11] := #pdi.data[#i].%X11;
+	    #data[#x + 12] := #pdi.data[#i].%X12;
+	    #data[#x + 13] := #pdi.data[#i].%X13;
+	    #data[#x + 14] := #pdi.data[#i].%X14;
+	    #data[#x + 15] := #pdi.data[#i].%X15;
+	    
+	  END_FOR;
+	  
+	END_REGION
+	
+	// Save RLO
+	ENO := true;
+	
+	
+END_FUNCTION_BLOCK
+

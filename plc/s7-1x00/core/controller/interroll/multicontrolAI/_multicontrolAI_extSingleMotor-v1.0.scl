@@ -127,16 +127,16 @@ current, and error status from the process data input.
 	  #MOTOR_4:
 	    
 	    IF #motor.run AND #motor.#direction THEN
-	      #pdo.motor3_speed := - #motor.#speed;
+	      #pdo.motor4_speed := - #motor.#speed;
 	    ELSIF #motor.run AND NOT #motor.direction THEN
-	      #pdo.motor3_speed := #motor.#speed;
+	      #pdo.motor4_speed := #motor.#speed;
 	    ELSE
-	      #pdo.motor3_speed := #NO_MOTOR_SPEED;
+	      #pdo.motor4_speed := #NO_MOTOR_SPEED;
 	    END_IF;
 	    
-	    #motor.speed := #pdi.motor3_speed;
-	    #motor.error := #pdi.motor3_error;
-	    #motor.current := #pdi.motor3_current;
+	    #motor.speed := #pdi.motor4_speed;
+	    #motor.error := #pdi.motor4_error;
+	    #motor.current := #pdi.motor4_current;
 	    
 	  ELSE  // Motor 1
 	    IF #motor.run AND #motor.#direction THEN
